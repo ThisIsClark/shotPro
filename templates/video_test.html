@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>视频播放测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+        .info {
+            background: #f0f0f0;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>视频播放测试</h1>
+    
+    <div class="info">
+        <h3>输入视频URL:</h3>
+        <input type="text" id="videoUrl" placeholder="/results/task-id/annotated.mp4" style="width: 100%; padding: 8px;">
+        <button onclick="loadVideo()" style="margin-top: 10px; padding: 8px 20px;">加载视频</button>
+    </div>
+    
+    <video id="testVideo" controls preload="metadata">
+        您的浏览器不支持视频播放
+    </video>
+    
+    <div id="status" class="info" style="margin-top: 20px;"></div>
+    
+    <script>
+        const video = document.getElementById('testVideo');
+        const status = document.getElementById('status');
+        
+        function loadVideo() {
+            const url = document.getElementById('videoUrl').value;
+            if (!url) {
+                status.innerHTML = '<p class="error">请输入视频URL</p>';
+                return;
+            }
+            
+            status.innerHTML = '<p>加载中...</p>';
+            video.src = url + '?t=' + new Date().getTime();
+        }
+        
+        video.onloadstart = () => {
+            status.innerHTML += '<p>开始加载视频...</p>';
+        };
+        
+        video.onloadedmetadata = () => {
+            status.innerHTML += '<p class="success">✓ 视频元数据加载成功</p>';
+            status.innerHTML += `<p>时长: ${video.duration.toFixed(2)}秒</p>`;
+            status.innerHTML += `<p>尺寸: ${video.videoWidth}x${video.videoHeight}</p>`;
+        };
+        
+        video.onloadeddata = () => {
+            status.innerHTML += '<p class="success">✓ 视频数据加载成功</p>';
+        };
+        
+        video.oncanplay = () => {
+            status.innerHTML += '<p class="success">✓ 视频可以播放</p>';
+        };
+        
+        video.onerror = (e) => {
+            status.innerHTML += `<p class="error">✗ 视频加载失败</p>`;
+            status.innerHTML += `<p class="error">错误: ${video.error ? video.error.message : '未知错误'}</p>`;
+            status.innerHTML += `<p class="error">错误代码: ${video.error ? video.error.code : 'N/A'}</p>`;
+        };
+        
+        // 检查浏览器支持的视频格式
+        const formats = [
+            {type: 'video/mp4; codecs="avc1.42E01E"', name: 'MP4 H.264'},
+            {type: 'video/mp4; codecs="mp4v.20.8"', name: 'MP4 MPEG-4'},
+            {type: 'video/webm', name: 'WebM'},
+            {type: 'video/ogg', name: 'Ogg'}
+        ];
+        
+        let supportInfo = '<h3>浏览器支持的视频格式：</h3>';
+        formats.forEach(format => {
+            const support = video.canPlayType(format.type);
+            const supportText = support === 'probably' ? '✓ 完全支持' : 
+                              support === 'maybe' ? '△ 可能支持' : 
+                              '✗ 不支持';
+            supportInfo += `<p>${format.name}: ${supportText}</p>`;
+        });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            status.innerHTML = supportInfo;
+        });
+    </script>
+</body>
+</html>

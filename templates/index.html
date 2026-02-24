@@ -1,0 +1,2758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投篮姿势分析器 - Basketball Shooting Form Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1f3a;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(255, 107, 107, 0.25) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(72, 219, 251, 0.25) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(254, 202, 87, 0.25) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(168, 85, 247, 0.25) 0px, transparent 50%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* 动态背景网格 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header 设计 */
+        header {
+            text-align: center;
+            padding: 40px 0 50px;
+            position: relative;
+        }
+
+        /* 语言切换按钮 */
+        .language-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .lang-btn:hover {
+            background: rgba(72, 219, 251, 0.2);
+            border-color: rgba(72, 219, 251, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(72, 219, 251, 0.3);
+        }
+
+        .lang-btn .icon {
+            font-size: 1.2rem;
+        }
+
+        /* 导出按钮区域 */
+        .export-section {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #a855f7, #ec4899);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+        }
+
+        .btn-export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(168, 85, 247, 0.4);
+        }
+
+        .btn-export:active {
+            transform: translateY(0);
+        }
+
+        .btn-export .icon {
+            font-size: 1.2rem;
+        }
+
+        header::before {
+            content: '🏀';
+            position: absolute;
+            font-size: 150px;
+            opacity: 0.03;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
+            50% { transform: translate(-50%, -50%) translateY(-20px); }
+        }
+
+        header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 35%, #48dbfb 70%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+            position: relative;
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(72, 219, 251, 0.3)); }
+            50% { filter: drop-shadow(0 0 40px rgba(255, 107, 107, 0.4)); }
+        }
+
+        header p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 玻璃态卡片设计 */
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px) saturate(200%);
+            border-radius: 24px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+            transition: left 0.5s;
+        }
+
+        .card:hover::before {
+            left: 100%;
+        }
+
+        .card:hover {
+            border-color: rgba(72, 219, 251, 0.5);
+            box-shadow: 
+                0 12px 48px rgba(72, 219, 251, 0.2),
+                0 0 0 1px rgba(72, 219, 251, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .card h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.3px;
+        }
+
+        .card h2::before {
+            content: '';
+            width: 4px;
+            height: 28px;
+            background: linear-gradient(180deg, #ff6b6b, #feca57, #48dbfb);
+            border-radius: 3px;
+            box-shadow: 0 0 12px rgba(72, 219, 251, 0.4);
+        }
+
+        /* Upload Section */
+        .upload-section {
+            position: sticky;
+            top: 20px;
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(72, 219, 251, 0.5);
+            border-radius: 20px;
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 24px;
+            background: rgba(72, 219, 251, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(72, 219, 251, 0.15), transparent 70%);
+            transform: translate(-50%, -50%);
+            transition: width 0.4s, height 0.4s;
+        }
+
+        .upload-area:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .upload-area:hover {
+            border-color: #48dbfb;
+            background: rgba(72, 219, 251, 0.15);
+            box-shadow: 
+                0 0 30px rgba(72, 219, 251, 0.4),
+                inset 0 0 20px rgba(72, 219, 251, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #feca57;
+            background: rgba(254, 202, 87, 0.15);
+            box-shadow: 
+                0 0 40px rgba(254, 202, 87, 0.5),
+                inset 0 0 30px rgba(254, 202, 87, 0.12);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3.5rem;
+            margin-bottom: 16px;
+            animation: bounce 2s ease-in-out infinite;
+            display: inline-block;
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .upload-area p {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        .upload-area .hint {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.6;
+            position: relative;
+            z-index: 1;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .preview-container {
+            display: none;
+            margin-bottom: 24px;
+            animation: fadeInScale 0.4s ease;
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .preview-container video {
+            width: 100%;
+            border-radius: 16px;
+            max-height: 220px;
+            object-fit: contain;
+            background: #000;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .file-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            background: rgba(72, 219, 251, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            margin-top: 12px;
+            border: 1px solid rgba(72, 219, 251, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .file-info:hover {
+            background: rgba(72, 219, 251, 0.2);
+            border-color: rgba(72, 219, 251, 0.5);
+        }
+
+        .file-name {
+            color: #48dbfb;
+            font-weight: 600;
+            font-size: 0.9rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            margin-right: 12px;
+        }
+
+        .remove-file {
+            background: rgba(255, 107, 107, 0.15);
+            border: none;
+            color: #ff6b6b;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .remove-file:hover {
+            background: rgba(255, 107, 107, 0.25);
+            transform: scale(1.1) rotate(90deg);
+        }
+
+        .option-group {
+            margin-bottom: 24px;
+        }
+
+        .option-group > label {
+            display: block;
+            margin-bottom: 12px;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .radio-option {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .radio-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(72, 219, 251, 0.15), transparent);
+            transition: left 0.5s;
+        }
+
+        .radio-option:hover::before {
+            left: 100%;
+        }
+
+        .radio-option:hover {
+            border-color: rgba(72, 219, 251, 0.5);
+            background: rgba(72, 219, 251, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .radio-option input[type="radio"] {
+            accent-color: #48dbfb;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .radio-option input[type="radio"]:checked + span {
+            color: #48dbfb;
+            font-weight: 600;
+        }
+
+        .radio-option:has(input:checked) {
+            background: rgba(72, 219, 251, 0.2);
+            border-color: #48dbfb;
+            box-shadow: 0 0 20px rgba(72, 219, 251, 0.4);
+        }
+
+        .radio-option span {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 主按钮 */
+        .btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 50%, #48dbfb 100%);
+            background-size: 200% 200%;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 16px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 4px 15px rgba(255, 107, 107, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 12px 40px rgba(255, 107, 107, 0.4),
+                0 0 60px rgba(72, 219, 251, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+            background-position: 100% 50%;
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 24px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+            position: relative;
+        }
+
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.1) 50%,
+                rgba(255, 255, 255, 0) 100%);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb);
+            background-size: 200% 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            width: 0%;
+            box-shadow: 0 0 15px rgba(72, 219, 251, 0.5);
+            animation: progressGlow 2s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes progressGlow {
+            0%, 100% { 
+                box-shadow: 0 0 15px rgba(72, 219, 251, 0.5);
+                background-position: 0% 50%;
+            }
+            50% { 
+                box-shadow: 0 0 25px rgba(72, 219, 251, 0.7);
+                background-position: 100% 50%;
+            }
+        }
+
+        .progress-text {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* Results Section */
+        .results-section {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .results-container {
+            display: none;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #emptyState {
+            text-align: center;
+            padding: 120px 20px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 24px;
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+        }
+
+        #emptyState .icon {
+            font-size: 6rem;
+            margin-bottom: 24px;
+            opacity: 0.5;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.05); opacity: 0.7; }
+        }
+
+        #emptyState p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        /* 关键帧部分 - 最突出 */
+        .key-frames-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 36px;
+            border: 2px solid rgba(72, 219, 251, 0.4);
+            box-shadow: 
+                0 8px 32px rgba(72, 219, 251, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .key-frames-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(72, 219, 251, 0.15) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            z-index: 1;
+            letter-spacing: -0.5px;
+        }
+
+        .section-title-icon {
+            font-size: 2rem;
+            filter: drop-shadow(0 0 10px rgba(72, 219, 251, 0.5));
+        }
+
+        .key-frames-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .key-frame {
+            position: relative;
+            border-radius: 18px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .key-frame::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(72, 219, 251, 0.3), transparent);
+            opacity: 0;
+            transition: opacity 0.4s;
+            z-index: 1;
+        }
+
+        .key-frame:hover::before {
+            opacity: 1;
+        }
+
+        .key-frame:hover {
+            transform: translateY(-8px) scale(1.03);
+            box-shadow: 
+                0 20px 50px rgba(72, 219, 251, 0.4),
+                0 0 0 1px rgba(72, 219, 251, 0.7);
+            border-color: rgba(72, 219, 251, 0.8);
+        }
+
+        .key-frame img {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.4s;
+        }
+
+        .key-frame:hover img {
+            transform: scale(1.05);
+        }
+
+        .key-frame-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.7) 50%, transparent);
+            padding: 40px 18px 18px;
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 2;
+        }
+
+        .key-frame-label .phase-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .key-frame-label .expand-hint {
+            font-size: 0.85rem;
+            color: #48dbfb;
+            font-weight: 600;
+            opacity: 0.8;
+            transition: all 0.3s;
+        }
+
+        .key-frame:hover .expand-hint {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        /* 标注视频部分 */
+        .video-section {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 36px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .video-section video {
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s;
+        }
+
+        .video-section video:hover {
+            transform: scale(1.01);
+            box-shadow: 
+                0 24px 80px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(72, 219, 251, 0.3);
+        }
+
+        /* 问题与建议 */
+        .issues-section {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 36px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .issues-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .issue-item {
+            background: rgba(255, 107, 107, 0.15);
+            backdrop-filter: blur(10px);
+            border-left: 4px solid #ff6b6b;
+            padding: 20px 24px;
+            border-radius: 0 16px 16px 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .issue-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: inherit;
+            box-shadow: 0 0 20px currentColor;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .issue-item:hover::before {
+            opacity: 0.8;
+        }
+
+        .issue-item:hover {
+            transform: translateX(8px);
+            background: rgba(255, 107, 107, 0.25);
+            box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
+        }
+
+        .issue-item.medium {
+            background: rgba(254, 202, 87, 0.15);
+            border-left-color: #feca57;
+        }
+
+        .issue-item.medium:hover {
+            background: rgba(254, 202, 87, 0.25);
+            box-shadow: 0 4px 16px rgba(254, 202, 87, 0.3);
+        }
+
+        .issue-item.low {
+            background: rgba(72, 219, 251, 0.15);
+            border-left-color: #48dbfb;
+        }
+
+        .issue-item.low:hover {
+            background: rgba(72, 219, 251, 0.25);
+            box-shadow: 0 4px 16px rgba(72, 219, 251, 0.3);
+        }
+
+        .issue-title {
+            font-weight: 700;
+            margin-bottom: 10px;
+            font-size: 1.05rem;
+            letter-spacing: -0.2px;
+        }
+
+        .issue-suggestion {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.95rem;
+            line-height: 1.8;
+            white-space: pre-line; /* 保留换行符 */
+            word-wrap: break-word; /* 长单词换行 */
+        }
+
+        .issue-suggestion strong {
+            color: #48dbfb;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(72, 219, 251, 0.3);
+        }
+
+        /* 评分部分 - 弱化 */
+        .score-section {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s;
+        }
+
+        .score-section[open] {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .score-section summary {
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 700;
+            padding: 12px;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 12px;
+            transition: all 0.3s;
+        }
+
+        .score-section summary:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .score-section summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .score-section summary::after {
+            content: '▼';
+            font-size: 0.8rem;
+            transition: transform 0.3s;
+            opacity: 0.6;
+        }
+
+        .score-section[open] summary::after {
+            transform: rotate(180deg);
+        }
+
+        .score-display {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 24px 12px;
+        }
+
+        .score-number {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #48dbfb, #0abde3, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            min-width: 120px;
+            text-align: center;
+            filter: drop-shadow(0 0 20px rgba(72, 219, 251, 0.3));
+        }
+
+        .score-info {
+            flex: 1;
+        }
+
+        .score-rating {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #48dbfb;
+            margin-bottom: 8px;
+        }
+
+        .score-note {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.4);
+            font-style: italic;
+        }
+
+        .dimension-scores {
+            padding: 0 12px 12px;
+        }
+
+        .dimension-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s;
+        }
+
+        .dimension-item:hover {
+            padding-left: 8px;
+        }
+
+        .dimension-item:last-child {
+            border-bottom: none;
+        }
+
+        .dimension-name {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+            font-weight: 500;
+            min-width: 120px;
+        }
+
+        .dimension-score {
+            font-weight: 700;
+            color: #48dbfb;
+            font-size: 0.95rem;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        .dimension-bar {
+            flex: 1;
+            margin: 0 16px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .dimension-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 10px currentColor;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dimension-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        /* 图片放大模态框 */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.96);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
+
+        .lightbox-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            animation: zoomIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes zoomIn {
+            from { 
+                transform: scale(0.85) translateY(20px); 
+                opacity: 0; 
+            }
+            to { 
+                transform: scale(1) translateY(0); 
+                opacity: 1; 
+            }
+        }
+
+        .lightbox-content img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 16px;
+            box-shadow: 
+                0 30px 90px rgba(0, 0, 0, 0.6),
+                0 0 0 1px rgba(72, 219, 251, 0.3);
+            border: 2px solid rgba(72, 219, 251, 0.2);
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: -50px;
+            right: 0;
+            background: rgba(255, 107, 107, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .lightbox-close:hover {
+            background: rgba(255, 107, 107, 0.4);
+            transform: rotate(90deg) scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+
+        .lightbox-caption {
+            position: absolute;
+            bottom: -60px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #fff;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            letter-spacing: -0.3px;
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(72, 219, 251, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(72, 219, 251, 0.3);
+            color: #fff;
+            font-size: 2rem;
+            width: 60px;
+            height: 60px;
+            cursor: pointer;
+            border-radius: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 300;
+        }
+
+        .lightbox-nav:hover {
+            background: rgba(72, 219, 251, 0.3);
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 0 30px rgba(72, 219, 251, 0.4);
+        }
+
+        .lightbox-nav.prev {
+            left: 30px;
+        }
+
+        .lightbox-nav.next {
+            right: 30px;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Rating colors */
+        .rating-excellent { 
+            color: #00d26a; 
+            filter: drop-shadow(0 0 10px rgba(0, 210, 106, 0.5));
+        }
+        .rating-good { 
+            color: #48dbfb; 
+            filter: drop-shadow(0 0 10px rgba(72, 219, 251, 0.5));
+        }
+        .rating-fair { 
+            color: #feca57; 
+            filter: drop-shadow(0 0 10px rgba(254, 202, 87, 0.5));
+        }
+        .rating-needs_improvement { 
+            color: #ff6b6b; 
+            filter: drop-shadow(0 0 10px rgba(255, 107, 107, 0.5));
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(72, 219, 251, 0.3);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(72, 219, 251, 0.5);
+        }
+
+        /* 模板对比样式 */
+        .comparison-item {
+            animation: fadeInScale 0.6s ease-out;
+        }
+
+        .comparison-item:hover {
+            transform: translateY(-4px);
+            transition: transform 0.3s;
+        }
+
+        /* 模板管理对话框样式 */
+        .template-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .template-modal.active {
+            display: flex;
+        }
+
+        .template-modal-content {
+            background: linear-gradient(135deg, rgba(30, 40, 60, 0.95) 0%, rgba(20, 30, 50, 0.95) 100%);
+            border-radius: 24px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .template-modal-header {
+            padding: 24px 32px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .template-modal-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #48dbfb;
+        }
+
+        .template-modal-close {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .template-modal-close:hover {
+            background: rgba(255, 107, 107, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .template-modal-body {
+            padding: 24px 32px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .template-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .template-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(4px);
+        }
+
+        .template-item-info {
+            flex: 1;
+        }
+
+        .template-item-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 4px;
+        }
+
+        .template-item-desc {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+        }
+
+        .template-item-meta {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .template-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .template-delete-btn {
+            padding: 10px 20px;
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid rgba(255, 107, 107, 0.4);
+            border-radius: 10px;
+            color: #ff6b6b;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .template-delete-btn:hover {
+            background: rgba(255, 107, 107, 0.3);
+            transform: scale(1.05);
+        }
+
+        .template-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .template-empty-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #manageTemplatesBtn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            header p {
+                font-size: 1rem;
+            }
+
+            .card {
+                padding: 24px;
+            }
+
+            .section-title {
+                font-size: 1.4rem;
+            }
+            
+            /* 对比视图在移动端改为上下排列 */
+            .comparison-item > div > div {
+                grid-template-columns: 1fr !important;
+            }
+
+            .key-frames-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .upload-area {
+                padding: 36px 20px;
+            }
+
+            .upload-icon {
+                font-size: 2.5rem;
+            }
+
+            .lightbox-nav {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+
+            .lightbox-nav.prev {
+                left: 10px;
+            }
+
+            .lightbox-nav.next {
+                right: 10px;
+            }
+
+            .radio-group {
+                flex-direction: column;
+            }
+
+            .dimension-name {
+                min-width: 80px;
+                font-size: 0.85rem;
+            }
+
+            .score-number {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="language-switcher">
+                <button class="lang-btn" id="langToggle" onclick="toggleLanguage()">
+                    <span class="icon">🌐</span>
+                    <span id="langText">EN</span>
+                </button>
+            </div>
+            <h1 data-i18n="title">🏀 投篮姿势分析器</h1>
+            <p data-i18n="subtitle">上传你的投篮视频，获取专业的姿势分析和改进建议</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <div class="card">
+                    <h2 data-i18n="upload.title">上传视频</h2>
+                    
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📹</div>
+                        <p data-i18n="upload.clickOrDrag">点击或拖拽视频到这里</p>
+                        <p class="hint" data-i18n="upload.hint">支持 MP4, MOV, AVI, WebM<br>最大 50MB</p>
+                    </div>
+                    <input type="file" id="fileInput" accept="video/*">
+
+                    <div class="preview-container" id="previewContainer">
+                        <video id="videoPreview" controls></video>
+                        <div class="file-info">
+                            <span class="file-name" id="fileName"></span>
+                            <button class="remove-file" id="removeFile">✕</button>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <label data-i18n="upload.analysisType">分析类型</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="analysis_type" value="analyze" checked id="typeAnalyze">
+                                <span data-i18n="upload.typeAnalyze">分析投篮</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="analysis_type" value="create_template" id="typeTemplate">
+                                <span data-i18n="upload.typeTemplate">创建模板</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 模板名称输入（创建模板时显示） -->
+                    <div class="option-group" id="templateNameGroup" style="display: none;">
+                        <label data-i18n="upload.templateName">模板名称</label>
+                        <input type="text" id="templateNameInput" placeholder="如：Curry投篮、我的最佳投篮" 
+                               data-i18n-placeholder="upload.templateNamePlaceholder"
+                               style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-size: 1rem;">
+                        <input type="text" id="templateDescInput" placeholder="描述（可选）" 
+                               data-i18n-placeholder="upload.templateDescPlaceholder"
+                               style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-size: 0.95rem; margin-top: 8px;">
+                    </div>
+
+                    <!-- 模板选择（分析投篮时显示） -->
+                    <div class="option-group" id="templateSelectGroup">
+                        <label data-i18n="upload.compareTemplate">对比模板（可选）</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <select id="templateSelect" 
+                                    style="flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-size: 1rem;">
+                                <option value="" data-i18n="upload.noTemplate">不使用模板</option>
+                            </select>
+                            <button id="manageTemplatesBtn" type="button"
+                                    style="padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; font-size: 0.9rem; cursor: pointer; white-space: nowrap; transition: all 0.3s;">
+                                <span data-i18n="upload.manageTemplates">📋 管理</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <label data-i18n="upload.shootingHand">投篮手</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="shooting_hand" value="right" checked>
+                                <span data-i18n="upload.rightHand">右手</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="shooting_hand" value="left">
+                                <span data-i18n="upload.leftHand">左手</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="option-group" id="shootingStyleGroup">
+                        <label data-i18n="upload.shootingStyle">投篮方式</label>
+                        <div class="radio-group" style="flex-direction: column; gap: 10px;">
+                            <label class="radio-option">
+                                <input type="radio" name="shooting_style" value="one_motion" checked>
+                                <span data-i18n="upload.oneMotion">一段式（流畅型）</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="shooting_style" value="two_motion">
+                                <span data-i18n="upload.twoMotion">二段式（传统型）</span>
+                            </label>
+                        </div>
+                        <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem;">
+                            <div style="margin-bottom: 5px;">
+                                <strong style="color: #48dbfb;" data-i18n="upload.oneMotionLabel">一段式：</strong>
+                                <span data-i18n="upload.oneMotionDesc">快速流畅，一气呵成 (如Curry)</span>
+                            </div>
+                            <div>
+                                <strong style="color: #feca57;" data-i18n="upload.twoMotionLabel">二段式：</strong>
+                                <span data-i18n="upload.twoMotionDesc">举球停顿，稳定出手 (如Kobe)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn" id="analyzeBtn" disabled data-i18n="upload.analyze">
+                        开始分析
+                    </button>
+
+                    <div class="progress-container" id="progressContainer">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p class="progress-text" id="progressText">准备中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section">
+                <div id="emptyState">
+                    <div class="icon">📊</div>
+                    <p data-i18n="results.emptyState">上传视频后即可查看分析结果</p>
+                </div>
+
+                <div class="results-container" id="resultsContainer">
+                    <!-- 导出按钮 -->
+                    <div class="export-section">
+                        <button class="btn-export" id="exportPdfBtn" onclick="exportPDF()">
+                            <span class="icon">📄</span>
+                            <span data-i18n="export.pdf">导出PDF报告</span>
+                        </button>
+                    </div>
+
+                    <!-- 关键帧 - 最突出 -->
+                    <div class="key-frames-section">
+                        <h2 class="section-title">
+                            <span class="section-title-icon">🎬</span>
+                            <span data-i18n="results.keyFrames">投篮动作关键帧</span>
+                        </h2>
+                        <div class="key-frames-grid" id="keyFrames">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- 标注视频 -->
+                    <div class="video-section" id="videoResult">
+                        <h2 class="section-title">
+                            <span class="section-title-icon">🎥</span>
+                            <span data-i18n="results.annotatedVideo">完整标注视频</span>
+                        </h2>
+                        <video id="resultVideo" controls preload="metadata" playsinline>
+                            <span data-i18n="results.browserNotSupported">您的浏览器不支持视频播放。</span>
+                        </video>
+                    </div>
+
+                    <!-- 问题与建议 -->
+                    <div class="issues-section">
+                        <h2 class="section-title">
+                            <span class="section-title-icon">💡</span>
+                            <span data-i18n="results.suggestions">改进建议</span>
+                        </h2>
+                        <div class="issues-list" id="issuesList">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- 评分 - 弱化，使用折叠 -->
+                    <details class="score-section">
+                        <summary>
+                            <span>📊 <span data-i18n="results.referenceScore">参考评分</span></span>
+                        </summary>
+                        <div class="score-display">
+                            <div class="score-number" id="overallScore">--</div>
+                            <div class="score-info">
+                                <div class="score-rating" id="ratingText" data-i18n="results.waitingAnalysis">等待分析</div>
+                                <div class="score-note" data-i18n="results.scoreNote">*仅供参考，建议关注具体改进建议</div>
+                            </div>
+                        </div>
+                        <div class="dimension-scores" id="dimensionScores">
+                            <!-- Populated by JS -->
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片放大 Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <div class="lightbox-content">
+            <button class="lightbox-close" id="lightboxClose">✕</button>
+            <img id="lightboxImage" src="" alt="">
+            <div class="lightbox-caption" id="lightboxCaption"></div>
+        </div>
+        <button class="lightbox-nav prev" id="lightboxPrev">‹</button>
+        <button class="lightbox-nav next" id="lightboxNext">›</button>
+    </div>
+
+    <!-- 模板管理对话框 -->
+    <div class="template-modal" id="templateModal">
+        <div class="template-modal-content">
+            <div class="template-modal-header">
+                <h2 data-i18n="template.manageTitle">模板管理</h2>
+                <button class="template-modal-close" id="templateModalClose">✕</button>
+            </div>
+            <div class="template-modal-body" id="templateModalBody">
+                <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">
+                    <div class="spinner" style="margin: 0 auto 16px;"></div>
+                    <div data-i18n="template.loading">加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 国际化支持 ====================
+        const i18n = {
+            'zh-CN': {
+                title: '🏀 投篮姿势分析器',
+                subtitle: '上传你的投篮视频，获取专业的姿势分析和改进建议',
+                upload: {
+                    title: '上传视频',
+                    clickOrDrag: '点击或拖拽视频到这里',
+                    hint: '支持 MP4, MOV, AVI, WebM<br>最大 50MB',
+                    analysisType: '分析类型',
+                    typeAnalyze: '分析投篮',
+                    typeTemplate: '创建模板',
+                    templateName: '模板名称',
+                    templateNamePlaceholder: '如：Curry投篮、我的最佳投篮',
+                    templateDescPlaceholder: '描述（可选）',
+                    compareTemplate: '对比模板（可选）',
+                    noTemplate: '不使用模板',
+                    manageTemplates: '📋 管理',
+                    shootingHand: '投篮手',
+                    rightHand: '右手',
+                    leftHand: '左手',
+                    shootingStyle: '投篮方式',
+                    oneMotion: '一段式（流畅型）',
+                    twoMotion: '二段式（传统型）',
+                    oneMotionLabel: '一段式：',
+                    oneMotionDesc: '快速流畅，一气呵成 (如Curry)',
+                    twoMotionLabel: '二段式：',
+                    twoMotionDesc: '举球停顿，稳定出手 (如Kobe)',
+                    analyze: '开始分析',
+                    analyzing: '分析中...',
+                    uploading: '上传中...',
+                    creatingTemplate: '创建模板中...'
+                },
+                comparison: {
+                    compareWith: '对比模板',
+                    yourShot: '你的投篮',
+                    templateShot: '模板',
+                    angleDiff: '角度差异',
+                    noPhase: '模板无此阶段'
+                },
+                template: {
+                    createSuccess: '模板创建成功！',
+                    keyFrames: '模板关键帧',
+                    manageTitle: '模板管理',
+                    loading: '加载中...',
+                    noTemplates: '暂无模板',
+                    noTemplatesDesc: '创建你的第一个投篮模板',
+                    deleteConfirm: '确定要删除模板',
+                    deleteSuccess: '模板删除成功',
+                    deleteFailed: '模板删除失败',
+                    keyFrameCount: '个关键帧'
+                },
+                results: {
+                    emptyState: '上传视频后即可查看分析结果',
+                    keyFrames: '投篮动作关键帧',
+                    annotatedVideo: '完整标注视频',
+                    browserNotSupported: '您的浏览器不支持视频播放。',
+                    suggestions: '改进建议',
+                    referenceScore: '参考评分',
+                    noIssues: '✓ 未发现明显问题，投篮姿势很好！',
+                    scoreNote: '*仅供参考，建议关注具体改进建议',
+                    waitingAnalysis: '等待分析',
+                    clickToZoom: '点击放大 🔍',
+                    downloadVideo: '点击下载'
+                },
+                phases: {
+                    preparation: '准备阶段',
+                    lifting: '上升阶段',
+                    release: '出手阶段',
+                    follow_through: '跟随阶段'
+                },
+                ratings: {
+                    excellent: '优秀',
+                    good: '良好',
+                    fair: '一般',
+                    needs_improvement: '需改进'
+                },
+                progress: {
+                    preparing: '准备中...',
+                    uploading: '上传视频...',
+                    analyzing: '正在分析视频...',
+                    processing: '处理中...'
+                },
+                errors: {
+                    uploadFailed: '上传失败',
+                    analysisFailed: '分析失败',
+                    invalidFormat: '请上传支持的视频格式 (MP4, MOV, AVI, WebM)',
+                    fileTooLarge: '文件大小超过 50MB 限制',
+                    unknownError: '未知错误'
+                },
+                export: {
+                    pdf: '导出PDF报告',
+                    exporting: '正在生成PDF...',
+                    success: 'PDF导出成功！',
+                    failed: 'PDF导出失败'
+                }
+            },
+            'en-US': {
+                title: '🏀 Basketball Shooting Form Analyzer',
+                subtitle: 'Upload your shooting video to get professional form analysis and improvement suggestions',
+                upload: {
+                    title: 'Upload Video',
+                    clickOrDrag: 'Click or drag video here',
+                    hint: 'Supports MP4, MOV, AVI, WebM<br>Max 50MB',
+                    analysisType: 'Analysis Type',
+                    typeAnalyze: 'Analyze Shooting',
+                    typeTemplate: 'Create Template',
+                    templateName: 'Template Name',
+                    templateNamePlaceholder: 'e.g., Curry Shooting, My Best Shot',
+                    templateDescPlaceholder: 'Description (optional)',
+                    compareTemplate: 'Compare Template (optional)',
+                    noTemplate: 'No Template',
+                    manageTemplates: '📋 Manage',
+                    shootingHand: 'Shooting Hand',
+                    rightHand: 'Right',
+                    leftHand: 'Left',
+                    shootingStyle: 'Shooting Style',
+                    oneMotion: 'One-Motion (Fluid)',
+                    twoMotion: 'Two-Motion (Traditional)',
+                    oneMotionLabel: 'One-Motion:',
+                    oneMotionDesc: 'Fast and fluid, all in one motion (like Curry)',
+                    twoMotionLabel: 'Two-Motion:',
+                    twoMotionDesc: 'Pause at set point, stable release (like Kobe)',
+                    analyze: 'Start Analysis',
+                    analyzing: 'Analyzing...',
+                    uploading: 'Uploading...',
+                    creatingTemplate: 'Creating Template...'
+                },
+                comparison: {
+                    compareWith: 'Compare Template',
+                    yourShot: 'Your Shot',
+                    templateShot: 'Template',
+                    angleDiff: 'Angle Differences',
+                    noPhase: 'Template has no this phase'
+                },
+                template: {
+                    createSuccess: 'Template Created Successfully!',
+                    keyFrames: 'Template Key Frames',
+                    manageTitle: 'Manage Templates',
+                    loading: 'Loading...',
+                    noTemplates: 'No Templates',
+                    noTemplatesDesc: 'Create your first shooting template',
+                    deleteConfirm: 'Are you sure to delete template',
+                    deleteSuccess: 'Template deleted successfully',
+                    deleteFailed: 'Failed to delete template',
+                    keyFrameCount: ' key frames'
+                },
+                results: {
+                    emptyState: 'Upload a video to see analysis results',
+                    keyFrames: 'Key Shooting Frames',
+                    annotatedVideo: 'Full Annotated Video',
+                    browserNotSupported: 'Your browser does not support video playback.',
+                    suggestions: 'Improvement Suggestions',
+                    referenceScore: 'Reference Score',
+                    noIssues: '✓ No obvious issues found, great shooting form!',
+                    scoreNote: '*For reference only, focus on specific suggestions',
+                    waitingAnalysis: 'Waiting for analysis',
+                    clickToZoom: 'Click to zoom 🔍',
+                    downloadVideo: 'Click to download'
+                },
+                phases: {
+                    preparation: 'Preparation',
+                    lifting: 'Lifting',
+                    release: 'Release',
+                    follow_through: 'Follow Through'
+                },
+                ratings: {
+                    excellent: 'Excellent',
+                    good: 'Good',
+                    fair: 'Fair',
+                    needs_improvement: 'Needs Improvement'
+                },
+                progress: {
+                    preparing: 'Preparing...',
+                    uploading: 'Uploading video...',
+                    analyzing: 'Analyzing video...',
+                    processing: 'Processing...'
+                },
+                errors: {
+                    uploadFailed: 'Upload failed',
+                    analysisFailed: 'Analysis failed',
+                    invalidFormat: 'Please upload supported video format (MP4, MOV, AVI, WebM)',
+                    fileTooLarge: 'File size exceeds 50MB limit',
+                    unknownError: 'Unknown error'
+                },
+                export: {
+                    pdf: 'Export PDF Report',
+                    exporting: 'Generating PDF...',
+                    success: 'PDF exported successfully!',
+                    failed: 'PDF export failed'
+                }
+            }
+        };
+
+        // 当前语言
+        let currentLang = localStorage.getItem('language') || 'zh-CN';
+
+        // 切换语言函数
+        function toggleLanguage() {
+            currentLang = currentLang === 'zh-CN' ? 'en-US' : 'zh-CN';
+            localStorage.setItem('language', currentLang);
+            updateLanguage();
+        }
+
+        // 更新界面语言
+        function updateLanguage() {
+            const lang = i18n[currentLang];
+            
+            // 更新按钮文本
+            document.getElementById('langText').textContent = currentLang === 'zh-CN' ? 'EN' : '中文';
+            
+            // 更新所有带 data-i18n 属性的元素
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                const keys = key.split('.');
+                let value = lang;
+                
+                for (const k of keys) {
+                    value = value[k];
+                    if (!value) break;
+                }
+                
+                if (value) {
+                    el.innerHTML = value;
+                }
+            });
+            
+            // 更新 HTML lang 属性
+            document.documentElement.lang = currentLang;
+        }
+
+        // 获取翻译文本
+        function t(key) {
+            const keys = key.split('.');
+            let value = i18n[currentLang];
+            
+            for (const k of keys) {
+                value = value[k];
+                if (!value) return key;
+            }
+            
+            return value;
+        }
+
+        // 页面加载时应用语言和加载模板
+        document.addEventListener('DOMContentLoaded', () => {
+            updateLanguage();
+            loadTemplates();
+        });
+
+        // ==================== 原有代码 ====================
+        // Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const videoPreview = document.getElementById('videoPreview');
+        const fileName = document.getElementById('fileName');
+        const removeFile = document.getElementById('removeFile');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const emptyState = document.getElementById('emptyState');
+
+        // Lightbox
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImage = document.getElementById('lightboxImage');
+        const lightboxCaption = document.getElementById('lightboxCaption');
+        const lightboxClose = document.getElementById('lightboxClose');
+        const lightboxPrev = document.getElementById('lightboxPrev');
+        const lightboxNext = document.getElementById('lightboxNext');
+
+        let selectedFile = null;
+        let currentTaskId = null;
+        let pollInterval = null;
+        let keyFrameImages = [];
+        let currentImageIndex = 0;
+
+        // ==================== 模板管理 ====================
+        let availableTemplates = [];
+
+        // 加载模板列表
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/api/v1/templates/list');
+                if (response.ok) {
+                    const data = await response.json();
+                    availableTemplates = data.templates || [];
+                    updateTemplateSelect();
+                }
+            } catch (error) {
+                console.error('加载模板失败:', error);
+            }
+        }
+
+        // 更新模板选择下拉框
+        function updateTemplateSelect() {
+            const templateSelect = document.getElementById('templateSelect');
+            templateSelect.innerHTML = `<option value="">${t('upload.noTemplate')}</option>`;
+            
+            availableTemplates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.id;
+                option.textContent = `${template.name} ${template.description ? '- ' + template.description : ''}`;
+                templateSelect.appendChild(option);
+            });
+        }
+
+        // 分析类型切换
+        document.getElementById('typeAnalyze').addEventListener('change', () => {
+            document.getElementById('templateNameGroup').style.display = 'none';
+            document.getElementById('templateSelectGroup').style.display = 'block';
+            document.getElementById('shootingStyleGroup').style.display = 'block';
+        });
+
+        document.getElementById('typeTemplate').addEventListener('change', () => {
+            document.getElementById('templateNameGroup').style.display = 'block';
+            document.getElementById('templateSelectGroup').style.display = 'none';
+            document.getElementById('shootingStyleGroup').style.display = 'none';
+        });
+
+        // 模板管理对话框
+        const templateModal = document.getElementById('templateModal');
+        const templateModalClose = document.getElementById('templateModalClose');
+        const templateModalBody = document.getElementById('templateModalBody');
+        const manageTemplatesBtn = document.getElementById('manageTemplatesBtn');
+
+        // 打开模板管理对话框
+        manageTemplatesBtn.addEventListener('click', async () => {
+            templateModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            await loadTemplateManagement();
+        });
+
+        // 关闭模板管理对话框
+        templateModalClose.addEventListener('click', () => {
+            templateModal.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+
+        // 点击背景关闭
+        templateModal.addEventListener('click', (e) => {
+            if (e.target === templateModal) {
+                templateModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // 加载模板管理界面
+        async function loadTemplateManagement() {
+            templateModalBody.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">
+                    <div class="spinner" style="margin: 0 auto 16px;"></div>
+                    <div>${t('template.loading')}</div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/v1/templates/list');
+                if (!response.ok) throw new Error('Failed to load templates');
+                
+                const data = await response.json();
+                const templates = data.templates || [];
+
+                if (templates.length === 0) {
+                    templateModalBody.innerHTML = `
+                        <div class="template-empty">
+                            <div class="template-empty-icon">📦</div>
+                            <div style="font-size: 1.2rem; margin-bottom: 8px;">${t('template.noTemplates')}</div>
+                            <div style="font-size: 0.9rem;">${t('template.noTemplatesDesc')}</div>
+                        </div>
+                    `;
+                } else {
+                    templateModalBody.innerHTML = templates.map(template => {
+                        const createdDate = template.created_at ? new Date(template.created_at).toLocaleDateString() : '';
+                        const keyFrameCount = template.key_frames ? template.key_frames.length : 0;
+                        
+                        return `
+                            <div class="template-item">
+                                <div class="template-item-info">
+                                    <div class="template-item-name">${template.name}</div>
+                                    ${template.description ? `<div class="template-item-desc">${template.description}</div>` : ''}
+                                    <div class="template-item-meta">
+                                        ${createdDate} · ${keyFrameCount}${t('template.keyFrameCount')}
+                                    </div>
+                                </div>
+                                <div class="template-item-actions">
+                                    <button class="template-delete-btn" onclick="deleteTemplate('${template.id}', '${template.name.replace(/'/g, "\\'")}')">
+                                        🗑️ ${currentLang === 'zh-CN' ? '删除' : 'Delete'}
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('加载模板列表失败:', error);
+                templateModalBody.innerHTML = `
+                    <div class="template-empty">
+                        <div class="template-empty-icon">⚠️</div>
+                        <div style="font-size: 1.2rem; color: #ff6b6b;">${currentLang === 'zh-CN' ? '加载失败' : 'Load Failed'}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // 删除模板
+        async function deleteTemplate(templateId, templateName) {
+            const confirmMsg = `${t('template.deleteConfirm')} "${templateName}"？`;
+            
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/templates/${templateId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete template');
+                }
+
+                // 删除成功
+                alert(`✓ ${t('template.deleteSuccess')}`);
+                
+                // 重新加载模板管理界面
+                await loadTemplateManagement();
+                
+                // 重新加载模板选择列表
+                await loadTemplates();
+                
+            } catch (error) {
+                console.error('删除模板失败:', error);
+                alert(`✗ ${t('template.deleteFailed')}`);
+            }
+        }
+
+        // 将 deleteTemplate 函数暴露到全局，以便 onclick 可以调用
+        window.deleteTemplate = deleteTemplate;
+
+        // Upload area events
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        removeFile.addEventListener('click', () => {
+            resetUpload();
+        });
+
+        function resetUpload() {
+            selectedFile = null;
+            videoPreview.src = '';
+            previewContainer.style.display = 'none';
+            uploadArea.style.display = 'block';
+            analyzeBtn.disabled = true;
+            fileInput.value = '';
+            document.getElementById('templateNameInput').value = '';
+            document.getElementById('templateDescInput').value = '';
+            document.getElementById('typeAnalyze').checked = true;
+            document.getElementById('templateNameGroup').style.display = 'none';
+            document.getElementById('templateSelectGroup').style.display = 'block';
+            document.getElementById('shootingStyleGroup').style.display = 'block';
+        }
+
+        function handleFile(file) {
+            // Validate file type
+            const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
+            if (!validTypes.includes(file.type) && !file.name.match(/\.(mp4|mov|avi|webm)$/i)) {
+                alert(t('errors.invalidFormat'));
+                return;
+            }
+
+            // Validate file size (50MB)
+            if (file.size > 50 * 1024 * 1024) {
+                alert(t('errors.fileTooLarge'));
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = file.name;
+            
+            // Show preview
+            const url = URL.createObjectURL(file);
+            videoPreview.src = url;
+            previewContainer.style.display = 'block';
+            uploadArea.style.display = 'none';
+            analyzeBtn.disabled = false;
+        }
+
+        // Analyze button
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const analysisType = document.querySelector('input[name="analysis_type"]:checked').value;
+            const shootingHand = document.querySelector('input[name="shooting_hand"]:checked').value;
+            
+            // 验证模板名称（如果是创建模板）
+            if (analysisType === 'create_template') {
+                const templateName = document.getElementById('templateNameInput').value.trim();
+                if (!templateName) {
+                    alert('请输入模板名称');
+                    return;
+                }
+            }
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            // Show progress
+            analyzeBtn.disabled = true;
+            const loadingText = analysisType === 'create_template' ? t('upload.creatingTemplate') : t('upload.uploading');
+            analyzeBtn.innerHTML = '<span class="spinner"></span> ' + loadingText;
+            progressContainer.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressText.textContent = t('progress.uploading');
+
+            try {
+                let uploadResponse;
+                
+                if (analysisType === 'create_template') {
+                    // 创建模板
+                    const templateName = document.getElementById('templateNameInput').value.trim();
+                    const templateDesc = document.getElementById('templateDescInput').value.trim();
+                    
+                    formData.append('name', templateName);
+                    formData.append('description', templateDesc);
+                    formData.append('shooting_hand', shootingHand);
+                    
+                    uploadResponse = await fetch('/api/v1/templates/create', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!uploadResponse.ok) {
+                        const error = await uploadResponse.json();
+                        throw new Error(error.detail || '创建模板失败');
+                    }
+                    
+                    const result = await uploadResponse.json();
+                    
+                    // 创建成功，重新加载模板列表
+                    await loadTemplates();
+                    
+                    // 隐藏进度条
+                    progressContainer.style.display = 'none';
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.innerHTML = t('upload.analyze');
+                    
+                    // 显示模板关键帧
+                    displayTemplateKeyFrames(result.template);
+                    
+                    // 显示成功消息（不重置表单，让用户能看到结果）
+                    return;
+                    
+                } else {
+                    // 正常分析
+                    const shootingStyle = document.querySelector('input[name="shooting_style"]:checked').value;
+                    const templateId = document.getElementById('templateSelect').value;
+                    
+                    let url = `/api/v1/videos/upload?shooting_hand=${shootingHand}&shooting_style=${shootingStyle}`;
+                    if (templateId) {
+                        url += `&template_id=${templateId}`;
+                    }
+                    
+                    uploadResponse = await fetch(url, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!uploadResponse.ok) {
+                        const error = await uploadResponse.json();
+                        throw new Error(error.detail || '上传失败');
+                    }
+
+                    const uploadResult = await uploadResponse.json();
+                    currentTaskId = uploadResult.task_id;
+
+                    analyzeBtn.innerHTML = t('upload.analyzing');
+                    progressText.textContent = t('progress.analyzing');
+                }
+
+                // Poll for status
+                pollInterval = setInterval(checkStatus, 1000);
+
+            } catch (error) {
+                alert(t('errors.uploadFailed') + ': ' + error.message);
+                resetUploadState();
+            }
+        });
+
+        async function checkStatus() {
+            if (!currentTaskId) return;
+
+            try {
+                const response = await fetch(`/api/v1/videos/tasks/${currentTaskId}/status`);
+                const status = await response.json();
+
+                progressFill.style.width = status.progress + '%';
+                progressText.textContent = status.message;
+
+                if (status.status === 'completed') {
+                    clearInterval(pollInterval);
+                    displayResults(status.result);
+                    resetUploadState();
+                } else if (status.status === 'failed') {
+                    clearInterval(pollInterval);
+                    alert(t('errors.analysisFailed') + ': ' + (status.error || t('errors.unknownError')));
+                    resetUploadState();
+                }
+            } catch (error) {
+                console.error('Status check error:', error);
+            }
+        }
+
+        function resetUploadState() {
+            analyzeBtn.disabled = false;
+            analyzeBtn.innerHTML = t('upload.analyze');
+            progressContainer.style.display = 'none';
+        }
+
+        // 显示模板关键帧
+        function displayTemplateKeyFrames(template) {
+            emptyState.style.display = 'none';
+            resultsContainer.style.display = 'block';
+            
+            // 转换模板数据为关键帧格式
+            const keyFrames = document.getElementById('keyFrames');
+            keyFrameImages = template.key_frames.map(kf => ({
+                image_url: `/${kf.image_path}`,
+                phase: kf.phase
+            }));
+            
+            keyFrames.innerHTML = `
+                <div style="text-align: center; margin-bottom: 32px; padding: 24px; background: rgba(72, 219, 251, 0.1); border-radius: 16px; border: 1px solid rgba(72, 219, 251, 0.3);">
+                    <div style="font-size: 1.2rem; color: #00d26a; margin-bottom: 8px;">
+                        ✅ ${t('template.createSuccess')}
+                    </div>
+                    <div style="font-size: 1.8rem; font-weight: 600; margin-bottom: 8px;">
+                        ${template.name}
+                    </div>
+                    ${template.description ? `<div style="font-size: 1rem; color: rgba(255, 255, 255, 0.7);">${template.description}</div>` : ''}
+                    <div style="margin-top: 16px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; font-size: 0.9rem; color: rgba(255, 255, 255, 0.6);">
+                        💡 ${currentLang === 'zh-CN' ? '模板已保存，可在"对比模板"中选择使用' : 'Template saved, you can select it in "Compare Template"'}
+                    </div>
+                    <button onclick="resetUpload(); window.scrollTo({top: 0, behavior: 'smooth'});" 
+                            style="margin-top: 16px; padding: 12px 32px; background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%); color: white; border: none; border-radius: 12px; font-size: 1rem; cursor: pointer; font-weight: 600; box-shadow: 0 4px 15px rgba(72, 219, 251, 0.3); transition: all 0.3s;">
+                        ${currentLang === 'zh-CN' ? '🔄 创建新模板或分析投篮' : '🔄 Create New Template or Analyze'}
+                    </button>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+                    ${keyFrameImages.map((kf, index) => `
+                        <div class="key-frame" onclick="openLightbox(${index})">
+                            <img src="${kf.image_url}" alt="${t('phases.' + kf.phase)}">
+                            <div class="key-frame-label">
+                                <span class="phase-name">${t('phases.' + kf.phase)}</span>
+                                <span class="expand-hint">${t('results.clickToZoom')}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            // 隐藏评分和建议部分（模板不需要这些）
+            const videoSection = document.getElementById('videoResult');
+            const issuesSection = document.querySelector('.issues-section');
+            const scoreSection = document.querySelector('.score-section');
+            const exportBtn = document.getElementById('exportPdfBtn');
+            
+            if (videoSection) videoSection.style.display = 'none';
+            if (issuesSection) issuesSection.style.display = 'none';
+            if (scoreSection) scoreSection.style.display = 'none';
+            if (exportBtn) exportBtn.style.display = 'none';
+            
+            // 滚动到结果区域
+            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function displayResults(result) {
+            emptyState.style.display = 'none';
+            resultsContainer.style.display = 'block';
+            
+            // 确保所有分析相关的部分都显示（可能在创建模板时被隐藏了）
+            const videoSection = document.getElementById('videoResult');
+            const issuesSection = document.querySelector('.issues-section');
+            const scoreSection = document.querySelector('.score-section');
+            const exportBtn = document.getElementById('exportPdfBtn');
+            
+            if (videoSection) videoSection.style.display = 'block';
+            if (issuesSection) issuesSection.style.display = 'block';
+            if (scoreSection) scoreSection.style.display = 'block';
+            if (exportBtn) exportBtn.style.display = 'inline-flex';
+
+            // 检查是否有模板对比数据
+            console.log('[DEBUG] result对象:', result);
+            console.log('[DEBUG] template_comparison:', result.template_comparison);
+            const hasComparison = result.template_comparison && result.template_comparison.comparisons;
+            console.log('[DEBUG] hasComparison:', hasComparison);
+
+            // 关键帧 - 最突出
+            const keyFrames = document.getElementById('keyFrames');
+            if (result.key_frames && result.key_frames.length > 0) {
+                keyFrameImages = result.key_frames;
+                
+                if (hasComparison) {
+                    console.log('[DEBUG] 显示对比视图');
+                    // 显示对比视图
+                    keyFrames.innerHTML = renderTemplateComparison(result.template_comparison);
+                } else {
+                    console.log('[DEBUG] 显示普通视图');
+                    // 显示普通视图
+                    keyFrames.innerHTML = result.key_frames.map((kf, index) => `
+                        <div class="key-frame" onclick="openLightbox(${index})">
+                            <img src="${kf.image_url}" alt="${t('phases.' + kf.phase)}">
+                            <div class="key-frame-label">
+                                <span class="phase-name">${t('phases.' + kf.phase)}</span>
+                                <span class="expand-hint">${t('results.clickToZoom')}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } else {
+                keyFrames.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">无关键帧数据</p>';
+            }
+
+            // Annotated video
+            const videoResult = document.getElementById('videoResult');
+            const resultVideo = document.getElementById('resultVideo');
+            if (result.annotated_video_url) {
+                resultVideo.src = result.annotated_video_url + '?t=' + new Date().getTime();
+                
+                resultVideo.onerror = function(e) {
+                    console.error('视频加载失败:', e);
+                    console.log('视频URL:', result.annotated_video_url);
+                    videoResult.innerHTML = `
+                        <h2 class="section-title">
+                            <span class="section-title-icon">🎥</span>
+                            完整标注视频
+                        </h2>
+                        <p style="color: #ff6b6b; text-align: center; padding: 40px;">
+                            视频加载失败，请<a href="${result.annotated_video_url}" download style="color: #48dbfb; text-decoration: underline;">点击下载</a>后使用播放器观看
+                        </p>
+                    `;
+                };
+                
+                resultVideo.onloadedmetadata = function() {
+                    console.log('视频加载成功，时长:', resultVideo.duration, '秒');
+                };
+                
+                videoResult.style.display = 'block';
+            } else {
+                videoResult.style.display = 'none';
+            }
+
+            // Markdown格式化函数
+            function formatMarkdown(text) {
+                if (!text) return '';
+                return text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // 粗体 **text**
+                    .replace(/\n/g, '<br>');  // 换行
+            }
+
+            // 问题与建议
+            const issuesList = document.getElementById('issuesList');
+            if (result.issues && result.issues.length > 0) {
+                issuesList.innerHTML = result.issues.map(issue => `
+                    <div class="issue-item ${issue.severity}">
+                        <div class="issue-title">${issue.description}</div>
+                        <div class="issue-suggestion">💡 ${formatMarkdown(issue.suggestion)}</div>
+                    </div>
+                `).join('');
+            } else {
+                issuesList.innerHTML = '<p style="color: #00d26a; text-align: center; padding: 40px; font-size: 1.1rem;">' + t('results.noIssues') + '</p>';
+            }
+
+            // Overall score - 弱化
+            document.getElementById('overallScore').textContent = Math.round(result.overall_score);
+            
+            const ratingText = document.getElementById('ratingText');
+            ratingText.textContent = t('ratings.' + result.rating);
+            ratingText.className = 'score-rating rating-' + result.rating;
+
+            // Dimension scores
+            const dimensionScores = document.getElementById('dimensionScores');
+            if (result.dimension_scores && result.dimension_scores.length > 0) {
+                dimensionScores.innerHTML = result.dimension_scores.map(ds => {
+                    const color = ds.score >= 90 ? '#00d26a' : ds.score >= 70 ? '#48dbfb' : ds.score >= 50 ? '#feca57' : '#ff6b6b';
+                    return `
+                        <div class="dimension-item">
+                            <span class="dimension-name">${ds.name}</span>
+                            <div class="dimension-bar">
+                                <div class="dimension-bar-fill" style="width: ${ds.score}%; background: ${color}"></div>
+                            </div>
+                            <span class="dimension-score">${Math.round(ds.score)}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // 渲染模板对比视图
+        function renderTemplateComparison(comparison) {
+            const templateName = comparison.template_name;
+            const comparisons = comparison.comparisons;
+            
+            let html = `
+                <div style="text-align: center; margin-bottom: 24px; padding: 16px; background: rgba(72, 219, 251, 0.1); border-radius: 12px; border: 1px solid rgba(72, 219, 251, 0.3);">
+                    <div style="font-size: 1.1rem; color: #48dbfb; margin-bottom: 4px;">
+                        📊 ${t('comparison.compareWith')}
+                    </div>
+                    <div style="font-size: 1.3rem; font-weight: 600;">
+                        ${templateName}
+                    </div>
+                </div>
+            `;
+            
+            html += '<div style="display: flex; flex-direction: column; gap: 32px;" class="comparison-container">';
+            
+            comparisons.forEach((comp, index) => {
+                const phaseName = t('phases.' + comp.phase);
+                const userFrame = comp.user_frame;
+                const templateFrame = comp.template_frame;
+                
+                html += `
+                    <div class="comparison-item" style="background: rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                        <h3 style="text-align: center; color: #48dbfb; margin-bottom: 20px; font-size: 1.2rem;">
+                            ${phaseName}
+                        </h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="comparison-grid">
+                            <!-- 用户的关键帧 -->
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.9rem; color: #feca57; margin-bottom: 8px; font-weight: 600;">
+                                    ${t('comparison.yourShot')}
+                                </div>
+                                <div style="position: relative; border: 2px solid rgba(254, 202, 87, 0.4); border-radius: 12px; overflow: hidden; cursor: pointer;" onclick="openLightbox(${index})">
+                                    <img src="${userFrame.image_url}" alt="${phaseName}" style="width: 100%; display: block;">
+                                </div>
+                                ${renderAngles(userFrame.angles, 'user')}
+                            </div>
+                            
+                            <!-- 模板的关键帧 -->
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.9rem; color: #48dbfb; margin-bottom: 8px; font-weight: 600;">
+                                    ${templateName}
+                                </div>
+                                <div style="position: relative; border: 2px solid rgba(72, 219, 251, 0.4); border-radius: 12px; overflow: hidden;">
+                                    <img src="${templateFrame ? templateFrame.image_url : ''}" alt="${phaseName}" style="width: 100%; display: block;">
+                                </div>
+                                ${templateFrame ? renderAngles(templateFrame.angles, 'template') : `<p style="color: #999; margin-top: 10px;">${t('comparison.noPhase')}</p>`}
+                            </div>
+                        </div>
+                        
+                        <!-- 角度差异 -->
+                        ${comp.angle_differences ? renderAngleDifferences(comp.angle_differences) : ''}
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+        // 渲染角度信息
+        function renderAngles(angles, type) {
+            if (!angles) return '';
+            
+            const angleLabels = {
+                'knee_angle': '膝盖',
+                'elbow_angle': '肘部',
+                'shoulder_angle': '肩部',
+                'trunk_angle': '躯干',
+                'wrist_angle': '手腕'
+            };
+            
+            let html = '<div style="margin-top: 12px; font-size: 0.85rem; color: rgba(255, 255, 255, 0.7); line-height: 1.6;">';
+            
+            for (const [key, value] of Object.entries(angles)) {
+                if (value !== null && angleLabels[key]) {
+                    html += `<div>${angleLabels[key]}: ${Math.round(value)}°</div>`;
+                }
+            }
+            
+            html += '</div>';
+            return html;
+        }
+
+        // 渲染角度差异
+        function renderAngleDifferences(differences) {
+            const angleLabels = {
+                'zh-CN': {
+                    'knee_angle': '膝盖',
+                    'elbow_angle': '肘部',
+                    'shoulder_angle': '肩部',
+                    'trunk_angle': '躯干',
+                    'wrist_angle': '手腕'
+                },
+                'en-US': {
+                    'knee_angle': 'Knee',
+                    'elbow_angle': 'Elbow',
+                    'shoulder_angle': 'Shoulder',
+                    'trunk_angle': 'Trunk',
+                    'wrist_angle': 'Wrist'
+                }
+            };
+            
+            const labels = angleLabels[currentLang];
+            
+            let html = '<div style="margin-top: 16px; padding: 12px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; border-left: 3px solid #48dbfb;">';
+            html += `<div style="font-size: 0.9rem; color: #48dbfb; margin-bottom: 8px; font-weight: 600;">📐 ${t('comparison.angleDiff')}</div>`;
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; font-size: 0.85rem;">';
+            
+            for (const [key, diff] of Object.entries(differences)) {
+                if (labels[key]) {
+                    let color = '#00d26a'; // 绿色 - 接近
+                    let icon = '✓';
+                    if (diff > 10) {
+                        color = '#ff6b6b'; // 红色 - 差异大
+                        icon = '✗';
+                    } else if (diff > 5) {
+                        color = '#feca57'; // 黄色 - 有些差异
+                        icon = '△';
+                    }
+                    
+                    html += `
+                        <div style="padding: 6px 10px; background: rgba(255, 255, 255, 0.05); border-radius: 6px; border: 1px solid ${color}33;">
+                            <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.75rem;">${labels[key]}</div>
+                            <div style="color: ${color}; font-weight: 600;">${icon} ±${Math.round(diff)}°</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            html += '</div></div>';
+            return html;
+        }
+
+        // 图片放大功能
+        function openLightbox(index) {
+            if (!keyFrameImages || keyFrameImages.length === 0) return;
+            
+            currentImageIndex = index;
+            
+            lightboxImage.src = keyFrameImages[index].image_url;
+            lightboxCaption.textContent = t('phases.' + keyFrameImages[index].phase);
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            lightbox.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function nextImage() {
+            currentImageIndex = (currentImageIndex + 1) % keyFrameImages.length;
+            openLightbox(currentImageIndex);
+        }
+
+        function prevImage() {
+            currentImageIndex = (currentImageIndex - 1 + keyFrameImages.length) % keyFrameImages.length;
+            openLightbox(currentImageIndex);
+        }
+
+        lightboxClose.addEventListener('click', closeLightbox);
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) closeLightbox();
+        });
+        lightboxNext.addEventListener('click', (e) => {
+            e.stopPropagation();
+            nextImage();
+        });
+        lightboxPrev.addEventListener('click', (e) => {
+            e.stopPropagation();
+            prevImage();
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (!lightbox.classList.contains('active')) return;
+            
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowRight') nextImage();
+            if (e.key === 'ArrowLeft') prevImage();
+        });
+
+        // 导出PDF功能
+        async function exportPDF() {
+            if (!currentTaskId) {
+                alert(t('errors.unknownError'));
+                return;
+            }
+
+            const exportBtn = document.getElementById('exportPdfBtn');
+            const originalContent = exportBtn.innerHTML;
+
+            try {
+                // 显示加载状态
+                exportBtn.disabled = true;
+                exportBtn.innerHTML = '<span class="spinner"></span> ' + t('export.exporting');
+
+                // 请求生成PDF
+                const response = await fetch(`/api/v1/export/${currentTaskId}/pdf?language=${currentLang}`);
+                
+                if (!response.ok) {
+                    throw new Error('PDF generation failed');
+                }
+
+                // 下载PDF
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `shooting_analysis_${currentTaskId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                // 显示成功消息
+                alert(t('export.success'));
+
+            } catch (error) {
+                console.error('Export error:', error);
+                alert(t('export.failed') + ': ' + error.message);
+            } finally {
+                // 恢复按钮状态
+                exportBtn.disabled = false;
+                exportBtn.innerHTML = originalContent;
+            }
+        }
+    </script>
+</body>
+</html>

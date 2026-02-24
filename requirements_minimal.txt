@@ -1,0 +1,29 @@
+# 最小依赖 - 避免编译问题
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.9
+
+# Video & Image Processing - 使用无 GUI 版本
+opencv-python-headless==4.9.0.80
+numpy==1.24.3
+
+# MediaPipe - 使用预编译版本，不安装依赖
+# 需要单独安装: pip install --no-deps mediapipe==0.10.9
+
+# Async Support
+aiofiles==23.2.1
+
+# Validation
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Utilities
+python-dotenv==1.0.0
+
+# MediaPipe 额外依赖（手动指定，避免 opencv-contrib-python）
+attrs>=19.1.0
+protobuf<4,>=3.11
+absl-py
+flatbuffers>=2.0
+matplotlib
