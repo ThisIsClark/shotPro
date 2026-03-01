@@ -1,8 +1,20 @@
 {
-  "template_5ab4dda6449a": {
-    "name": "Booker测试",
+  "template_3e7fbf098d26": {
+    "name": "DevinBooker",
     "description": "",
-    "created_at": "2026-02-24T19:21:12.071097",
-    "key_frame_count": 0
+    "created_at": "2026-02-26T06:42:16.978055",
+    "key_frame_count": 4
+  },
+  "template_68a71955a0e3": {
+    "name": "Curry",
+    "description": "",
+    "created_at": "2026-02-26T18:42:19.933251",
+    "key_frame_count": 4
+  },
+  "template_0324ce556ef6": {
+    "name": "StephenCurry",
+    "description": "",
+    "created_at": "2026-03-01T12:19:03.086625",
+    "key_frame_count": 4
   }
 }

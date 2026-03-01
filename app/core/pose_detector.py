@@ -266,16 +266,18 @@ class PoseDetector:
         frame: np.ndarray,
         pose_result: PoseResult,
         angles: dict,
-        shooting_hand: str = "right"
+        shooting_hand: str = "right",
+        visibility_threshold: float = 0.5
     ) -> np.ndarray:
         """
-        在图像上绘制角度信息
+        在图像上绘制角度信息（仅标注可见的关键点）
         
         Args:
             frame: BGR 格式的图像
             pose_result: 姿态检测结果
             angles: 角度字典
             shooting_hand: 投篮手
+            visibility_threshold: 可见性阈值（0-1），低于此值不标注
             
         Returns:
             绘制后的图像
@@ -290,25 +292,31 @@ class PoseDetector:
             elbow_idx = PoseLandmark.LEFT_ELBOW
             knee_idx = PoseLandmark.LEFT_KNEE
         
-        # 在肘部位置显示肘部角度
+        # 在肘部位置显示肘部角度（检查可见性）
+        elbow_landmark = pose_result.landmarks.get(elbow_idx)
         elbow_coords = pose_result.get_pixel_coords(elbow_idx)
-        if elbow_coords and "elbow_angle" in angles:
-            text = f"Elbow: {angles['elbow_angle']:.1f}deg"
-            cv2.putText(
-                annotated, text,
-                (elbow_coords[0] + 10, elbow_coords[1] - 10),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2
-            )
+        if elbow_coords and "elbow_angle" in angles and angles["elbow_angle"] is not None:
+            # 检查可见性
+            if elbow_landmark and elbow_landmark.visibility >= visibility_threshold:
+                text = f"Elbow: {angles['elbow_angle']:.1f}deg"
+                cv2.putText(
+                    annotated, text,
+                    (elbow_coords[0] + 10, elbow_coords[1] - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2
+                )
         
-        # 在膝盖位置显示膝盖角度
+        # 在膝盖位置显示膝盖角度（检查可见性）
+        knee_landmark = pose_result.landmarks.get(knee_idx)
         knee_coords = pose_result.get_pixel_coords(knee_idx)
-        if knee_coords and "knee_angle" in angles:
-            text = f"Knee: {angles['knee_angle']:.1f}deg"
-            cv2.putText(
-                annotated, text,
-                (knee_coords[0] + 10, knee_coords[1] + 20),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2
-            )
+        if knee_coords and "knee_angle" in angles and angles["knee_angle"] is not None:
+            # 检查可见性
+            if knee_landmark and knee_landmark.visibility >= visibility_threshold:
+                text = f"Knee: {angles['knee_angle']:.1f}deg"
+                cv2.putText(
+                    annotated, text,
+                    (knee_coords[0] + 10, knee_coords[1] + 20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2
+                )
         
         # 在图像顶部显示所有角度
         y_offset = 30

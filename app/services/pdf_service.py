@@ -395,81 +395,206 @@ class PDFExportService:
             }
         }
         
+        label_text = {
+            'zh-CN': {'user': '你的投篮', 'template': '模板对比'},
+            'en-US': {'user': 'Your Shot', 'template': 'Template'}
+        }
+        
         elements.append(Paragraph(title_text[language], styles['Heading1']))
         
-        key_frames = result.get('key_frames', [])
+        # 检查是否有模板对比数据
+        template_comparison = result.get('template_comparison')
         
-        if key_frames:
-            # 一行一张图，让图片更大更清晰
-            for kf in key_frames:
-                image_url = kf.get('image_url', '')
-                phase = kf.get('phase', '')
+        if template_comparison and template_comparison.get('comparisons'):
+            # 显示模板对比视图
+            template_name = template_comparison.get('template_name', '')
+            comparisons = template_comparison.get('comparisons', [])
+            
+            # 添加模板名称提示
+            template_label = {
+                'zh-CN': f'📊 对比模板: {template_name}',
+                'en-US': f'📊 Compare with: {template_name}'
+            }
+            template_style = ParagraphStyle(
+                'TemplateLabel',
+                parent=styles['Body'],
+                fontName=self.font_name,
+                fontSize=11,
+                textColor=colors.HexColor('#48dbfb'),
+                spaceAfter=15,
+                alignment=TA_CENTER
+            )
+            elements.append(Paragraph(template_label[language], template_style))
+            
+            # 遍历每个阶段的对比
+            for comp in comparisons:
+                phase = comp.get('phase', '')
                 phase_name = phase_names[language].get(phase, phase)
+                user_frame = comp.get('user_frame', {})
+                template_frame = comp.get('template_frame', {})
                 
-                # 从URL获取本地文件路径
-                if image_url.startswith('/results/'):
-                    image_path = self.output_dir.parent / image_url.lstrip('/')
-                else:
-                    continue
+                # 阶段标题
+                phase_style = ParagraphStyle(
+                    'PhaseLabel',
+                    parent=styles['Body'],
+                    fontName=self.font_name,
+                    fontSize=12,
+                    alignment=TA_LEFT,
+                    textColor=colors.HexColor('#48dbfb'),
+                    spaceAfter=10,
+                    spaceBefore=10
+                )
+                elements.append(Paragraph(f"<b>{phase_name}</b>", phase_style))
                 
-                if image_path.exists():
-                    try:
-                        # 打开图片获取原始尺寸
-                        img = PILImage.open(image_path)
-                        original_width, original_height = img.size
-                        aspect_ratio = original_width / original_height
-                        
-                        # 设置最大宽度（A4页面可用宽度约6.5英寸）
-                        max_width = 6.5 * inch
-                        max_height = 8 * inch  # 最大高度限制
-                        
-                        # 根据宽高比计算显示尺寸
-                        if aspect_ratio > 1:  # 横图
-                            display_width = max_width
-                            display_height = max_width / aspect_ratio
-                            # 如果高度超过限制，从高度反推宽度
-                            if display_height > max_height:
-                                display_height = max_height
-                                display_width = max_height * aspect_ratio
-                        else:  # 竖图
-                            display_height = min(max_height, max_width / aspect_ratio)
-                            display_width = display_height * aspect_ratio
-                        
-                        # 转换为reportlab Image（保持原始宽高比）
-                        img_buffer = io.BytesIO()
-                        img.save(img_buffer, format='PNG')
-                        img_buffer.seek(0)
-                        
-                        rl_img = Image(img_buffer, width=display_width, height=display_height)
-                        
-                        # 阶段名称样式
-                        phase_style = ParagraphStyle(
-                            'PhaseLabel',
-                            parent=styles['Body'],
-                            fontName=self.font_name,
-                            fontSize=12,
-                            alignment=TA_CENTER,
-                            textColor=colors.HexColor('#0984e3'),
-                            spaceAfter=10
-                        )
-                        
-                        # 添加阶段标题
-                        elements.append(Paragraph(f"<b>{phase_name}</b>", phase_style))
-                        
-                        # 创建单张图片的表格（用于居中，宽度适应图片）
-                        table_width = display_width + 0.2*inch  # 留一点边距
-                        img_table = Table([[rl_img]], colWidths=[table_width])
-                        img_table.setStyle(TableStyle([
-                            ('ALIGN', (0, 0), (0, 0), 'CENTER'),
-                            ('VALIGN', (0, 0), (0, 0), 'MIDDLE'),
-                            ('PADDING', (0, 0), (0, 0), 10),
-                            ('BOX', (0, 0), (0, 0), 1, colors.grey)
-                        ]))
-                        
-                        elements.append(img_table)
-                        elements.append(Spacer(1, 0.3*inch))
-                    except Exception as e:
-                        print(f"无法加载图片 {image_path}: {e}")
+                # 准备图片
+                user_img = None
+                template_img = None
+                
+                # 用户图片
+                user_image_url = user_frame.get('image_url', '')
+                if user_image_url.startswith('/results/'):
+                    user_image_path = self.output_dir.parent / user_image_url.lstrip('/')
+                    if user_image_path.exists():
+                        try:
+                            user_pil = PILImage.open(user_image_path)
+                            uw, uh = user_pil.size
+                            u_aspect = uw / uh
+                            u_width = 3 * inch
+                            u_height = u_width / u_aspect
+                            
+                            u_buffer = io.BytesIO()
+                            user_pil.save(u_buffer, format='PNG')
+                            u_buffer.seek(0)
+                            user_img = Image(u_buffer, width=u_width, height=u_height)
+                        except Exception as e:
+                            print(f"无法加载用户图片 {user_image_path}: {e}")
+                
+                # 模板图片
+                template_image_url = template_frame.get('image_url', '')
+                if template_image_url:
+                    # 处理模板图片路径
+                    if template_image_url.startswith('/template_images/'):
+                        template_image_path = self.output_dir.parent.parent / template_image_url.lstrip('/')
+                    elif template_image_url.startswith('templates/'):
+                        template_image_path = self.output_dir.parent.parent / template_image_url
+                    else:
+                        template_image_path = None
+                    
+                    if template_image_path and template_image_path.exists():
+                        try:
+                            template_pil = PILImage.open(template_image_path)
+                            tw, th = template_pil.size
+                            t_aspect = tw / th
+                            t_width = 3 * inch
+                            t_height = t_width / t_aspect
+                            
+                            t_buffer = io.BytesIO()
+                            template_pil.save(t_buffer, format='PNG')
+                            t_buffer.seek(0)
+                            template_img = Image(t_buffer, width=t_width, height=t_height)
+                        except Exception as e:
+                            print(f"无法加载模板图片 {template_image_path}: {e}")
+                
+                # 创建并排表格
+                if user_img and template_img:
+                    # 标签行
+                    label_row = [
+                        Paragraph(f"<b>{label_text[language]['user']}</b>", 
+                                ParagraphStyle('UserLabel', parent=styles['Body'], fontName=self.font_name, fontSize=10, alignment=TA_CENTER, textColor=colors.HexColor('#feca57'))),
+                        Paragraph(f"<b>{template_name}</b>",
+                                ParagraphStyle('TemplateLabel', parent=styles['Body'], fontName=self.font_name, fontSize=10, alignment=TA_CENTER, textColor=colors.HexColor('#48dbfb')))
+                    ]
+                    
+                    # 图片行
+                    image_row = [user_img, template_img]
+                    
+                    comparison_table = Table([label_row, image_row], colWidths=[3.2*inch, 3.2*inch])
+                    comparison_table.setStyle(TableStyle([
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('PADDING', (0, 0), (-1, -1), 10),
+                        ('BOX', (0, 0), (0, 1), 1.5, colors.HexColor('#feca57')),
+                        ('BOX', (1, 0), (1, 1), 1.5, colors.HexColor('#48dbfb')),
+                        ('FONTNAME', (0, 0), (-1, -1), self.font_name),
+                    ]))
+                    
+                    elements.append(comparison_table)
+                    elements.append(Spacer(1, 0.3*inch))
+        else:
+            # 没有模板对比，使用原有的单图布局
+            key_frames = result.get('key_frames', [])
+            
+            if key_frames:
+                # 一行一张图，让图片更大更清晰
+                for kf in key_frames:
+                    image_url = kf.get('image_url', '')
+                    phase = kf.get('phase', '')
+                    phase_name = phase_names[language].get(phase, phase)
+                    
+                    # 从URL获取本地文件路径
+                    if image_url.startswith('/results/'):
+                        image_path = self.output_dir.parent / image_url.lstrip('/')
+                    else:
+                        continue
+                    
+                    if image_path.exists():
+                        try:
+                            # 打开图片获取原始尺寸
+                            img = PILImage.open(image_path)
+                            original_width, original_height = img.size
+                            aspect_ratio = original_width / original_height
+                            
+                            # 设置最大宽度（A4页面可用宽度约6.5英寸）
+                            max_width = 6.5 * inch
+                            max_height = 8 * inch  # 最大高度限制
+                            
+                            # 根据宽高比计算显示尺寸
+                            if aspect_ratio > 1:  # 横图
+                                display_width = max_width
+                                display_height = max_width / aspect_ratio
+                                # 如果高度超过限制，从高度反推宽度
+                                if display_height > max_height:
+                                    display_height = max_height
+                                    display_width = max_height * aspect_ratio
+                            else:  # 竖图
+                                display_height = min(max_height, max_width / aspect_ratio)
+                                display_width = display_height * aspect_ratio
+                            
+                            # 转换为reportlab Image（保持原始宽高比）
+                            img_buffer = io.BytesIO()
+                            img.save(img_buffer, format='PNG')
+                            img_buffer.seek(0)
+                            
+                            rl_img = Image(img_buffer, width=display_width, height=display_height)
+                            
+                            # 阶段名称样式
+                            phase_style = ParagraphStyle(
+                                'PhaseLabel',
+                                parent=styles['Body'],
+                                fontName=self.font_name,
+                                fontSize=12,
+                                alignment=TA_CENTER,
+                                textColor=colors.HexColor('#0984e3'),
+                                spaceAfter=10
+                            )
+                            
+                            # 添加阶段标题
+                            elements.append(Paragraph(f"<b>{phase_name}</b>", phase_style))
+                            
+                            # 创建单张图片的表格（用于居中，宽度适应图片）
+                            table_width = display_width + 0.2*inch  # 留一点边距
+                            img_table = Table([[rl_img]], colWidths=[table_width])
+                            img_table.setStyle(TableStyle([
+                                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                                ('VALIGN', (0, 0), (0, 0), 'MIDDLE'),
+                                ('PADDING', (0, 0), (0, 0), 10),
+                                ('BOX', (0, 0), (0, 0), 1, colors.grey)
+                            ]))
+                            
+                            elements.append(img_table)
+                            elements.append(Spacer(1, 0.3*inch))
+                        except Exception as e:
+                            print(f"无法加载图片 {image_path}: {e}")
         
         elements.append(PageBreak())
         

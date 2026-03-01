@@ -27,7 +27,7 @@ class AnalysisConfig:
     shooting_style: str = "one_motion"  # "one_motion" or "two_motion"
     min_detection_confidence: float = 0.5
     min_tracking_confidence: float = 0.5
-    generate_annotated_video: bool = True
+    generate_annotated_video: bool = False  # 默认不生成标注视频（提高速度）
     generate_key_frames: bool = True
     generate_evaluation: bool = True  # 是否生成评分和建议
     smooth_angles: bool = True
@@ -336,6 +336,9 @@ class AnalysisService:
                         ))
                 
                 self._report_progress(progress_callback, "keyframes", i + 1, 4, f"生成关键帧 {i + 1}/4")
+            
+            # 确保关键帧按照时间顺序排列（按frame_number排序）
+            key_frames.sort(key=lambda kf: kf.frame_number)
         
         # 第四阶段：生成标注视频
         annotated_video_path = None

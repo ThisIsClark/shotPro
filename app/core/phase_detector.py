@@ -26,6 +26,7 @@ class PhaseThresholds:
     # 准备阶段
     prep_max_knee_angle: float = 130.0      # 膝盖角度 < 此值认为在下蹲
     prep_max_elbow_angle: float = 110.0     # 肘部角度 < 此值认为手臂未展开
+    prep_max_trunk_angle: float = 20.0      # 躯干角度 < 此值认为身体直立
     
     # 出手阶段
     release_min_elbow_angle: float = 150.0  # 肘部角度 > 此值认为手臂伸展
@@ -33,6 +34,20 @@ class PhaseThresholds:
     
     # 跟随阶段 (手腕高度开始下降)
     follow_wrist_drop_threshold: float = 0.02  # 手腕下降超过此值
+    
+    # 数据平滑
+    smooth_window_size: int = 5  # 平滑窗口大小
+    
+    # 上升阶段
+    wrist_rising_window: int = 5  # 手腕上升判断窗口大小
+    wrist_rising_threshold: float = 0.02  # 手腕上升阈值
+    
+    # 出手阶段
+    release_window: int = 7  # 出手判断窗口大小
+    min_release_frames: int = 3  # 出手阶段最小帧数
+    
+    # 跟随阶段
+    follow_min_frames: int = 5  # 跟随阶段最小帧数
 
 
 @dataclass
@@ -84,6 +99,14 @@ class PhaseDetector:
         self.max_wrist_y: float = 1.0  # 最高手腕位置 (y 值越小越高)
         self.wrist_rising: bool = False
         self.release_detected: bool = False
+        
+        # 平滑后的数据
+        self.angles_history: list[ShootingAngles] = []
+        self.wrist_y_history: list[float] = []
+        
+        # 投篮检测状态
+        self.shooting_started: bool = False
+        self.follow_frames_count: int = 0
     
     def reset(self):
         """重置状态"""
@@ -91,6 +114,62 @@ class PhaseDetector:
         self.max_wrist_y = 1.0
         self.wrist_rising = False
         self.release_detected = False
+        self.angles_history = []
+        self.wrist_y_history = []
+        self.shooting_started = False
+        self.follow_frames_count = 0
+    
+    def _smooth_angles(self, current_angles: ShootingAngles) -> ShootingAngles:
+        """
+        平滑角度数据
+        
+        Args:
+            current_angles: 当前角度
+            
+        Returns:
+            平滑后的角度
+        """
+        self.angles_history.append(current_angles)
+        window_size = self.thresholds.smooth_window_size
+        
+        if len(self.angles_history) > window_size:
+            self.angles_history = self.angles_history[-window_size:]
+        
+        # 计算移动平均（过滤None值）
+        def avg(values):
+            valid = [v for v in values if v is not None]
+            return sum(valid) / len(valid) if valid else 0.0
+        
+        def avg_or_none(values):
+            valid = [v for v in values if v is not None]
+            return sum(valid) / len(valid) if valid else None
+        
+        return ShootingAngles(
+            elbow_angle=avg([a.elbow_angle for a in self.angles_history]),
+            shoulder_angle=avg([a.shoulder_angle for a in self.angles_history]),
+            knee_angle=avg_or_none([a.knee_angle for a in self.angles_history]),
+            trunk_angle=avg([a.trunk_angle for a in self.angles_history]),
+            wrist_angle=current_angles.wrist_angle,
+            hip_angle=avg_or_none([a.hip_angle for a in self.angles_history])
+        )
+    
+    def _smooth_wrist_y(self, current_wrist_y: float) -> float:
+        """
+        平滑手腕Y坐标
+        
+        Args:
+            current_wrist_y: 当前手腕Y坐标
+            
+        Returns:
+            平滑后的手腕Y坐标
+        """
+        self.wrist_y_history.append(current_wrist_y)
+        window_size = self.thresholds.smooth_window_size
+        
+        if len(self.wrist_y_history) > window_size:
+            self.wrist_y_history = self.wrist_y_history[-window_size:]
+        
+        return sum(self.wrist_y_history) / len(self.wrist_y_history)
     
     def detect_phase(
         self,
@@ -115,25 +194,29 @@ class PhaseDetector:
         """
         wrist_y = wrist_landmark.y
         
-        # 创建帧数据
+        # 平滑数据
+        smoothed_angles = self._smooth_angles(angles)
+        smoothed_wrist_y = self._smooth_wrist_y(wrist_y)
+        
+        # 创建帧数据（使用平滑后的数据）
         frame_data = FrameData(
             frame_number=frame_number,
             timestamp=timestamp,
-            angles=angles,
-            wrist_y=wrist_y,
+            angles=smoothed_angles,
+            wrist_y=smoothed_wrist_y,
             confidence=confidence
         )
         
         # 判断阶段
-        phase = self._determine_phase(angles, wrist_y)
+        phase = self._determine_phase(smoothed_angles, smoothed_wrist_y)
         frame_data.phase = phase
         
         # 更新历史
         self.frame_history.append(frame_data)
         
         # 更新最高手腕位置
-        if wrist_y < self.max_wrist_y:
-            self.max_wrist_y = wrist_y
+        if smoothed_wrist_y < self.max_wrist_y:
+            self.max_wrist_y = smoothed_wrist_y
         
         return phase
     
@@ -146,61 +229,97 @@ class PhaseDetector:
         根据角度和位置判断阶段
         
         判断逻辑:
-        1. 准备阶段: 膝盖弯曲 + 肘部弯曲
-        2. 上升阶段: 手腕 Y 坐标在上升
-        3. 出手阶段: 肘部接近伸直 + 手腕达到最高点
-        4. 跟随阶段: 手腕开始下降
+        1. 准备阶段: 膝盖弯曲 + 肘部弯曲 + 躯干直立
+        2. 上升阶段: 手腕 Y 坐标在上升 + 上升速度足够
+        3. 出手阶段: 肘部接近伸直 + 手腕达到最高点 + 出手速度
+        4. 跟随阶段: 手腕开始下降 + 持续下降
         """
         th = self.thresholds
         
-        # 检查手腕是否在上升
+        # 检查手腕运动趋势和速度
         is_wrist_rising = False
         is_wrist_falling = False
+        wrist_rising_speed = 0.0
         
-        if len(self.frame_history) >= 3:
-            recent_wrist_y = [f.wrist_y for f in self.frame_history[-3:] if f.wrist_y is not None]
+        if len(self.wrist_y_history) >= th.wrist_rising_window:
+            recent_wrist_y = self.wrist_y_history[-th.wrist_rising_window:]
             if len(recent_wrist_y) >= 2:
-                # Y 坐标减小意味着手腕在上升（屏幕坐标系 Y 轴向下）
-                is_wrist_rising = recent_wrist_y[-1] < recent_wrist_y[0] - 0.01
-                is_wrist_falling = recent_wrist_y[-1] > recent_wrist_y[0] + 0.01
-        
-        # 如果已经检测到出手，后续都是跟随阶段
-        if self.release_detected:
-            return ShootingPhase.FOLLOW_THROUGH
-        
-        # 判断是否是出手阶段
-        elbow_extended = angles.elbow_angle >= th.release_min_elbow_angle
-        shoulder_raised = angles.shoulder_angle >= th.release_min_shoulder_angle
+                # 计算平均上升速度
+                total_change = recent_wrist_y[-1] - recent_wrist_y[0]
+                wrist_rising_speed = abs(total_change) / len(recent_wrist_y)
+                
+                # 判断上升或下降
+                is_wrist_rising = total_change < -th.wrist_rising_threshold
+                is_wrist_falling = total_change > th.wrist_rising_threshold
         
         # 检查是否达到最高点（手腕开始下降）
         at_peak = False
-        if len(self.frame_history) >= 5:
-            recent = self.frame_history[-5:]
+        if len(self.frame_history) >= th.release_window:
+            recent = self.frame_history[-th.release_window:]
             wrist_positions = [f.wrist_y for f in recent if f.wrist_y is not None]
-            if len(wrist_positions) >= 5:
-                # 前几帧在上升，后几帧开始下降
+            if len(wrist_positions) >= th.release_window:
                 mid = len(wrist_positions) // 2
                 rising = wrist_positions[mid] < wrist_positions[0]
                 falling = wrist_positions[-1] > wrist_positions[mid]
                 at_peak = rising and falling
         
-        if elbow_extended and shoulder_raised and (at_peak or is_wrist_falling):
+        # 自动重置检测：如果跟随阶段持续足够长，重置状态
+        if self.release_detected and self.follow_frames_count >= th.follow_min_frames:
+            # 检查是否开始新的投篮（手腕重新上升）
+            if is_wrist_rising and wrist_rising_speed > 0.01:
+                self.reset()
+                self.shooting_started = True
+                return ShootingPhase.PREPARATION
+        
+        # 跟随阶段判断
+        if self.release_detected:
+            self.follow_frames_count += 1
+            # 独立判断：手腕持续下降
+            if is_wrist_falling:
+                return ShootingPhase.FOLLOW_THROUGH
+            # 即使手腕暂时稳定，也认为是跟随阶段
+            return ShootingPhase.FOLLOW_THROUGH
+        
+        # 出手阶段判断（降低条件要求）
+        elbow_extended = angles.elbow_angle >= th.release_min_elbow_angle
+        shoulder_raised = angles.shoulder_angle >= th.release_min_shoulder_angle
+        
+        # 增加出手速度判断
+        is_releasing = False
+        if at_peak or is_wrist_falling:
+            # 手腕在最高点附近或开始下降
+            if elbow_extended or shoulder_raised:
+                # 只要肘部或肩部有一个满足条件，且手腕在下降
+                is_releasing = True
+        
+        # 另一种出手判断：手腕上升后突然减速或开始下降
+        if self.wrist_rising and (at_peak or is_wrist_falling):
+            is_releasing = True
+        
+        if is_releasing:
             self.release_detected = True
             return ShootingPhase.RELEASE
         
-        # 判断是否是上升阶段
+        # 上升阶段判断（增加速度判断）
         if is_wrist_rising and not self.release_detected:
-            self.wrist_rising = True
-            return ShootingPhase.LIFTING
+            # 手腕上升速度足够
+            if wrist_rising_speed > 0.01:
+                self.wrist_rising = True
+                self.shooting_started = True
+                return ShootingPhase.LIFTING
         
-        # 判断是否是准备阶段
-        knee_bent = angles.knee_angle < th.prep_max_knee_angle
-        elbow_bent = angles.elbow_angle < th.prep_max_elbow_angle
+        # 准备阶段判断（增加躯干角度判断，使用and逻辑）
+        # 检查关键点可见性（knee可能不在画面内）
+        knee_bent = angles.knee_angle is not None and angles.knee_angle < th.prep_max_knee_angle
+        elbow_bent = angles.elbow_angle is not None and angles.elbow_angle < th.prep_max_elbow_angle
+        trunk_upright = angles.trunk_angle is not None and angles.trunk_angle < th.prep_max_trunk_angle
         
-        if (knee_bent or elbow_bent) and not self.wrist_rising:
+        # 至少膝盖或肘部弯曲，且躯干直立，且手腕未上升
+        if (knee_bent or elbow_bent) and trunk_upright and not self.wrist_rising:
+            self.shooting_started = True
             return ShootingPhase.PREPARATION
         
-        # 如果手腕在下降但还没检测到出手
+        # 如果手腕在下降但还没检测到出手（可能是出手检测延迟）
         if is_wrist_falling and self.wrist_rising:
             self.release_detected = True
             return ShootingPhase.RELEASE
@@ -288,11 +407,14 @@ class PhaseDetector:
             
             if segment.phase == ShootingPhase.PREPARATION:
                 # 准备阶段取膝盖角度最小的帧（下蹲最深）
-                min_knee_frame = min(
-                    segment.frames,
-                    key=lambda f: f.angles.knee_angle if f.angles else 180
-                )
-                key_frames[ShootingPhase.PREPARATION] = min_knee_frame
+                # 如果膝盖不可见，使用中间帧
+                frames_with_knee = [f for f in segment.frames if f.angles and f.angles.knee_angle is not None]
+                if frames_with_knee:
+                    min_knee_frame = min(frames_with_knee, key=lambda f: f.angles.knee_angle)
+                    key_frames[ShootingPhase.PREPARATION] = min_knee_frame
+                elif segment.frames:
+                    # 膝盖不可见时，取中间帧
+                    key_frames[ShootingPhase.PREPARATION] = segment.frames[len(segment.frames) // 2]
             
             elif segment.phase == ShootingPhase.LIFTING:
                 # 上升阶段取中间帧

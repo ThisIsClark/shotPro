@@ -652,15 +652,17 @@ class RulesEngine:
             return 60.0, issues
         
         # 找最小膝盖角度（最深下蹲）
+        # 如果膝盖不在画面内（knee_angle=None），跳过这个评估维度
         min_knee = None
         for frame in prep_segment.frames:
-            if frame.angles:
+            if frame.angles and frame.angles.knee_angle is not None:
                 knee = frame.angles.knee_angle
                 if min_knee is None or knee < min_knee:
                     min_knee = knee
         
+        # 如果膝盖不可见，返回中等分数（不扣分也不加分）
         if min_knee is None:
-            return 60.0, issues
+            return 75.0, issues
         
         th = self.thresholds
         
@@ -671,25 +673,12 @@ class RulesEngine:
             ratio = (th.knee_prep_max - min_knee) / (th.knee_prep_max - th.knee_prep_ideal)
             score = 70.0 + ratio * 30.0
         else:
-            # 下蹲不够
+            # 下蹲不够 - 仅计算分数，不生成问题提示（用户反馈：这个标准没什么用）
             ratio = th.knee_prep_max / min_knee if min_knee > 0 else 0
             score = ratio * 70.0
             
-            # 获取球星参考
-            player_ref_zh = self._get_player_reference_text("knee_bend", "zh")
-            player_ref_en = self._get_player_reference_text("knee_bend", "en")
-            
-            issues.append(Issue(
-                type=IssueType.INSUFFICIENT_KNEE_BEND,
-                severity=IssueSeverity.MEDIUM if min_knee < 135 else IssueSeverity.HIGH,
-                description=f"准备阶段膝盖弯曲不足，角度为 {min_knee:.1f}° (参考范围: 100-130°)",
-                description_en=f"Insufficient knee bend during preparation, angle is {min_knee:.1f}° (Reference range: 100-130°)",
-                phase=ShootingPhase.PREPARATION,
-                suggestion=f"建议适度下蹲，通常在100-130°之间，但最重要的是找到**你自己感觉舒适且能控制的深度**。过深会降低控制，过浅会缺乏力量。关键是保持稳定、可控的动作。双脚与肩同宽，重心均匀分布{player_ref_zh}",
-                suggestion_en=f"Recommend moderate knee bend, typically 100-130°, but most important is finding **your comfortable and controlled depth**. Too deep reduces control, too shallow lacks power. Key is maintaining stable, controlled motion. Feet shoulder-width apart, weight evenly distributed{player_ref_en}",
-                reference="BEEF Method要求适度弯曲膝盖以保持平衡。科学研究（2023）证实：优秀射手的特征是**更受控的膝盖运动**（较低的角速度），而非特定角度。具体最佳角度因人而异，应根据个人身高、体型和舒适度调整",
-                reference_en="BEEF Method requires moderate knee bend for balance. Scientific research (2023) confirms: Elite shooters' characteristic is **more controlled knee motion** (lower angular velocity), not a specific angle. Optimal angle varies by individual height, build, and comfort"
-            ))
+            # 不再生成膝盖弯曲度的问题提示
+            # issues.append(Issue(...))
         
         return score, issues
     
@@ -936,12 +925,20 @@ class RulesEngine:
                     hand_lift_start = curr_frame.frame_number
             
             # 检测腿部开始伸展（膝盖角度增大）
+            # 只有当膝盖可见时才检测
             if leg_extend_start is None:
-                knee_delta = curr_frame.angles.knee_angle - prev_frame.angles.knee_angle
-                if knee_delta > 3.0:  # 膝盖角度明显增大（伸展）
-                    leg_extend_start = curr_frame.frame_number
+                if (curr_frame.angles.knee_angle is not None and 
+                    prev_frame.angles.knee_angle is not None):
+                    knee_delta = curr_frame.angles.knee_angle - prev_frame.angles.knee_angle
+                    if knee_delta > 3.0:  # 膝盖角度明显增大（伸展）
+                        leg_extend_start = curr_frame.frame_number
         
         # 判断协调性
+        # 如果膝盖不可见（leg_extend_start为None），跳过手脚协调评估
+        if not leg_extend_start:
+            # 膝盖不在画面内，无法评估下肢动作，返回中等分数
+            return 75.0, issues
+        
         if hand_lift_start and leg_extend_start:
             coordination_gap = hand_lift_start - leg_extend_start
             

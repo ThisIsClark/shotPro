@@ -1367,6 +1367,23 @@
             gap: 8px;
         }
 
+        .template-view-btn {
+            padding: 10px 20px;
+            background: rgba(72, 219, 251, 0.2);
+            border: 1px solid rgba(72, 219, 251, 0.4);
+            border-radius: 10px;
+            color: #48dbfb;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .template-view-btn:hover {
+            background: rgba(72, 219, 251, 0.3);
+            transform: scale(1.05);
+        }
+
         .template-delete-btn {
             padding: 10px 20px;
             background: rgba(255, 107, 107, 0.2);
@@ -1588,6 +1605,17 @@
                         </div>
                     </div>
 
+                    <!-- 高级选项 -->
+                    <div class="option-group" id="advancedOptionsGroup">
+                        <label>
+                            <input type="checkbox" id="generateVideoCheckbox" style="margin-right: 8px;">
+                            <span data-i18n="upload.generateVideo">生成标注视频（耗时较长）</span>
+                        </label>
+                        <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.8rem; color: rgba(255,255,255,0.5);">
+                            <span data-i18n="upload.generateVideoHint">💡 不生成标注视频可大幅提升分析速度</span>
+                        </div>
+                    </div>
+
                     <button class="btn" id="analyzeBtn" disabled data-i18n="upload.analyze">
                         开始分析
                     </button>
@@ -1730,7 +1758,9 @@
                     analyze: '开始分析',
                     analyzing: '分析中...',
                     uploading: '上传中...',
-                    creatingTemplate: '创建模板中...'
+                    creatingTemplate: '创建模板中...',
+                    generateVideo: '生成标注视频（耗时较长）',
+                    generateVideoHint: '💡 不生成标注视频可大幅提升分析速度'
                 },
                 comparison: {
                     compareWith: '对比模板',
@@ -1825,7 +1855,9 @@
                     analyze: 'Start Analysis',
                     analyzing: 'Analyzing...',
                     uploading: 'Uploading...',
-                    creatingTemplate: 'Creating Template...'
+                    creatingTemplate: 'Creating Template...',
+                    generateVideo: 'Generate Annotated Video (Time-consuming)',
+                    generateVideoHint: '💡 Skipping video generation significantly speeds up analysis'
                 },
                 comparison: {
                     compareWith: 'Compare Template',
@@ -2013,12 +2045,14 @@
             document.getElementById('templateNameGroup').style.display = 'none';
             document.getElementById('templateSelectGroup').style.display = 'block';
             document.getElementById('shootingStyleGroup').style.display = 'block';
+            document.getElementById('advancedOptionsGroup').style.display = 'block';
         });
 
         document.getElementById('typeTemplate').addEventListener('change', () => {
             document.getElementById('templateNameGroup').style.display = 'block';
             document.getElementById('templateSelectGroup').style.display = 'none';
             document.getElementById('shootingStyleGroup').style.display = 'none';
+            document.getElementById('advancedOptionsGroup').style.display = 'none';
         });
 
         // 模板管理对话框
@@ -2075,7 +2109,7 @@
                 } else {
                     templateModalBody.innerHTML = templates.map(template => {
                         const createdDate = template.created_at ? new Date(template.created_at).toLocaleDateString() : '';
-                        const keyFrameCount = template.key_frames ? template.key_frames.length : 0;
+                        const keyFrameCount = template.key_frame_count || 0;
                         
                         return `
                             <div class="template-item">
@@ -2087,6 +2121,9 @@
                                     </div>
                                 </div>
                                 <div class="template-item-actions">
+                                    <button class="template-view-btn" onclick="viewTemplate('${template.id}')">
+                                        👁️ ${currentLang === 'zh-CN' ? '查看' : 'View'}
+                                    </button>
                                     <button class="template-delete-btn" onclick="deleteTemplate('${template.id}', '${template.name.replace(/'/g, "\\'")}')">
                                         🗑️ ${currentLang === 'zh-CN' ? '删除' : 'Delete'}
                                     </button>
@@ -2138,8 +2175,87 @@
             }
         }
 
-        // 将 deleteTemplate 函数暴露到全局，以便 onclick 可以调用
+        // 查看模板关键帧
+        async function viewTemplate(templateId) {
+            try {
+                const response = await fetch(`/api/v1/templates/${templateId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch template');
+                }
+                
+                const template = await response.json();
+                
+                // 关闭模板管理弹窗
+                templateModal.style.display = 'none';
+                
+                // 显示结果区域
+                emptyState.style.display = 'none';
+                resultsContainer.style.display = 'block';
+                
+                // 隐藏不需要的部分
+                const videoSection = document.querySelector('.video-section');
+                const issuesSection = document.querySelector('.issues-section');
+                const scoreSection = document.querySelector('.score-section');
+                if (videoSection) videoSection.style.display = 'none';
+                if (issuesSection) issuesSection.style.display = 'none';
+                if (scoreSection) scoreSection.style.display = 'none';
+                
+                // 显示模板关键帧
+                const keyFramesSection = document.querySelector('.key-frames-section');
+                const keyFrames = document.getElementById('keyFrames');
+                
+                keyFramesSection.style.display = 'block';
+                
+                // 生成模板关键帧HTML
+                keyFrameImages = template.key_frames.map(kf => ({
+                    image_url: kf.image_url,
+                    phase: kf.phase
+                }));
+                
+                keyFrames.innerHTML = `
+                    <div style="grid-column: 1 / -1; width: 100%; margin-bottom: 20px;">
+                        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: rgba(72, 219, 251, 0.15); border-radius: 8px; border: 1px solid rgba(72, 219, 251, 0.4); font-size: 0.9rem;">
+                            <span style="color: #48dbfb;">📑 ${currentLang === 'zh-CN' ? '模板' : 'Template'}</span>
+                            <span style="font-weight: 600; color: #fff;">${template.name}</span>
+                        </div>
+                    </div>
+                ` + template.key_frames.map((kf, index) => {
+                    const phaseNames = {
+                        'zh-CN': {
+                            'preparation': '准备阶段',
+                            'lifting': '上升阶段',
+                            'release': '出手阶段',
+                            'follow_through': '跟随阶段'
+                        },
+                        'en-US': {
+                            'preparation': 'Preparation',
+                            'lifting': 'Lifting',
+                            'release': 'Release',
+                            'follow_through': 'Follow Through'
+                        }
+                    };
+                    const phaseName = phaseNames[currentLang][kf.phase] || kf.phase;
+                    
+                    return `
+                        <div class="key-frame" onclick="openLightbox(${index})">
+                            <img src="${kf.image_url}" alt="${phaseName}">
+                            <div class="key-frame-label">
+                                <span class="phase-name">${phaseName}</span>
+                                <span class="expand-hint">${t('results.clickToZoom')}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('查看模板失败:', error);
+                alert(currentLang === 'zh-CN' ? '查看模板失败' : 'Failed to view template');
+            }
+        }
+
+        // 将函数暴露到全局，以便 onclick 可以调用
         window.deleteTemplate = deleteTemplate;
+        window.viewTemplate = viewTemplate;
 
         // Upload area events
         uploadArea.addEventListener('click', () => fileInput.click());
@@ -2185,6 +2301,8 @@
             document.getElementById('templateNameGroup').style.display = 'none';
             document.getElementById('templateSelectGroup').style.display = 'block';
             document.getElementById('shootingStyleGroup').style.display = 'block';
+            document.getElementById('advancedOptionsGroup').style.display = 'block';
+            document.getElementById('generateVideoCheckbox').checked = false;
         }
 
         function handleFile(file) {
@@ -2282,8 +2400,9 @@
                     // 正常分析
                     const shootingStyle = document.querySelector('input[name="shooting_style"]:checked').value;
                     const templateId = document.getElementById('templateSelect').value;
+                    const generateVideo = document.getElementById('generateVideoCheckbox').checked;
                     
-                    let url = `/api/v1/videos/upload?shooting_hand=${shootingHand}&shooting_style=${shootingStyle}`;
+                    let url = `/api/v1/videos/upload?shooting_hand=${shootingHand}&shooting_style=${shootingStyle}&generate_video=${generateVideo}`;
                     if (templateId) {
                         url += `&template_id=${templateId}`;
                     }
@@ -2525,17 +2644,18 @@
 
         // 渲染模板对比视图
         function renderTemplateComparison(comparison) {
+            console.log('[DEBUG renderTemplateComparison] 收到的对比数据:', comparison);
             const templateName = comparison.template_name;
             const comparisons = comparison.comparisons;
+            console.log('[DEBUG renderTemplateComparison] comparisons 数量:', comparisons.length);
             
-            let html = `
-                <div style="text-align: center; margin-bottom: 24px; padding: 16px; background: rgba(72, 219, 251, 0.1); border-radius: 12px; border: 1px solid rgba(72, 219, 251, 0.3);">
-                    <div style="font-size: 1.1rem; color: #48dbfb; margin-bottom: 4px;">
-                        📊 ${t('comparison.compareWith')}
-                    </div>
-                    <div style="font-size: 1.3rem; font-weight: 600;">
-                        ${templateName}
-                    </div>
+            // 包裹整个对比视图，让它占据整个宽度而不受grid布局影响
+            let html = '<div style="grid-column: 1 / -1; width: 100%;">';
+            
+            html += `
+                <div style="display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 8px 16px; background: rgba(72, 219, 251, 0.15); border-radius: 8px; border: 1px solid rgba(72, 219, 251, 0.4); font-size: 0.9rem;">
+                    <span style="color: #48dbfb;">📊 ${t('comparison.compareWith')}</span>
+                    <span style="font-weight: 600; color: #fff;">${templateName}</span>
                 </div>
             `;
             
@@ -2547,31 +2667,31 @@
                 const templateFrame = comp.template_frame;
                 
                 html += `
-                    <div class="comparison-item" style="background: rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                        <h3 style="text-align: center; color: #48dbfb; margin-bottom: 20px; font-size: 1.2rem;">
+                    <div class="comparison-item" style="background: rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 24px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                        <h3 style="color: #48dbfb; margin-bottom: 20px; font-size: 1.2rem; font-weight: 600; padding-left: 8px; border-left: 3px solid #48dbfb;">
                             ${phaseName}
                         </h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="comparison-grid">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 100%;" class="comparison-grid">
                             <!-- 用户的关键帧 -->
-                            <div style="text-align: center;">
-                                <div style="font-size: 0.9rem; color: #feca57; margin-bottom: 8px; font-weight: 600;">
+                            <div style="display: flex; flex-direction: column;">
+                                <div style="font-size: 0.95rem; color: #feca57; margin-bottom: 10px; font-weight: 600; text-align: center;">
                                     ${t('comparison.yourShot')}
                                 </div>
-                                <div style="position: relative; border: 2px solid rgba(254, 202, 87, 0.4); border-radius: 12px; overflow: hidden; cursor: pointer;" onclick="openLightbox(${index})">
-                                    <img src="${userFrame.image_url}" alt="${phaseName}" style="width: 100%; display: block;">
+                                <div style="position: relative; border: 2px solid rgba(254, 202, 87, 0.5); border-radius: 12px; overflow: hidden; cursor: pointer; flex: 1;" onclick="openLightbox(${index})">
+                                    <img src="${userFrame.image_url}" alt="${phaseName}" style="width: 100%; height: 100%; object-fit: contain; display: block; background: rgba(0,0,0,0.2);">
                                 </div>
                                 ${renderAngles(userFrame.angles, 'user')}
                             </div>
                             
                             <!-- 模板的关键帧 -->
-                            <div style="text-align: center;">
-                                <div style="font-size: 0.9rem; color: #48dbfb; margin-bottom: 8px; font-weight: 600;">
+                            <div style="display: flex; flex-direction: column;">
+                                <div style="font-size: 0.95rem; color: #48dbfb; margin-bottom: 10px; font-weight: 600; text-align: center;">
                                     ${templateName}
                                 </div>
-                                <div style="position: relative; border: 2px solid rgba(72, 219, 251, 0.4); border-radius: 12px; overflow: hidden;">
-                                    <img src="${templateFrame ? templateFrame.image_url : ''}" alt="${phaseName}" style="width: 100%; display: block;">
+                                <div style="position: relative; border: 2px solid rgba(72, 219, 251, 0.5); border-radius: 12px; overflow: hidden; flex: 1;">
+                                    <img src="${templateFrame ? templateFrame.image_url : ''}" alt="${phaseName}" style="width: 100%; height: 100%; object-fit: contain; display: block; background: rgba(0,0,0,0.2);">
                                 </div>
-                                ${templateFrame ? renderAngles(templateFrame.angles, 'template') : `<p style="color: #999; margin-top: 10px;">${t('comparison.noPhase')}</p>`}
+                                ${templateFrame ? renderAngles(templateFrame.angles, 'template') : `<p style="color: #999; margin-top: 10px; text-align: center;">${t('comparison.noPhase')}</p>`}
                             </div>
                         </div>
                         
@@ -2581,7 +2701,8 @@
                 `;
             });
             
-            html += '</div>';
+            html += '</div>'; // 关闭 comparison-container
+            html += '</div>'; // 关闭外层包裹div
             return html;
         }
 
