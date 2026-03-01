@@ -168,10 +168,20 @@ async def get_template(template_id: str):
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
     
-    return {
-        'success': True,
-        'template': template.to_dict()
-    }
+    # 转换为字典并处理关键帧图片URL
+    template_dict = template.to_dict()
+    
+    # 将image_path转换为前端可访问的image_url
+    for kf in template_dict['key_frames']:
+        image_path = kf['image_path']
+        # 确保路径格式正确
+        if not image_path.startswith('/'):
+            image_path = '/' + image_path
+        if not image_path.startswith('/template_images/'):
+            image_path = '/template_images/' + image_path.lstrip('/')
+        kf['image_url'] = image_path
+    
+    return template_dict
 
 
 @router.delete("/{template_id}")

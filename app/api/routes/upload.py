@@ -52,7 +52,7 @@ async def save_upload_file(upload_file: UploadFile, destination: Path) -> None:
             await f.write(content)
 
 
-def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", shooting_style: str = "one_motion", template_id: str = None):
+def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", shooting_style: str = "one_motion", template_id: str = None, generate_video: bool = False):
     """运行分析任务（后台任务）"""
     try:
         # 更新状态
@@ -67,7 +67,8 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
         # 创建分析服务
         config = AnalysisConfig(
             shooting_hand=shooting_hand,
-            shooting_style=shooting_style
+            shooting_style=shooting_style,
+            generate_annotated_video=generate_video
         )
         
         with AnalysisService(config) as service:
@@ -89,12 +90,16 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
                 print(f"[DEBUG] 用户关键帧数量: {len(result.key_frames)}")
                 comparison_data = _generate_comparison(result.key_frames, template.key_frames)
                 print(f"[DEBUG] 生成的对比数据数量: {len(comparison_data)}")
+                print(f"[DEBUG] comparison_data 详细内容:")
+                for i, comp in enumerate(comparison_data):
+                    print(f"  [{i}] phase={comp.get('phase')}, has_user_frame={bool(comp.get('user_frame'))}, has_template_frame={bool(comp.get('template_frame'))}")
                 result_dict["template_comparison"] = {
                     "template_id": template_id,
                     "template_name": template.name,
                     "comparisons": comparison_data
                 }
                 print(f"[DEBUG] template_comparison 已添加到 result_dict")
+                print(f"[DEBUG] result_dict['template_comparison']['comparisons'] 长度: {len(result_dict['template_comparison']['comparisons'])}")
             else:
                 print(f"[DEBUG] 模板未找到: {template_id}")
         
@@ -114,12 +119,18 @@ def _generate_comparison(user_frames, template_frames):
     """生成关键帧对比数据"""
     comparison = []
     
+    print(f"[DEBUG _generate_comparison] 用户关键帧数量: {len(user_frames)}")
+    print(f"[DEBUG _generate_comparison] 模板关键帧数量: {len(template_frames)}")
+    
     # 创建阶段映射
     template_dict = {tkf.phase: tkf for tkf in template_frames}
+    print(f"[DEBUG _generate_comparison] template_dict 键: {list(template_dict.keys())}")
     
     for user_kf in user_frames:
         phase = user_kf.phase.value if hasattr(user_kf.phase, 'value') else user_kf.phase
+        print(f"[DEBUG _generate_comparison] 处理用户关键帧: phase={phase}, type={type(phase)}")
         template_kf = template_dict.get(phase)
+        print(f"[DEBUG _generate_comparison] 找到模板关键帧: {template_kf is not None}")
         
         comp = {
             "phase": phase,
@@ -149,7 +160,10 @@ def _generate_comparison(user_frames, template_frames):
                 comp["angle_differences"] = angle_diffs
         
         comparison.append(comp)
+        print(f"[DEBUG _generate_comparison] 添加对比条目: phase={phase}, has_template={template_kf is not None}")
     
+    print(f"[DEBUG _generate_comparison] 最终对比数组长度: {len(comparison)}")
+    print(f"[DEBUG _generate_comparison] 对比数组内容预览: {[c.get('phase') for c in comparison]}")
     return comparison
 
 
@@ -159,7 +173,8 @@ async def upload_video(
     file: UploadFile = File(...),
     shooting_hand: str = "right",
     shooting_style: str = "one_motion",
-    template_id: str = None
+    template_id: str = None,
+    generate_video: bool = False
 ):
     """
     上传投篮视频
@@ -168,6 +183,7 @@ async def upload_video(
     - **shooting_hand**: 投篮手 ("left" 或 "right")
     - **shooting_style**: 投篮方式 ("one_motion" 或 "two_motion")
     - **template_id**: 可选，对比模板ID
+    - **generate_video**: 是否生成标注视频（默认false，提高速度）
     
     返回 task_id，可用于查询分析状态和结果
     """
@@ -221,7 +237,7 @@ async def upload_video(
     }
     
     # 添加后台任务
-    background_tasks.add_task(run_analysis, task_id, video_path, shooting_hand, shooting_style, template_id)
+    background_tasks.add_task(run_analysis, task_id, video_path, shooting_hand, shooting_style, template_id, generate_video)
     
     return UploadResponse(
         task_id=task_id,

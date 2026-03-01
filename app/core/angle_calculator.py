@@ -12,13 +12,13 @@ from .pose_detector import Landmark, PoseResult, PoseLandmark
 
 @dataclass
 class ShootingAngles:
-    """投篮相关角度"""
+    """投篮相关角度（无默认值的字段必须放在有默认值字段之前）"""
     elbow_angle: float          # 肘部角度 (肩-肘-腕)
     shoulder_angle: float       # 肩部角度 (髋-肩-肘)
-    knee_angle: float           # 膝盖角度 (髋-膝-踝)
     trunk_angle: float          # 躯干倾斜角度 (相对垂直线)
+    knee_angle: Optional[float] = None   # 膝盖角度 (髋-膝-踝)，下半身不可见时为 None
     wrist_angle: Optional[float] = None  # 手腕角度 (肘-腕-食指)
-    hip_angle: Optional[float] = None    # 髋部角度 (肩-髋-膝)
+    hip_angle: Optional[float] = None   # 髋部角度 (肩-髋-膝)
     
     def to_dict(self) -> dict:
         """转换为字典"""
@@ -298,25 +298,38 @@ class AngleCalculator:
         knee = pose_result.get_landmark(knee_idx)
         ankle = pose_result.get_landmark(ankle_idx)
         
-        # 检查必要的关键点是否存在
-        required = [shoulder, elbow, wrist, hip, knee, ankle]
-        if any(lm is None for lm in required):
+        # 可见性阈值
+        min_visibility = 0.5
+        
+        # 检查核心上半身关键点（肩、肘、腕必须可见）
+        upper_body_visible = (
+            shoulder and shoulder.visibility >= min_visibility and
+            elbow and elbow.visibility >= min_visibility and
+            wrist and wrist.visibility >= min_visibility and
+            hip and hip.visibility >= min_visibility
+        )
+        
+        # 如果上半身不可见，无法分析投篮动作
+        if not upper_body_visible:
             return None
         
-        # 检查关键点可见度
-        min_visibility = 0.5
-        for lm in required:
-            if lm.visibility < min_visibility:
-                return None
-        
-        # 计算各个角度
+        # 部分计算角度（根据可见性）
         elbow_angle = self.calculate_elbow_angle(shoulder, elbow, wrist)
         shoulder_angle = self.calculate_shoulder_angle(hip, shoulder, elbow)
-        knee_angle = self.calculate_knee_angle(hip, knee, ankle)
         trunk_angle = self.calculate_trunk_angle(shoulder, hip)
-        hip_angle = self.calculate_hip_angle(shoulder, hip, knee)
         
-        # 手腕角度可选
+        # 膝盖角度：需要hip, knee, ankle都可见
+        knee_angle = None
+        if (knee and knee.visibility >= min_visibility and 
+            ankle and ankle.visibility >= min_visibility):
+            knee_angle = self.calculate_knee_angle(hip, knee, ankle)
+        
+        # 髋部角度：需要knee可见
+        hip_angle = None
+        if knee and knee.visibility >= min_visibility:
+            hip_angle = self.calculate_hip_angle(shoulder, hip, knee)
+        
+        # 手腕角度：需要index可见
         wrist_angle = None
         if index and index.visibility >= min_visibility:
             wrist_angle = self.calculate_wrist_angle(elbow, wrist, index)
@@ -358,10 +371,10 @@ class AngleCalculator:
             return sum(valid) / len(valid) if valid else None
         
         return ShootingAngles(
-            elbow_angle=sum(a.elbow_angle for a in recent) / len(recent),
-            shoulder_angle=sum(a.shoulder_angle for a in recent) / len(recent),
-            knee_angle=sum(a.knee_angle for a in recent) / len(recent),
-            trunk_angle=sum(a.trunk_angle for a in recent) / len(recent),
+            elbow_angle=avg_with_none([a.elbow_angle for a in recent]) or 0.0,
+            shoulder_angle=avg_with_none([a.shoulder_angle for a in recent]) or 0.0,
+            knee_angle=avg_with_none([a.knee_angle for a in recent]),
+            trunk_angle=avg_with_none([a.trunk_angle for a in recent]) or 0.0,
             wrist_angle=avg_with_none([a.wrist_angle for a in recent]),
             hip_angle=avg_with_none([a.hip_angle for a in recent])
         )

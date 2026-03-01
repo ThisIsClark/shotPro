@@ -126,6 +126,13 @@ class DimensionScore(BaseModel):
     feedback_en: str = ""
 
 
+class TemplateComparison(BaseModel):
+    """模板对比数据"""
+    template_id: str
+    template_name: str
+    comparisons: list[dict]  # 对比数据数组
+
+
 class AnalysisResult(BaseModel):
     """分析结果"""
     task_id: str
@@ -141,6 +148,7 @@ class AnalysisResult(BaseModel):
     total_frames: int
     fps: float
     duration: float
+    template_comparison: Optional[TemplateComparison] = None  # 模板对比（可选）
 
 
 class UploadResponse(BaseModel):
