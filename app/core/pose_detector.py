@@ -205,7 +205,7 @@ class PoseDetector:
         shooting_hand: str = "right"
     ) -> np.ndarray:
         """
-        在图像上绘制关键点和骨骼连接
+        在图像上绘制关键点和骨骼连接（不绘制面部关键点）
         
         Args:
             frame: BGR 格式的图像
@@ -219,14 +219,39 @@ class PoseDetector:
         """
         annotated = frame.copy()
         
-        # 使用 MediaPipe 的绘制工具（使用原始的 landmarks 对象）
-        if draw_connections and pose_result.raw_landmarks:
-            self.mp_drawing.draw_landmarks(
-                annotated,
-                pose_result.raw_landmarks,
-                self.mp_pose.POSE_CONNECTIONS,
-                landmark_drawing_spec=self.mp_drawing_styles.get_default_pose_landmarks_style()
-            )
+        # 自定义绘制关键点（排除面部关键点 0-10）
+        # 只绘制身体关键点（11-32）
+        body_landmarks = list(range(11, 33))
+        
+        if pose_result.raw_landmarks:
+            # 绘制身体关键点
+            for idx in body_landmarks:
+                coords = pose_result.get_pixel_coords(idx)
+                if coords:
+                    landmark = pose_result.landmarks.get(idx)
+                    # 根据可见性调整透明度
+                    if landmark and landmark.visibility >= 0.5:
+                        cv2.circle(annotated, coords, 5, (0, 255, 255), -1)
+                    else:
+                        cv2.circle(annotated, coords, 3, (128, 128, 128), -1)
+            
+            # 绘制骨骼连接（只绘制身体连接）
+            if draw_connections:
+                # MediaPipe POSE_CONNECTIONS 包含所有连接，我们需要过滤掉面部连接
+                # 身体连接索引对
+                body_connections = [
+                    (11, 12), (11, 13), (13, 15), (15, 17), (15, 19), (15, 21), (17, 19),
+                    (12, 14), (14, 16), (16, 18), (16, 20), (16, 22), (18, 20),
+                    (11, 23), (12, 24), (23, 24), (23, 25), (24, 26),
+                    (25, 27), (26, 28), (27, 29), (28, 30), (29, 31), (30, 32)
+                ]
+                
+                for start_idx, end_idx in body_connections:
+                    start_coords = pose_result.get_pixel_coords(start_idx)
+                    end_coords = pose_result.get_pixel_coords(end_idx)
+                    
+                    if start_coords and end_coords:
+                        cv2.line(annotated, start_coords, end_coords, (128, 128, 128), 2)
         
         # 高亮投篮手臂
         if highlight_shooting_arm:
@@ -288,9 +313,21 @@ class PoseDetector:
         if shooting_hand == "right":
             elbow_idx = PoseLandmark.RIGHT_ELBOW
             knee_idx = PoseLandmark.RIGHT_KNEE
+            hip_idx = PoseLandmark.RIGHT_HIP
+            ankle_idx = PoseLandmark.RIGHT_ANKLE
         else:
             elbow_idx = PoseLandmark.LEFT_ELBOW
             knee_idx = PoseLandmark.LEFT_KNEE
+            hip_idx = PoseLandmark.LEFT_HIP
+            ankle_idx = PoseLandmark.LEFT_ANKLE
+        
+        # 验证膝盖位置是否正确（膝盖应该在髋部和脚踝之间）
+        def is_knee_position_valid(knee_coords, hip_coords, ankle_coords):
+            """验证膝盖位置是否在髋部和脚踝之间"""
+            if not knee_coords or not hip_coords or not ankle_coords:
+                return False
+            # 膝盖的Y坐标应该在髋部和脚踝之间（屏幕坐标系Y轴向下）
+            return hip_coords[1] < knee_coords[1] < ankle_coords[1]
         
         # 在肘部位置显示肘部角度（检查可见性）
         elbow_landmark = pose_result.landmarks.get(elbow_idx)
@@ -305,12 +342,21 @@ class PoseDetector:
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2
                 )
         
-        # 在膝盖位置显示膝盖角度（检查可见性）
+        # 在膝盖位置显示膝盖角度（检查可见性和位置正确性）
         knee_landmark = pose_result.landmarks.get(knee_idx)
         knee_coords = pose_result.get_pixel_coords(knee_idx)
+        hip_coords = pose_result.get_pixel_coords(hip_idx)
+        ankle_coords = pose_result.get_pixel_coords(ankle_idx)
+        
         if knee_coords and "knee_angle" in angles and angles["knee_angle"] is not None:
-            # 检查可见性
+            # 检查可见性和位置正确性
+            is_valid = False
             if knee_landmark and knee_landmark.visibility >= visibility_threshold:
+                # 验证膝盖位置是否在髋部和脚踝之间
+                if is_knee_position_valid(knee_coords, hip_coords, ankle_coords):
+                    is_valid = True
+            
+            if is_valid:
                 text = f"Knee: {angles['knee_angle']:.1f}deg"
                 cv2.putText(
                     annotated, text,

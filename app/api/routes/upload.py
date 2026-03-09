@@ -109,6 +109,17 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
         task_store[task_id]["message"] = "分析完成"
         task_store[task_id]["result"] = result_dict
         
+        # 持久化结果到磁盘
+        result_dir = settings.results_dir / task_id
+        result_file = result_dir / "result.json"
+        with open(result_file, 'w', encoding='utf-8') as f:
+            import json
+            json.dump(result_dict, f, ensure_ascii=False, indent=2)
+        print(f"[DEBUG] 结果已保存到: {result_file}")
+        print(f"[DEBUG] 结果包含 template_comparison: {'template_comparison' in result_dict}")
+        if 'template_comparison' in result_dict:
+            print(f"[DEBUG] template_comparison.comparisons 数量: {len(result_dict['template_comparison']['comparisons'])}")
+        
     except Exception as e:
         task_store[task_id]["status"] = TaskStatus.FAILED
         task_store[task_id]["error"] = str(e)
@@ -142,8 +153,21 @@ def _generate_comparison(user_frames, template_frames):
         }
         
         if template_kf:
+            # 修复模板图片路径，确保使用 /template_images 前缀
+            image_path = template_kf.image_path
+            
+            # 移除 'templates/' 前缀
+            if image_path.startswith('templates/'):
+                image_path = image_path.replace('templates/', '', 1)
+            
+            # 确保路径以 /template_images 开头
+            if not image_path.startswith('/template_images'):
+                if image_path.startswith('/'):
+                    image_path = image_path[1:]
+                image_path = '/template_images/' + image_path
+                
             comp["template_frame"] = {
-                "image_url": f"/{template_kf.image_path}" if not template_kf.image_path.startswith('/') else template_kf.image_path,
+                "image_url": image_path,
                 "angles": template_kf.angles
             }
             

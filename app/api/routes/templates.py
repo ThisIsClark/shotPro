@@ -104,7 +104,7 @@ async def create_template(
                     phase=kf.phase.value,
                     frame_number=kf.frame_number,
                     timestamp=kf.timestamp,
-                    image_path=f"template_images/{template_id}/{new_image_name}",
+                    image_path=f"templates/{template_id}/{new_image_name}",
                     angles=kf.angles.to_dict() if kf.angles else None
                 ))
             else:
@@ -138,9 +138,28 @@ async def create_template(
         
         background_tasks.add_task(cleanup)
         
+        template_dict = template.to_dict()
+        
+        # 添加 image_url
+        for kf in template_dict['key_frames']:
+            image_path = kf['image_path']
+            
+            # 移除 'templates/' 前缀
+            if image_path.startswith('templates/'):
+                image_path = image_path.replace('templates/', '', 1)
+            
+            # 确保路径以 /template_images 开头
+            if not image_path.startswith('/'):
+                image_path = '/' + image_path
+                
+            if not image_path.startswith('/template_images'):
+                image_path = '/template_images' + image_path
+                
+            kf['image_url'] = image_path
+        
         return {
             'success': True,
-            'template': template.to_dict()
+            'template': template_dict
         }
     
     except Exception as e:
@@ -174,11 +193,18 @@ async def get_template(template_id: str):
     # 将image_path转换为前端可访问的image_url
     for kf in template_dict['key_frames']:
         image_path = kf['image_path']
-        # 确保路径格式正确
+        
+        # 移除 'templates/' 前缀，因为 /template_images 已经挂载到了 templates 目录
+        if image_path.startswith('templates/'):
+            image_path = image_path.replace('templates/', '', 1)
+        
+        # 确保路径以 /template_images 开头
         if not image_path.startswith('/'):
             image_path = '/' + image_path
-        if not image_path.startswith('/template_images/'):
-            image_path = '/template_images/' + image_path.lstrip('/')
+            
+        if not image_path.startswith('/template_images'):
+            image_path = '/template_images' + image_path
+            
         kf['image_url'] = image_path
     
     return template_dict
