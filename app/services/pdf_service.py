@@ -473,10 +473,20 @@ class PDFExportService:
                 template_image_url = template_frame.get('image_url', '')
                 if template_image_url:
                     # 处理模板图片路径
+                    # self.output_dir 是 results/
+                    # self.output_dir.parent 是项目根目录
+                    # template_images 对应 templates 目录
                     if template_image_url.startswith('/template_images/'):
-                        template_image_path = self.output_dir.parent.parent / template_image_url.lstrip('/')
+                        # /template_images/xxx -> templates/xxx
+                        relative_path = template_image_url.replace('/template_images/', 'templates/', 1).lstrip('/')
+                        template_image_path = self.output_dir.parent / relative_path
+                    elif template_image_url.startswith('/templates/'):
+                        template_image_path = self.output_dir.parent / template_image_url.lstrip('/')
+                    elif template_image_url.startswith('template_images/'):
+                        relative_path = template_image_url.replace('template_images/', 'templates/', 1)
+                        template_image_path = self.output_dir.parent / relative_path
                     elif template_image_url.startswith('templates/'):
-                        template_image_path = self.output_dir.parent.parent / template_image_url
+                        template_image_path = self.output_dir.parent / template_image_url
                     else:
                         template_image_path = None
                     
@@ -494,6 +504,8 @@ class PDFExportService:
                             template_img = Image(t_buffer, width=t_width, height=t_height)
                         except Exception as e:
                             print(f"无法加载模板图片 {template_image_path}: {e}")
+                    else:
+                        print(f"模板图片不存在: {template_image_path}")
                 
                 # 创建并排表格
                 if user_img and template_img:

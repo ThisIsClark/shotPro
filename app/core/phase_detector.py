@@ -39,12 +39,12 @@ class PhaseThresholds:
     smooth_window_size: int = 5  # 平滑窗口大小
     
     # 上升阶段
-    wrist_rising_window: int = 5  # 手腕上升判断窗口大小
-    wrist_rising_threshold: float = 0.02  # 手腕上升阈值
+    wrist_rising_window: int = 3  # 手腕上升判断窗口大小（减小窗口以提高灵敏度）
+    wrist_rising_threshold: float = 0.005  # 手腕上升阈值（降低阈值以更早检测上升）
     
     # 出手阶段
-    release_window: int = 7  # 出手判断窗口大小
-    min_release_frames: int = 3  # 出手阶段最小帧数
+    release_window: int = 5  # 出手判断窗口大小（减小窗口）
+    min_release_frames: int = 2  # 出手阶段最小帧数
     
     # 跟随阶段
     follow_min_frames: int = 5  # 跟随阶段最小帧数
@@ -235,6 +235,7 @@ class PhaseDetector:
         4. 跟随阶段: 手腕开始下降 + 持续下降
         """
         th = self.thresholds
+        prev_phase = self.frame_history[-1].phase if self.frame_history else ShootingPhase.UNKNOWN
         
         # 检查手腕运动趋势和速度
         is_wrist_rising = False
@@ -303,7 +304,8 @@ class PhaseDetector:
         # 上升阶段判断（增加速度判断）
         if is_wrist_rising and not self.release_detected:
             # 手腕上升速度足够
-            if wrist_rising_speed > 0.01:
+            # 优化：降低进入上升阶段的门槛，只要有明显上升趋势即可
+            if wrist_rising_speed > 0.005:  # 降低速度阈值
                 self.wrist_rising = True
                 self.shooting_started = True
                 return ShootingPhase.LIFTING
@@ -315,7 +317,8 @@ class PhaseDetector:
         trunk_upright = angles.trunk_angle is not None and angles.trunk_angle < th.prep_max_trunk_angle
         
         # 至少膝盖或肘部弯曲，且躯干直立，且手腕未上升
-        if (knee_bent or elbow_bent) and trunk_upright and not self.wrist_rising:
+        # 优化：如果手腕已经在上升（即使速度不快），也不应判为准备阶段
+        if (knee_bent or elbow_bent) and trunk_upright and not is_wrist_rising and prev_phase not in (ShootingPhase.LIFTING, ShootingPhase.RELEASE, ShootingPhase.FOLLOW_THROUGH):
             self.shooting_started = True
             return ShootingPhase.PREPARATION
         
@@ -325,7 +328,7 @@ class PhaseDetector:
             return ShootingPhase.RELEASE
         
         # 默认返回准备阶段或上升阶段
-        if self.wrist_rising:
+        if self.wrist_rising or (prev_phase == ShootingPhase.LIFTING and not self.release_detected):
             return ShootingPhase.LIFTING
         
         return ShootingPhase.PREPARATION
@@ -406,33 +409,174 @@ class PhaseDetector:
                 continue
             
             if segment.phase == ShootingPhase.PREPARATION:
-                # 准备阶段取膝盖角度最小的帧（下蹲最深）
-                # 如果膝盖不可见，使用中间帧
-                frames_with_knee = [f for f in segment.frames if f.angles and f.angles.knee_angle is not None]
-                if frames_with_knee:
-                    min_knee_frame = min(frames_with_knee, key=lambda f: f.angles.knee_angle)
-                    key_frames[ShootingPhase.PREPARATION] = min_knee_frame
-                elif segment.frames:
-                    # 膝盖不可见时，取中间帧
-                    key_frames[ShootingPhase.PREPARATION] = segment.frames[len(segment.frames) // 2]
-            
+                if segment.frames:
+                    search_limit = max(1, int(len(segment.frames) * 0.6))
+                    search_frames = segment.frames[:search_limit]
+
+                    trunk_level_candidates = [
+                        f for f in search_frames
+                        if f.wrist_y is not None and f.angles and f.angles.shoulder_angle < 45
+                    ]
+
+                    if trunk_level_candidates:
+                        key_frames[ShootingPhase.PREPARATION] = max(
+                            trunk_level_candidates,
+                            key=lambda f: f.wrist_y
+                        )
+                    else:
+                        fallback_frames = [
+                            f for f in search_frames if f.wrist_y is not None
+                        ]
+                        if fallback_frames:
+                            key_frames[ShootingPhase.PREPARATION] = max(
+                                fallback_frames,
+                                key=lambda f: f.wrist_y
+                            )
+                        else:
+                            key_frames[ShootingPhase.PREPARATION] = search_frames[0]
+
             elif segment.phase == ShootingPhase.LIFTING:
-                # 上升阶段取中间帧
-                mid_idx = len(segment.frames) // 2
-                key_frames[ShootingPhase.LIFTING] = segment.frames[mid_idx]
+                if segment.frames:
+                    prep_frame = key_frames[ShootingPhase.PREPARATION]
+                    selected = None
+
+                    if prep_frame and prep_frame.wrist_y is not None:
+                        for f in segment.frames:
+                            if f.wrist_y is None:
+                                continue
+                            if f.wrist_y <= prep_frame.wrist_y - 0.012:
+                                if (
+                                    f.angles
+                                    and f.angles.elbow_angle < self.thresholds.release_min_elbow_angle - 20
+                                    and f.angles.shoulder_angle >= 45
+                                ):
+                                    selected = f
+                                    break
+
+                    if selected is None:
+                        early_idx = min(len(segment.frames) - 1, max(0, int(len(segment.frames) * 0.25)))
+                        selected = segment.frames[early_idx]
+
+                    key_frames[ShootingPhase.LIFTING] = selected
             
             elif segment.phase == ShootingPhase.RELEASE:
-                # 出手阶段取手腕最高的帧
-                min_wrist_frame = min(
-                    segment.frames,
-                    key=lambda f: f.wrist_y if f.wrist_y else 1.0
-                )
-                key_frames[ShootingPhase.RELEASE] = min_wrist_frame
+                if segment.frames:
+                    # 查找当前片段在历史记录中的起始位置
+                    start_frame_num = segment.frames[0].frame_number
+                    
+                    # 创建搜索窗口：从 detect 到 Release 开始前的 10 帧，到开始后的 2 帧
+                    # 扩大搜索范围以应对检测延迟
+                    window_candidates = [
+                        f for f in self.frame_history
+                        if start_frame_num - 10 <= f.frame_number <= start_frame_num + 2
+                    ]
+                    
+                    chosen = None
+                    if window_candidates:
+                        # 筛选合理的投篮帧（手臂抬起）
+                        valid_candidates = [
+                            f for f in window_candidates
+                            if f.wrist_y is not None
+                            and f.angles
+                            and f.angles.shoulder_angle > 60  # 确保手臂是抬起的
+                        ]
+                        
+                        # 如果没有满足角度的，就回退到只看高度
+                        if not valid_candidates:
+                            valid_candidates = [f for f in window_candidates if f.wrist_y is not None]
+                        
+                        if valid_candidates:
+                            # 找到窗口内的最高点（min wrist_y）
+                            min_wrist_y = min(f.wrist_y for f in valid_candidates)
+                            
+                            # 找到所有接近最高点的帧
+                            # 关键修改：将容差从 0.01 (1%) 增加到 0.05 (5%)
+                            # 这样可以捕获到"刚进入最高点区域"的帧，即球刚离手的瞬间
+                            # 而不是等到完全到达最高点（那时球通常已经飞出）
+                            near_peak = [
+                                f for f in valid_candidates
+                                if f.wrist_y <= min_wrist_y + 0.05
+                            ]
+                            
+                            # 在接近最高点的帧中，选择最早的一帧
+                            # 这样能选到"刚开始出手"的时刻，而不是"出手完成"的时刻
+                            chosen = min(near_peak, key=lambda f: f.frame_number)
+                    
+                    if chosen:
+                        key_frames[ShootingPhase.RELEASE] = chosen
+                    else:
+                        key_frames[ShootingPhase.RELEASE] = segment.frames[0]
             
             elif segment.phase == ShootingPhase.FOLLOW_THROUGH:
                 # 跟随阶段取第一帧
                 if segment.frames:
                     key_frames[ShootingPhase.FOLLOW_THROUGH] = segment.frames[0]
+
+        if key_frames[ShootingPhase.RELEASE] is None and self.frame_history:
+            release_candidates = [
+                f for f in self.frame_history
+                if f.wrist_y is not None
+                and f.angles is not None
+                and f.angles.shoulder_angle >= self.thresholds.release_min_shoulder_angle - 10
+            ]
+            if release_candidates:
+                min_wrist_y = min(f.wrist_y for f in release_candidates)
+                near_peak_candidates = [
+                    f for f in release_candidates
+                    if f.wrist_y <= min_wrist_y + 0.006
+                ]
+                key_frames[ShootingPhase.RELEASE] = min(
+                    near_peak_candidates if near_peak_candidates else release_candidates,
+                    key=lambda f: f.frame_number
+                )
+
+        if (
+            key_frames[ShootingPhase.FOLLOW_THROUGH] is None
+            and key_frames[ShootingPhase.RELEASE] is not None
+            and self.frame_history
+        ):
+            release_frame = key_frames[ShootingPhase.RELEASE]
+            after_release = [
+                f for f in self.frame_history
+                if f.frame_number > release_frame.frame_number and f.wrist_y is not None
+            ]
+            if after_release:
+                follow_candidates = [
+                    f for f in after_release
+                    if release_frame.wrist_y is not None and f.wrist_y > release_frame.wrist_y + 0.005
+                ]
+                key_frames[ShootingPhase.FOLLOW_THROUGH] = (
+                    follow_candidates[0] if follow_candidates else after_release[0]
+                )
+
+        if (
+            key_frames[ShootingPhase.FOLLOW_THROUGH] is None
+            and key_frames[ShootingPhase.RELEASE] is not None
+            and len(self.frame_history) >= 3
+        ):
+            release_frame = key_frames[ShootingPhase.RELEASE]
+            if release_frame.frame_number >= self.frame_history[-1].frame_number:
+                tail_pool = [
+                    f for f in self.frame_history[-6:-1]
+                    if f.wrist_y is not None
+                ]
+                if tail_pool:
+                    min_tail_wrist_y = min(f.wrist_y for f in tail_pool)
+                    near_peak_tail = [
+                        f for f in tail_pool
+                        if f.wrist_y <= min_tail_wrist_y + 0.006
+                    ]
+                    alt_release = min(
+                        near_peak_tail if near_peak_tail else tail_pool,
+                        key=lambda f: f.frame_number
+                    )
+                    after_alt = [
+                        f for f in self.frame_history
+                        if f.frame_number > alt_release.frame_number and f.wrist_y is not None
+                    ]
+                    if after_alt:
+                        key_frames[ShootingPhase.RELEASE] = alt_release
+                        key_frames[ShootingPhase.FOLLOW_THROUGH] = after_alt[0]
         
         return key_frames
     

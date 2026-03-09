@@ -14,6 +14,11 @@
             box-sizing: border-box;
         }
 
+        html {
+            overflow-x: hidden;
+            min-height: 100%;
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #1a1f3a;
@@ -24,7 +29,7 @@
                 radial-gradient(at 0% 100%, rgba(168, 85, 247, 0.25) 0px, transparent 50%);
             min-height: 100vh;
             color: #fff;
-            overflow-x: hidden;
+            position: relative;
         }
 
         /* 动态背景网格 */
@@ -1362,6 +1367,58 @@
             color: rgba(255, 255, 255, 0.4);
         }
 
+        /* 图片导出模态框样式 */
+        .export-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+        }
+
+        .export-option-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .export-option-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-4px);
+            border-color: rgba(72, 219, 251, 0.5);
+        }
+
+        .export-option-btn:active {
+            transform: translateY(-2px);
+        }
+
+        .export-option-icon {
+            font-size: 3rem;
+            line-height: 1;
+        }
+
+        .export-option-text {
+            flex: 1;
+        }
+
+        .export-option-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 6px;
+        }
+
+        .export-option-desc {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.4;
+        }
+
         .template-item-actions {
             display: flex;
             gap: 8px;
@@ -1643,6 +1700,10 @@
                             <span class="icon">📄</span>
                             <span data-i18n="export.pdf">导出PDF报告</span>
                         </button>
+                        <button class="btn-export btn-export-image" id="exportImagesBtn" onclick="showExportImagesModal()">
+                            <span class="icon">🖼️</span>
+                            <span data-i18n="export.images">导出图片</span>
+                        </button>
                     </div>
 
                     <!-- 关键帧 - 最突出 -->
@@ -1823,7 +1884,14 @@
                     pdf: '导出PDF报告',
                     exporting: '正在生成PDF...',
                     success: 'PDF导出成功！',
-                    failed: 'PDF导出失败'
+                    failed: 'PDF导出失败',
+                    images: '导出图片',
+                    keyframes: '关键帧图片',
+                    keyframesDesc: '导出所有关键帧图片（准备、上升、出手、跟随）',
+                    comparisons: '对比图片',
+                    comparisonsDesc: '导出并排对比图片（你的投篮 vs 模板）',
+                    allImages: '所有图片',
+                    allImagesDesc: '导出关键帧和对比图片'
                 }
             },
             'en-US': {
@@ -1920,7 +1988,14 @@
                     pdf: 'Export PDF Report',
                     exporting: 'Generating PDF...',
                     success: 'PDF exported successfully!',
-                    failed: 'PDF export failed'
+                    failed: 'PDF export failed',
+                    images: 'Export Images',
+                    keyframes: 'Keyframes',
+                    keyframesDesc: 'Export all keyframe images (preparation, lifting, release, follow through)',
+                    comparisons: 'Comparison Images',
+                    comparisonsDesc: 'Export side-by-side comparison images (your shot vs template)',
+                    allImages: 'All Images',
+                    allImagesDesc: 'Export both keyframes and comparison images'
                 }
             }
         };
@@ -2470,10 +2545,17 @@
             
             // 转换模板数据为关键帧格式
             const keyFrames = document.getElementById('keyFrames');
-            keyFrameImages = template.key_frames.map(kf => ({
-                image_url: `/${kf.image_path}`,
-                phase: kf.phase
-            }));
+            keyFrameImages = template.key_frames.map(kf => {
+                // 优先使用后端提供的 image_url（已指向 /template_images）
+                if (kf.image_url) {
+                    return { image_url: kf.image_url, phase: kf.phase };
+                }
+                // 兼容旧数据：将 image_path 转换为 /template_images 路径
+                let p = kf.image_path || '';
+                if (p.startsWith('templates/')) p = p.replace('templates/', '');
+                if (p.startsWith('/')) p = p.slice(1);
+                return { image_url: `/template_images/${p}`, phase: kf.phase };
+            });
             
             keyFrames.innerHTML = `
                 <div style="text-align: center; margin-bottom: 32px; padding: 24px; background: rgba(72, 219, 251, 0.1); border-radius: 16px; border: 1px solid rgba(72, 219, 251, 0.3);">
@@ -2874,6 +2956,172 @@
                 exportBtn.innerHTML = originalContent;
             }
         }
+
+        // 显示图片导出模态框
+        function showExportImagesModal() {
+            const modal = document.getElementById('exportImagesModal');
+            if (modal) {
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        // 隐藏图片导出模态框
+        function hideExportImagesModal() {
+            const modal = document.getElementById('exportImagesModal');
+            if (modal) {
+                modal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // 导出关键帧图片
+        async function exportKeyframes() {
+            if (!currentTaskId) {
+                alert(t('errors.unknownError'));
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/export/${currentTaskId}/images/keyframes`);
+                
+                if (!response.ok) {
+                    throw new Error('Keyframes export failed');
+                }
+
+                // 下载ZIP
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `shooting_analysis_${currentTaskId}_keyframes.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                // 隐藏模态框
+                hideExportImagesModal();
+                alert(t('export.success'));
+
+            } catch (error) {
+                console.error('Export error:', error);
+                alert(t('export.failed') + ': ' + error.message);
+            }
+        }
+
+        // 导出对比图片
+        async function exportComparisons() {
+            if (!currentTaskId) {
+                alert(t('errors.unknownError'));
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/export/${currentTaskId}/images/comparisons?language=${currentLang}`);
+                
+                if (!response.ok) {
+                    throw new Error('Comparisons export failed');
+                }
+
+                // 下载ZIP
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `shooting_analysis_${currentTaskId}_comparisons.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                // 隐藏模态框
+                hideExportImagesModal();
+                alert(t('export.success'));
+
+            } catch (error) {
+                console.error('Export error:', error);
+                alert(t('export.failed') + ': ' + error.message);
+            }
+        }
+
+        // 导出所有图片
+        async function exportAllImages() {
+            if (!currentTaskId) {
+                alert(t('errors.unknownError'));
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/export/${currentTaskId}/images/all?language=${currentLang}`);
+                
+                if (!response.ok) {
+                    throw new Error('All images export failed');
+                }
+
+                // 下载ZIP
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `shooting_analysis_${currentTaskId}_all_images.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                // 隐藏模态框
+                hideExportImagesModal();
+                alert(t('export.success'));
+
+            } catch (error) {
+                console.error('Export error:', error);
+                alert(t('export.failed') + ': ' + error.message);
+            }
+        }
+
+        // 图片导出模态框
+        const exportImagesModalHTML = `
+            <div id="exportImagesModal" class="template-modal">
+                <div class="template-modal-content">
+                    <div class="template-modal-header">
+                        <h2>🖼️ <span data-i18n="export.images">导出图片</span></h2>
+                        <button class="template-modal-close" onclick="hideExportImagesModal()">×</button>
+                    </div>
+                    <div class="template-modal-body">
+                        <div class="export-options">
+                            <button class="export-option-btn" onclick="exportKeyframes()">
+                                <div class="export-option-icon">🎬</div>
+                                <div class="export-option-text">
+                                    <div class="export-option-title" data-i18n="export.keyframes">关键帧图片</div>
+                                    <div class="export-option-desc" data-i18n="export.keyframesDesc">导出所有关键帧图片（准备、上升、出手、跟随）</div>
+                                </div>
+                            </button>
+                            <button class="export-option-btn" onclick="exportComparisons()">
+                                <div class="export-option-icon">📊</div>
+                                <div class="export-option-text">
+                                    <div class="export-option-title" data-i18n="export.comparisons">对比图片</div>
+                                    <div class="export-option-desc" data-i18n="export.comparisonsDesc">导出并排对比图片（你的投篮 vs 模板）</div>
+                                </div>
+                            </button>
+                            <button class="export-option-btn" onclick="exportAllImages()">
+                                <div class="export-option-icon">📦</div>
+                                <div class="export-option-text">
+                                    <div class="export-option-title" data-i18n="export.allImages">所有图片</div>
+                                    <div class="export-option-desc" data-i18n="export.allImagesDesc">导出关键帧和对比图片</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 在页面加载后添加模态框
+        document.addEventListener('DOMContentLoaded', function() {
+            const body = document.body;
+            body.insertAdjacentHTML('beforeend', exportImagesModalHTML);
+        });
     </script>
 </body>
 </html>
