@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.DS_Store
+venv/
+.env
+uploads/
+results/
+templates/
+temp/
+modelVideo/
