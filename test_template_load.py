@@ -3,10 +3,13 @@
 直接验证模板能否正确加载
 """
 from pathlib import Path
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app.models.template import TemplateManager
 
 # 初始化 TemplateManager
-templates_dir = Path("/Users/liuyu/Code/shotImprovement/templates")
+templates_dir = Path(__file__).parent / "templates"
 manager = TemplateManager(templates_dir)
 
 # 测试加载 DevinBooker 模板
