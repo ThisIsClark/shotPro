@@ -3,7 +3,8 @@
 """
 
 import sys
-sys.path.append('/Users/liuyu/Code/shotImprovement')
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.core.phase_detector import PhaseDetector, PhaseThresholds, ShootingPhase
 from app.core.angle_calculator import ShootingAngles
