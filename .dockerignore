@@ -1,0 +1,37 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment
+.env
+.venv
+
+# VS Code
+.vscode/
+
+# Project Specific
+uploads/
+results/
+temp/
+modelVideo/
+templates/
+docs/
+*.md
+start.sh
+install_deps.sh
+debug_release.py
+fix_*.py
+test_*.py
+vercel.json
