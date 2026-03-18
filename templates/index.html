@@ -1891,7 +1891,11 @@
                     comparisons: '对比图片',
                     comparisonsDesc: '导出并排对比图片（你的投篮 vs 模板）',
                     allImages: '所有图片',
-                    allImagesDesc: '导出关键帧和对比图片'
+                    allImagesDesc: '导出关键帧和对比图片',
+                    shareCardSuccess: '📱 分享卡片导出成功！',
+                    shareCardFailed: '分享卡片导出失败',
+                    shareCard: '📱 分享卡片',
+                    shareCardDesc: '导出一张精美的长图，包含所有阶段对比和改进建议，适合发朋友圈/社交媒体'
                 }
             },
             'en-US': {
@@ -1995,7 +1999,11 @@
                     comparisons: 'Comparison Images',
                     comparisonsDesc: 'Export side-by-side comparison images (your shot vs template)',
                     allImages: 'All Images',
-                    allImagesDesc: 'Export both keyframes and comparison images'
+                    allImagesDesc: 'Export both keyframes and comparison images',
+                    shareCardSuccess: '📱 Share card exported successfully!',
+                    shareCardFailed: 'Share card export failed',
+                    shareCard: '📱 Share Card',
+                    shareCardDesc: 'Export a beautiful long image with all phase comparisons and tips, perfect for social media'
                 }
             }
         };
@@ -2975,6 +2983,42 @@
             }
         }
 
+
+        // 导出分享卡片（单张长图）
+        async function exportShareCard() {
+            if (!currentTaskId) {
+                alert(t('errors.unknownError'));
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/export/${currentTaskId}/images/share-card?language=${currentLang}`);
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || 'Share card export failed');
+                }
+
+                // 下载图片
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `shooting_analysis_${currentTaskId}_share_card.png`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                // 隐藏模态框
+                hideExportImagesModal();
+                alert(t('export.shareCardSuccess'));
+
+            } catch (error) {
+                console.error('Export error:', error);
+                alert(t('export.shareCardFailed') + ': ' + error.message);
+            }
+}
         // 导出关键帧图片
         async function exportKeyframes() {
             if (!currentTaskId) {
@@ -3090,6 +3134,13 @@
                     </div>
                     <div class="template-modal-body">
                         <div class="export-options">
+                            <button class="export-option-btn" onclick="exportShareCard()" style="grid-column: span 2; background: linear-gradient(135deg, rgba(72, 219, 251, 0.15), rgba(168, 85, 247, 0.15)); border-color: rgba(72, 219, 251, 0.4);">
+                                <div class="export-option-icon">🎨</div>
+                                <div class="export-option-text">
+                                    <div class="export-option-title" style="font-size: 1.2rem; color: #48dbfb;">📱 分享卡片（推荐）</div>
+                                    <div class="export-option-desc">导出一张精美的长图，包含所有阶段对比和改进建议，适合发朋友圈/社交媒体</div>
+                                </div>
+                            </button>
                             <button class="export-option-btn" onclick="exportKeyframes()">
                                 <div class="export-option-icon">🎬</div>
                                 <div class="export-option-text">
@@ -3102,13 +3153,6 @@
                                 <div class="export-option-text">
                                     <div class="export-option-title" data-i18n="export.comparisons">对比图片</div>
                                     <div class="export-option-desc" data-i18n="export.comparisonsDesc">导出并排对比图片（你的投篮 vs 模板）</div>
-                                </div>
-                            </button>
-                            <button class="export-option-btn" onclick="exportAllImages()">
-                                <div class="export-option-icon">📦</div>
-                                <div class="export-option-text">
-                                    <div class="export-option-title" data-i18n="export.allImages">所有图片</div>
-                                    <div class="export-option-desc" data-i18n="export.allImagesDesc">导出关键帧和对比图片</div>
                                 </div>
                             </button>
                         </div>
