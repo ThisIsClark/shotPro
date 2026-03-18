@@ -238,3 +238,59 @@ async def export_all_images(task_id: str, language: str = Query('zh-CN', regex='
             status_code=500,
             detail=f"Failed to export all images: {str(e)}"
         )
+
+
+@router.get("/export/{task_id}/images/share-card")
+async def export_share_card(task_id: str, language: str = Query('zh-CN', regex='^(zh-CN|en-US)$')):
+    """
+    导出分享卡片（单张长图，适合社交媒体分享）
+
+    Args:
+        task_id: 任务 ID
+        language: 语言选择 (zh-CN 或 en-US)
+
+    Returns:
+        PNG 图片文件
+    """
+    # 检查任务是否存在
+    if task_id not in task_store:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task_info = task_store[task_id]
+
+    # 检查任务是否完成
+    if task_info['status'] != 'completed':
+        raise HTTPException(
+            status_code=400,
+            detail=f"Task not completed. Current status: {task_info['status']}"
+        )
+
+    try:
+        # 创建图片导出服务
+        image_service = ImageExportService(output_dir=settings.results_dir)
+
+        # 生成分享卡片
+        image_path = image_service.export_share_card(
+            task_id=task_id,
+            result=task_info['result'],
+            language=language
+        )
+
+        if not image_path or not image_path.exists():
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to generate share card or no template comparison available"
+            )
+
+        # 返回图片文件
+        return FileResponse(
+            path=str(image_path),
+            media_type='image/png',
+            filename=f"shooting_analysis_{task_id}_share_card.png"
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to export share card: {str(e)}"
+        )

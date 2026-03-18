@@ -33,6 +33,7 @@ class IssueType(str, Enum):
     RUSHED_SHOT = "rushed_shot"           # 仓促出手
     NO_LEG_DRIVE = "no_leg_drive"         # 缺少腿部发力
     HAND_FAST_FOOT_SLOW = "hand_fast_foot_slow"  # 手快脚慢
+    TEMPLATE_DIFFERENCE = "template_difference"  # 模板差异建议
 
 
 class Rating(str, Enum):

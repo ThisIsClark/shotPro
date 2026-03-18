@@ -28,8 +28,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # 复制应用代码
 COPY . .
 
-# 暴露端口
-EXPOSE 8000
+# 暴露端口 (Hugging Face Spaces 默认端口为 7860)
+EXPOSE 7860
 
 # 启动命令
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 使用 Shell 格式以支持 $PORT 环境变量扩展
+# Hugging Face Spaces 要求监听 7860 端口
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-7860}

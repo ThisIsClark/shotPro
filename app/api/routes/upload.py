@@ -100,6 +100,23 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
                 }
                 print(f"[DEBUG] template_comparison 已添加到 result_dict")
                 print(f"[DEBUG] result_dict['template_comparison']['comparisons'] 长度: {len(result_dict['template_comparison']['comparisons'])}")
+
+                # 生成基于模板的改进建议
+                template_suggestions = _generate_template_based_suggestions(comparison_data)
+
+                # 合并建议到现有的 issues
+                if template_suggestions:
+                    if 'issues' in result_dict:
+                        existing_issues = result_dict['issues']
+                        new_issues = existing_issues + template_suggestions
+                        # 去重但保持顺序（基于 suggestion 字段）
+                        seen = set()
+                        result_dict['issues'] = [x for x in new_issues if not (x.get('suggestion', '') in seen or seen.add(x.get('suggestion', '')))]
+                    else:
+                        # 如果原来没有问题，直接添加模板建议
+                        result_dict['issues'] = template_suggestions
+
+                print(f"[DEBUG] 生成的模板建议数量：{len(template_suggestions)}")
             else:
                 print(f"[DEBUG] 模板未找到: {template_id}")
         
@@ -189,6 +206,175 @@ def _generate_comparison(user_frames, template_frames):
     print(f"[DEBUG _generate_comparison] 最终对比数组长度: {len(comparison)}")
     print(f"[DEBUG _generate_comparison] 对比数组内容预览: {[c.get('phase') for c in comparison]}")
     return comparison
+
+
+
+def _generate_template_based_suggestions(comparison_data):
+    """
+    基于模板对比数据生成改进建议
+
+    优化策略：
+    1. 按投篮动作的关键问题聚合（而非按角度）
+    2. 每个阶段只输出 1-2 个最关键的改进点
+    3. 用更自然的投篮教学语言，避免过度数据化
+    """
+    suggestions = []
+
+    SIGNIFICANT_DIFF_THRESHOLD = 12  # 显著差异阈值（度）- 提高阈值减少琐碎建议
+    CRITICAL_DIFF_THRESHOLD = 20     # 关键差异阈值（度）- 超过此值的问题优先输出
+
+    # 阶段名称映射
+    phase_names_zh = {
+        'preparation': '准备阶段',
+        'lifting': '上升阶段',
+        'release': '出手阶段',
+        'follow_through': '跟随阶段'
+    }
+    phase_names_en = {
+        'preparation': 'Preparation',
+        'lifting': 'Lifting',
+        'release': 'Release',
+        'follow_through': 'Follow Through'
+    }
+
+    # 按阶段收集所有显著差异
+    phase_issues = {}  # {phase: [(angle_key, diff, is_less, priority), ...]}
+
+    for comp in comparison_data:
+        if 'angle_differences' not in comp or 'user_frame' not in comp or 'template_frame' not in comp:
+            continue
+
+        phase = comp['phase']
+        if phase not in phase_issues:
+            phase_issues[phase] = []
+
+        user_angles = comp['user_frame'].get('angles', {})
+        template_angles = comp['template_frame'].get('angles', {})
+
+        for angle_key, diff in comp['angle_differences'].items():
+            if diff < SIGNIFICANT_DIFF_THRESHOLD:
+                continue
+
+            user_angle = user_angles.get(angle_key)
+            template_angle = template_angles.get(angle_key)
+
+            if user_angle is None or template_angle is None:
+                continue
+
+            is_less = user_angle < template_angle
+            # 根据差异大小设置优先级
+            priority = 2 if diff >= CRITICAL_DIFF_THRESHOLD else 1
+            phase_issues[phase].append((angle_key, diff, is_less, priority))
+
+    # 为每个阶段生成最多 2 条建议，按优先级排序
+    for phase, issues in phase_issues.items():
+        if not issues:
+            continue
+
+        # 按优先级和差异大小排序
+        issues.sort(key=lambda x: (-x[3], -x[1]))
+
+        # 只取前 2 个最重要的问题
+        top_issues = issues[:2]
+
+        for angle_key, diff, is_less, priority in top_issues:
+            diff_value = int(diff)
+            suggestion_zh = ""
+            suggestion_en = ""
+            title_zh = ""
+            title_en = ""
+
+            # 根据角度类型和阶段，生成贴近投篮教学的语言
+            if angle_key == 'knee_angle':
+                if is_less:
+                    title_zh = "腿部发力不足"
+                    title_en = "Insufficient leg drive"
+                    suggestion_zh = f"准备阶段膝盖弯曲不够，建议加深屈膝幅度，更好地利用腿部力量带动投篮。"
+                    suggestion_en = f"Your knee bend is not deep enough. Try bending your knees more to generate power from your legs."
+                else:
+                    title_zh = "屈膝过度"
+                    title_en = "Excessive knee bend"
+                    suggestion_zh = f"膝盖弯曲幅度过大，可能导致发力不流畅，建议调整到更自然的屈膝角度。"
+                    suggestion_en = f"Your knee bend is too deep, which may disrupt your shooting rhythm. Try a more natural bend."
+
+            elif angle_key == 'elbow_angle':
+                if is_less:
+                    title_zh = "手肘未充分弯曲"
+                    title_en = "Elbow not flexed enough"
+                    suggestion_zh = f"手肘弯曲角度不足，建议在举球时保持手肘更充分地弯曲，形成标准投篮姿势。"
+                    suggestion_en = f"Your elbow is not bent enough. Keep your elbow more flexed as you raise the ball."
+                else:
+                    title_zh = "手肘外展"
+                    title_en = "Elbow flare"
+                    suggestion_zh = f"手肘有外翻趋势，建议将手肘向内收，保持更紧凑的投篮动作。"
+                    suggestion_en = f"Your elbow is flaring out. Tuck it in for a more compact and consistent shot."
+
+            elif angle_key == 'shoulder_angle':
+                if is_less:
+                    title_zh = "持球位置偏低"
+                    title_en = "Ball position too low"
+                    suggestion_zh = f"持球高度不足，建议将球举到更高的起始位置，获得更好的投篮发力点。"
+                    suggestion_en = f"Your ball position is too low. Start with the ball higher for better shooting mechanics."
+                else:
+                    title_zh = "持球位置偏高"
+                    title_en = "Ball position too high"
+                    suggestion_zh = f"持球位置过高，可能影响投篮节奏，建议调整到更舒适的出手高度。"
+                    suggestion_en = f"Your ball position is too high. Lower it slightly for a smoother shooting motion."
+
+            elif angle_key == 'wrist_angle':
+                if is_less:
+                    title_zh = "压腕不充分"
+                    title_en = "Incomplete wrist snap"
+                    suggestion_zh = f"跟随动作中手腕下压不够充分，建议在出手后更完整地完成压腕动作。"
+                    suggestion_en = f"Your wrist snap is incomplete. Follow through with a fuller wrist motion after release."
+                else:
+                    title_zh = "手腕角度过陡"
+                    title_en = "Wrist angle too steep"
+                    suggestion_zh = f"手腕角度偏陡，建议调整压腕角度，使投篮弧线更平滑。"
+                    suggestion_en = f"Your wrist angle is too steep. Adjust for a smoother shooting arc."
+
+            elif angle_key == 'trunk_angle':
+                if is_less:
+                    title_zh = "身体过于前倾"
+                    title_en = "Body leaning forward"
+                    suggestion_zh = f"身体前倾较多，建议保持更直立的上身姿态，提升投篮稳定性。"
+                    suggestion_en = f"Your body is leaning too far forward. Stay more upright for better shooting stability."
+                else:
+                    title_zh = "身体后仰"
+                    title_en = "Body leaning back"
+                    suggestion_zh = f"投篮时有后仰趋势，建议收紧核心，保持身体垂直发力。"
+                    suggestion_en = f"You're leaning back when shooting. Engage your core and stay vertical."
+
+            elif angle_key == 'hip_angle':
+                if is_less:
+                    title_zh = "髋部位置偏低"
+                    title_en = "Hip position too low"
+                    suggestion_zh = f"髋部下沉较多，建议保持更稳定的髋部位置，优化力量传递链条。"
+                    suggestion_en = f"Your hips are dropping too low. Keep them more stable for better power transfer."
+                else:
+                    title_zh = "髋部位置偏高"
+                    title_en = "Hip position too high"
+                    suggestion_zh = f"髋部位置偏高，建议适当降低重心，更好地衔接上下肢发力。"
+                    suggestion_en = f"Your hips are too high. Lower your center of gravity for better leg-to-arm connection."
+
+            if suggestion_zh and title_zh:
+                suggestions.append({
+                    "type": "template_difference",
+                    "severity": "high" if priority == 2 else "medium",
+                    "description": title_zh,
+                    "description_en": title_en,
+                    "phase": phase,
+                    "phase_name_zh": phase_names_zh.get(phase, phase),
+                    "phase_name_en": phase_names_en.get(phase, phase),
+                    "suggestion": suggestion_zh,
+                    "suggestion_en": suggestion_en,
+                    "priority": priority
+                })
+
+    # 按优先级排序所有建议
+    suggestions.sort(key=lambda x: (-x['priority'], x['phase']))
+
+    return suggestions
 
 
 @router.post("/upload", response_model=UploadResponse)
