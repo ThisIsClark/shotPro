@@ -1,7 +1,7 @@
 ---
 title: Shot Improvement API
 emoji: 🏀
-colorFrom: orange
+colorFrom: yellow
 colorTo: yellow
 sdk: docker
 pinned: false
