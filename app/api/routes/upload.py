@@ -7,6 +7,8 @@ import uuid
 import shutil
 import aiofiles
 from pathlib import Path
+from datetime import datetime
+from typing import List
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 
 from ...config import settings
@@ -18,6 +20,9 @@ router = APIRouter(prefix="/videos", tags=["videos"])
 
 # 任务状态存储（简单实现，生产环境应使用 Redis）
 task_store: dict[str, dict] = {}
+
+# 最大保留任务数量
+MAX_TASKS = 10
 
 # 模板管理器
 templates_dir = settings.base_dir / "templates"
@@ -46,29 +51,79 @@ def validate_video_file(file: UploadFile) -> None:
 async def save_upload_file(upload_file: UploadFile, destination: Path) -> None:
     """异步保存上传文件"""
     destination.parent.mkdir(parents=True, exist_ok=True)
-    
+
     async with aiofiles.open(destination, 'wb') as f:
         while content := await upload_file.read(1024 * 1024):  # 1MB chunks
             await f.write(content)
 
 
-def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", shooting_style: str = "one_motion", template_id: str = None, generate_video: bool = False):
+def cleanup_old_tasks(keep_count: int = MAX_TASKS) -> List[str]:
+    """
+    清理旧任务，只保留最近的任务
+
+    Args:
+        keep_count: 保留的任务数量，默认为 MAX_TASKS
+
+    Returns:
+        被删除的任务ID列表
+    """
+    if len(task_store) <= keep_count:
+        return []
+
+    # 按创建时间排序任务
+    sorted_tasks = sorted(
+        task_store.items(),
+        key=lambda x: x[1].get("created_at", ""),
+        reverse=True  # 最新的在前
+    )
+
+    # 需要删除的任务（超过 keep_count 的）
+    tasks_to_delete = sorted_tasks[keep_count:]
+    deleted_ids = []
+
+    for task_id, task in tasks_to_delete:
+        try:
+            # 删除上传的视频
+            video_path = Path(task.get("video_path", ""))
+            if video_path.exists():
+                video_path.unlink()
+                print(f"[CLEANUP] 删除视频文件: {video_path}")
+
+            # 删除结果目录
+            result_dir = settings.results_dir / task_id
+            if result_dir.exists():
+                shutil.rmtree(result_dir)
+                print(f"[CLEANUP] 删除结果目录: {result_dir}")
+
+            # 从内存存储中删除
+            del task_store[task_id]
+            deleted_ids.append(task_id)
+            print(f"[CLEANUP] 清理旧任务: {task_id}")
+
+        except Exception as e:
+            print(f"[CLEANUP] 清理任务 {task_id} 失败: {e}")
+
+    return deleted_ids
+
+
+def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", shooting_style: str = "one_motion", template_id: str = None, generate_video: bool = False, generate_skeleton_video: bool = False):
     """运行分析任务（后台任务）"""
     try:
         # 更新状态
         task_store[task_id]["status"] = TaskStatus.PROCESSING
         task_store[task_id]["message"] = "正在分析..."
-        
+
         # 进度回调
         def progress_callback(progress: AnalysisProgress):
             task_store[task_id]["progress"] = progress.percentage
             task_store[task_id]["message"] = progress.message
-        
+
         # 创建分析服务
         config = AnalysisConfig(
             shooting_hand=shooting_hand,
             shooting_style=shooting_style,
-            generate_annotated_video=generate_video
+            generate_annotated_video=generate_video,
+            generate_skeleton_video=generate_skeleton_video
         )
         
         with AnalysisService(config) as service:
@@ -384,17 +439,19 @@ async def upload_video(
     shooting_hand: str = "right",
     shooting_style: str = "one_motion",
     template_id: str = None,
-    generate_video: bool = False
+    generate_video: bool = False,
+    generate_skeleton_video: bool = False
 ):
     """
     上传投篮视频
-    
+
     - **file**: 视频文件 (支持 mp4, mov, avi, webm)
     - **shooting_hand**: 投篮手 ("left" 或 "right")
     - **shooting_style**: 投篮方式 ("one_motion" 或 "two_motion")
     - **template_id**: 可选，对比模板ID
     - **generate_video**: 是否生成标注视频（默认false，提高速度）
-    
+    - **generate_skeleton_video**: 是否生成骨骼运动视频（默认false）
+
     返回 task_id，可用于查询分析状态和结果
     """
     # 验证文件
@@ -443,11 +500,17 @@ async def upload_video(
         "error": None,
         "video_path": str(video_path),
         "filename": file.filename,
-        "template_id": template_id
+        "template_id": template_id,
+        "created_at": datetime.now().isoformat()
     }
-    
+
+    # 清理旧任务（保留最近 MAX_TASKS 个）
+    deleted = cleanup_old_tasks()
+    if deleted:
+        print(f"[CLEANUP] 自动清理了 {len(deleted)} 个旧任务")
+
     # 添加后台任务
-    background_tasks.add_task(run_analysis, task_id, video_path, shooting_hand, shooting_style, template_id, generate_video)
+    background_tasks.add_task(run_analysis, task_id, video_path, shooting_hand, shooting_style, template_id, generate_video, generate_skeleton_video)
     
     return UploadResponse(
         task_id=task_id,

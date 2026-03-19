@@ -287,20 +287,20 @@ class VideoProcessor:
     ) -> bool:
         """
         创建标注视频
-        
+
         Args:
             video_path: 输入视频路径
             output_path: 输出视频路径
             annotate_func: 标注函数 (frame, frame_number, timestamp) -> annotated_frame
             progress_callback: 进度回调
-            
+
         Returns:
             是否成功
         """
         video_info = self.get_video_info(video_path)
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # 使用 H.264 编码（浏览器兼容性更好）
         # 尝试多个编码选项，按优先级排序
         codecs = [
@@ -309,7 +309,7 @@ class VideoProcessor:
             ('X264', 'x264 编码'),
             ('mp4v', 'MPEG-4 Part 2')
         ]
-        
+
         fourcc = None
         for codec, desc in codecs:
             try:
@@ -318,42 +318,138 @@ class VideoProcessor:
                 break
             except:
                 continue
-        
+
         if fourcc is None:
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 最后的备选
-        
+
         out = cv2.VideoWriter(
             str(output_path),
             fourcc,
             video_info.fps,
             (video_info.width, video_info.height)
         )
-        
+
         if not out.isOpened():
             return False
-        
+
         try:
             cap = cv2.VideoCapture(str(video_path))
             frame_number = 0
-            
+
             while True:
                 ret, frame = cap.read()
                 if not ret:
                     break
-                
+
                 timestamp = frame_number / video_info.fps
-                
+
                 # 应用标注
                 annotated = annotate_func(frame, frame_number, timestamp)
                 out.write(annotated)
-                
+
                 frame_number += 1
-                
+
                 if progress_callback:
                     progress_callback(frame_number, video_info.total_frames)
-            
+
             return True
-        
+
+        finally:
+            cap.release()
+            out.release()
+
+    def create_skeleton_video(
+        self,
+        video_path: str | Path,
+        output_path: str | Path,
+        pose_results: dict,
+        annotate_func: Callable[[np.ndarray, int, float], np.ndarray],
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+        background_color: tuple[int, int, int] = (0, 0, 0)
+    ) -> bool:
+        """
+        创建纯骨骼运动视频（黑底白骨骼，不包含原视频画面）
+
+        Args:
+            video_path: 输入视频路径
+            output_path: 输出视频路径
+            pose_results: 帧号到姿态结果的映射
+            annotate_func: 标注函数 (frame, frame_number, timestamp) -> annotated_frame
+            progress_callback: 进度回调
+            background_color: 背景颜色 (BGR)，默认黑色
+
+        Returns:
+            是否成功
+        """
+        video_info = self.get_video_info(video_path)
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # 使用 H.264 编码（浏览器兼容性更好）
+        codecs = [
+            ('avc1', 'H.264 - 最佳浏览器兼容性'),
+            ('H264', 'H.264 备选'),
+            ('X264', 'x264 编码'),
+            ('mp4v', 'MPEG-4 Part 2')
+        ]
+
+        fourcc = None
+        for codec, desc in codecs:
+            try:
+                test_fourcc = cv2.VideoWriter_fourcc(*codec)
+                fourcc = test_fourcc
+                break
+            except:
+                continue
+
+        if fourcc is None:
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+
+        out = cv2.VideoWriter(
+            str(output_path),
+            fourcc,
+            video_info.fps,
+            (video_info.width, video_info.height)
+        )
+
+        if not out.isOpened():
+            return False
+
+        try:
+            cap = cv2.VideoCapture(str(video_path))
+            frame_number = 0
+
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
+                timestamp = frame_number / video_info.fps
+
+                # 创建纯色背景图像
+                skeleton_frame = np.full(
+                    (video_info.height, video_info.width, 3),
+                    background_color,
+                    dtype=np.uint8
+                )
+
+                # 如果有姿态结果，绘制骨骼
+                if frame_number in pose_results:
+                    # 应用标注函数到骨骼帧上
+                    skeleton_frame = annotate_func(skeleton_frame, frame_number, timestamp)
+                else:
+                    # 没有检测到姿态，保持黑色背景
+                    pass
+
+                out.write(skeleton_frame)
+
+                frame_number += 1
+
+                if progress_callback:
+                    progress_callback(frame_number, video_info.total_frames)
+
+            return True
+
         finally:
             cap.release()
             out.release()

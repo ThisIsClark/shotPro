@@ -3,6 +3,11 @@ FastAPI Application Entry Point
 应用程序入口
 """
 
+import shutil
+from pathlib import Path
+from datetime import datetime
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,13 +16,91 @@ from fastapi.responses import HTMLResponse
 from .config import settings
 from .api.routes import upload, health, export, templates
 
+# 最大保留任务数量
+MAX_TASKS = 10
+
+
+def cleanup_disk_tasks():
+    """
+    启动时清理磁盘上的旧任务目录
+    只保留最近的 MAX_TASK 个任务
+    """
+    results_dir = settings.results_dir
+    upload_dir = settings.upload_dir
+
+    if not results_dir.exists():
+        return
+
+    # 获取所有任务目录及其修改时间
+    task_dirs = []
+    for task_dir in results_dir.iterdir():
+        if task_dir.is_dir():
+            # 尝试从 result.json 读取创建时间
+            result_file = task_dir / "result.json"
+            if result_file.exists():
+                try:
+                    import json
+                    with open(result_file, 'r') as f:
+                        data = json.load(f)
+                        created_at = data.get("created_at", "")
+                except:
+                    created_at = ""
+            else:
+                created_at = ""
+
+            # 如果没有创建时间，使用目录修改时间
+            if not created_at:
+                created_at = datetime.fromtimestamp(task_dir.stat().st_mtime).isoformat()
+
+            task_dirs.append((task_dir.name, created_at))
+
+    # 按创建时间排序（最新的在前）
+    task_dirs.sort(key=lambda x: x[1], reverse=True)
+
+    # 清理超过 MAX_TASKS 的任务
+    if len(task_dirs) > MAX_TASKS:
+        tasks_to_delete = task_dirs[MAX_TASKS:]
+        print(f"[STARTUP] 发现 {len(task_dirs)} 个任务，清理 {len(tasks_to_delete)} 个旧任务")
+
+        for task_id, _ in tasks_to_delete:
+            try:
+                # 删除结果目录
+                result_dir = results_dir / task_id
+                if result_dir.exists():
+                    shutil.rmtree(result_dir)
+                    print(f"[STARTUP] 删除结果目录: {result_dir}")
+
+                # 删除上传的视频文件
+                for ext in ['.mp4', '.mov', '.avi', '.webm']:
+                    video_file = upload_dir / f"{task_id}{ext}"
+                    if video_file.exists():
+                        video_file.unlink()
+                        print(f"[STARTUP] 删除视频文件: {video_file}")
+                        break
+
+            except Exception as e:
+                print(f"[STARTUP] 清理任务 {task_id} 失败: {e}")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期管理"""
+    # 启动时执行
+    print("[STARTUP] 投篮姿势分析系统启动中...")
+    cleanup_disk_tasks()
+    yield
+    # 关闭时执行
+    print("[SHUTDOWN] 投篮姿势分析系统关闭")
+
+
 # 创建 FastAPI 应用
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description="投篮姿势分析系统 - 上传投篮视频，获取姿势分析和改进建议",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # CORS 配置

@@ -1671,6 +1671,13 @@
                         <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.8rem; color: rgba(255,255,255,0.5);">
                             <span data-i18n="upload.generateVideoHint">💡 不生成标注视频可大幅提升分析速度</span>
                         </div>
+                        <label style="margin-top: 12px; display: block;">
+                            <input type="checkbox" id="generateSkeletonVideoCheckbox" style="margin-right: 8px;">
+                            <span data-i18n="upload.generateSkeletonVideo">生成骨骼运动视频</span>
+                        </label>
+                        <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.8rem; color: rgba(255,255,255,0.5);">
+                            <span data-i18n="upload.generateSkeletonVideoHint">💡 生成纯骨骼运动视频，适合对比分析动作轨迹</span>
+                        </div>
                     </div>
 
                     <button class="btn" id="analyzeBtn" disabled data-i18n="upload.analyze">
@@ -1724,6 +1731,17 @@
                             <span data-i18n="results.annotatedVideo">完整标注视频</span>
                         </h2>
                         <video id="resultVideo" controls preload="metadata" playsinline>
+                            <span data-i18n="results.browserNotSupported">您的浏览器不支持视频播放。</span>
+                        </video>
+                    </div>
+
+                    <!-- 骨骼运动视频 -->
+                    <div class="video-section" id="skeletonVideoResult" style="display: none;">
+                        <h2 class="section-title">
+                            <span class="section-title-icon">🦴</span>
+                            <span data-i18n="results.skeletonVideo">骨骼运动视频</span>
+                        </h2>
+                        <video id="skeletonVideo" controls preload="metadata" playsinline>
                             <span data-i18n="results.browserNotSupported">您的浏览器不支持视频播放。</span>
                         </video>
                     </div>
@@ -1821,7 +1839,9 @@
                     uploading: '上传中...',
                     creatingTemplate: '创建模板中...',
                     generateVideo: '生成标注视频（耗时较长）',
-                    generateVideoHint: '💡 不生成标注视频可大幅提升分析速度'
+                    generateVideoHint: '💡 不生成标注视频可大幅提升分析速度',
+                    generateSkeletonVideo: '生成骨骼运动视频',
+                    generateSkeletonVideoHint: '💡 生成纯骨骼运动视频，适合对比分析动作轨迹'
                 },
                 comparison: {
                     compareWith: '对比模板',
@@ -1846,6 +1866,7 @@
                     emptyState: '上传视频后即可查看分析结果',
                     keyFrames: '投篮动作关键帧',
                     annotatedVideo: '完整标注视频',
+                    skeletonVideo: '骨骼运动视频',
                     browserNotSupported: '您的浏览器不支持视频播放。',
                     suggestions: '改进建议',
                     referenceScore: '参考评分',
@@ -1929,7 +1950,9 @@
                     uploading: 'Uploading...',
                     creatingTemplate: 'Creating Template...',
                     generateVideo: 'Generate Annotated Video (Time-consuming)',
-                    generateVideoHint: '💡 Skipping video generation significantly speeds up analysis'
+                    generateVideoHint: '💡 Skipping video generation significantly speeds up analysis',
+                    generateSkeletonVideo: 'Generate Skeleton Motion Video',
+                    generateSkeletonVideoHint: '💡 Generate pure skeleton motion video for trajectory comparison'
                 },
                 comparison: {
                     compareWith: 'Compare Template',
@@ -1954,6 +1977,7 @@
                     emptyState: 'Upload a video to see analysis results',
                     keyFrames: 'Key Shooting Frames',
                     annotatedVideo: 'Full Annotated Video',
+                    skeletonVideo: 'Skeleton Motion Video',
                     browserNotSupported: 'Your browser does not support video playback.',
                     suggestions: 'Improvement Suggestions',
                     referenceScore: 'Reference Score',
@@ -2484,8 +2508,9 @@
                     const shootingStyle = document.querySelector('input[name="shooting_style"]:checked').value;
                     const templateId = document.getElementById('templateSelect').value;
                     const generateVideo = document.getElementById('generateVideoCheckbox').checked;
-                    
-                    let url = `/api/v1/videos/upload?shooting_hand=${shootingHand}&shooting_style=${shootingStyle}&generate_video=${generateVideo}`;
+                    const generateSkeletonVideo = document.getElementById('generateSkeletonVideoCheckbox').checked;
+
+                    let url = `/api/v1/videos/upload?shooting_hand=${shootingHand}&shooting_style=${shootingStyle}&generate_video=${generateVideo}&generate_skeleton_video=${generateSkeletonVideo}`;
                     if (templateId) {
                         url += `&template_id=${templateId}`;
                     }
@@ -2613,17 +2638,24 @@
         function displayResults(result) {
             emptyState.style.display = 'none';
             resultsContainer.style.display = 'block';
-            
+
             // 确保所有分析相关的部分都显示（可能在创建模板时被隐藏了）
             const videoSection = document.getElementById('videoResult');
+            const skeletonVideoSection = document.getElementById('skeletonVideoResult');
             const issuesSection = document.querySelector('.issues-section');
             const scoreSection = document.querySelector('.score-section');
             const exportBtn = document.getElementById('exportPdfBtn');
-            
+
             if (videoSection) videoSection.style.display = 'block';
+            if (skeletonVideoSection) skeletonVideoSection.style.display = 'none'; // 先隐藏，后面根据结果决定是否显示
             if (issuesSection) issuesSection.style.display = 'block';
             if (scoreSection) scoreSection.style.display = 'block';
             if (exportBtn) exportBtn.style.display = 'inline-flex';
+
+            // 调试日志 - 打印完整的 result 对象
+            console.log('[DEBUG displayResults] 完整result对象:', JSON.stringify(result, null, 2));
+            console.log('[DEBUG displayResults] skeleton_video_url:', result.skeleton_video_url);
+            console.log('[DEBUG displayResults] annotated_video_url:', result.annotated_video_url);
 
             // 检查是否有模板对比数据
             console.log('[DEBUG] result对象:', result);
@@ -2662,7 +2694,7 @@
             const resultVideo = document.getElementById('resultVideo');
             if (result.annotated_video_url) {
                 resultVideo.src = result.annotated_video_url + '?t=' + new Date().getTime();
-                
+
                 resultVideo.onerror = function(e) {
                     console.error('视频加载失败:', e);
                     console.log('视频URL:', result.annotated_video_url);
@@ -2676,14 +2708,52 @@
                         </p>
                     `;
                 };
-                
+
                 resultVideo.onloadedmetadata = function() {
                     console.log('视频加载成功，时长:', resultVideo.duration, '秒');
                 };
-                
+
                 videoResult.style.display = 'block';
             } else {
                 videoResult.style.display = 'none';
+            }
+
+            // Skeleton video
+            const skeletonVideoResult = document.getElementById('skeletonVideoResult');
+            const skeletonVideo = document.getElementById('skeletonVideo');
+            console.log('[DEBUG 骨骼视频] URL值:', result.skeleton_video_url);
+            console.log('[DEBUG 骨骼视频] URL类型:', typeof result.skeleton_video_url);
+            console.log('[DEBUG 骨骼视频] 是否为truthy:', !!result.skeleton_video_url);
+            console.log('[DEBUG 骨骼视频] skeletonVideoResult元素:', skeletonVideoResult);
+            console.log('[DEBUG 骨骼视频] skeletonVideo元素:', skeletonVideo);
+
+            if (result.skeleton_video_url) {
+                console.log('[DEBUG 骨骼视频] 进入显示逻辑，设置视频源:', result.skeleton_video_url);
+                skeletonVideo.src = result.skeleton_video_url + '?t=' + new Date().getTime();
+
+                skeletonVideo.onerror = function(e) {
+                    console.error('[DEBUG 骨骼视频] 加载失败:', e);
+                    skeletonVideoResult.innerHTML = `
+                        <h2 class="section-title">
+                            <span class="section-title-icon">🦴</span>
+                            ${t('results.skeletonVideo')}
+                        </h2>
+                        <p style="color: #ff6b6b; text-align: center; padding: 40px;">
+                            视频加载失败，请<a href="${result.skeleton_video_url}" download style="color: #48dbfb; text-decoration: underline;">点击下载</a>后使用播放器观看
+                        </p>
+                    `;
+                };
+
+                skeletonVideo.onloadedmetadata = function() {
+                    console.log('[DEBUG 骨骼视频] 加载成功，时长:', skeletonVideo.duration, '秒');
+                };
+
+                console.log('[DEBUG 骨骼视频] 设置skeletonVideoResult.style.display = block');
+                skeletonVideoResult.style.display = 'block';
+                console.log('[DEBUG 骨骼视频] display设置后:', window.getComputedStyle(skeletonVideoResult).display);
+            } else {
+                console.log('[DEBUG 骨骼视频] 没有骨骼视频URL，隐藏section');
+                skeletonVideoResult.style.display = 'none';
             }
 
             // Markdown格式化函数
