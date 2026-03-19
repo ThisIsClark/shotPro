@@ -26,7 +26,6 @@ uploads/
 results/
 temp/
 modelVideo/
-templates/
 docs/
 *.md
 start.sh
@@ -35,3 +34,7 @@ debug_release.py
 fix_*.py
 test_*.py
 vercel.json
+
+# Exclude template data (keep frontend HTML)
+templates/template_*/
+templates/*.json
