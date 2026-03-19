@@ -28,6 +28,7 @@ class AnalysisConfig:
     min_detection_confidence: float = 0.5
     min_tracking_confidence: float = 0.5
     generate_annotated_video: bool = False  # 默认不生成标注视频（提高速度）
+    generate_skeleton_video: bool = False  # 生成纯骨骼运动视频
     generate_key_frames: bool = True
     generate_evaluation: bool = True  # 是否生成评分和建议
     smooth_angles: bool = True
@@ -63,6 +64,7 @@ class FullAnalysisResult:
     evaluation: Optional[EvaluationResult]  # 可选：创建模板时不生成评估
     key_frames: list[KeyFrameInfo]
     annotated_video_path: Optional[str] = None
+    skeleton_video_path: Optional[str] = None  # 骨骼运动视频路径
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     
     def to_dict(self) -> dict:
@@ -120,6 +122,7 @@ class FullAnalysisResult:
         # 其他通用字段
         result.update({
             "annotated_video_url": self.annotated_video_path,
+            "skeleton_video_url": self.skeleton_video_path,
             "total_frames": self.video_info.total_frames,
             "fps": self.video_info.fps,
             "duration": self.video_info.duration,
@@ -421,17 +424,103 @@ class AnalysisService:
             
             if success:
                 annotated_video_path = f"/results/{task_id}/annotated.mp4"
-        
+
+        # 第五阶段：生成骨骼运动视频
+        skeleton_video_path = None
+
+        if self.config.generate_skeleton_video:
+            self._report_progress(progress_callback, "skeleton", 0, video_info.total_frames, "生成骨骼运动视频...")
+
+            output_skeleton_path = result_dir / "skeleton.mp4"
+
+            # 预先建立帧数据索引（优化性能）
+            frame_data_dict = {fd.frame_number: fd for fd in frame_data_list}
+
+            # 创建骨骼绘制函数
+            def draw_skeleton(frame: cv2.Mat, frame_number: int, timestamp: float) -> cv2.Mat:
+                # frame 已经是黑色背景，直接在上面绘制
+                annotated = frame.copy()
+
+                # 获取姿态结果
+                pose_result = pose_results.get(frame_number)
+
+                if pose_result:
+                    # 绘制骨骼
+                    annotated = self.pose_detector.draw_landmarks(
+                        annotated,
+                        pose_result,
+                        highlight_shooting_arm=True,
+                        shooting_hand=self.config.shooting_hand
+                    )
+
+                    # 查找对应的帧数据
+                    frame_data = frame_data_dict.get(frame_number)
+
+                    if frame_data:
+                        # 绘制角度
+                        if frame_data.angles:
+                            annotated = self.pose_detector.draw_angles(
+                                annotated,
+                                pose_result,
+                                frame_data.angles.to_dict(),
+                                self.config.shooting_hand
+                            )
+
+                        # 绘制阶段指示
+                        annotated = AnnotationRenderer.draw_phase_indicator(
+                            annotated,
+                            frame_data.phase.value,
+                            self.PHASE_NAMES[frame_data.phase]
+                        )
+
+                # 绘制分数（右上角）
+                if evaluation:
+                    annotated = AnnotationRenderer.draw_score_badge(
+                        annotated,
+                        evaluation.overall_score,
+                        evaluation.rating
+                    )
+
+                # 绘制信息面板
+                info = {
+                    "Frame": f"{frame_number}",
+                    "Time": f"{timestamp:.2f}s"
+                }
+                annotated = AnnotationRenderer.draw_info_panel(annotated, info, "bottom-left")
+
+                return annotated
+
+            def skeleton_progress(current, total):
+                self._report_progress(
+                    progress_callback,
+                    "skeleton",
+                    current,
+                    total,
+                    f"生成骨骼视频帧 {current}/{total}"
+                )
+
+            success = self.video_processor.create_skeleton_video(
+                video_path,
+                output_skeleton_path,
+                pose_results,
+                draw_skeleton,
+                skeleton_progress
+            )
+
+            if success:
+                skeleton_video_path = f"/results/{task_id}/skeleton.mp4"
+
         # 完成
         self._report_progress(progress_callback, "done", 1, 1, "分析完成")
-        
+
         return FullAnalysisResult(
             task_id=task_id,
             video_filename=video_path.name,
             video_info=video_info,
             evaluation=evaluation,
             key_frames=key_frames,
-            annotated_video_path=annotated_video_path
+            annotated_video_path=annotated_video_path,
+            skeleton_video_path=skeleton_video_path
         )
     
     def _report_progress(
@@ -449,10 +538,11 @@ class AnalysisService:
             # 根据阶段调整总体进度
             stage_weights = {
                 "info": (0, 5),
-                "detection": (5, 60),
-                "evaluation": (60, 65),
-                "keyframes": (65, 80),
-                "video": (80, 100),
+                "detection": (5, 50),
+                "evaluation": (50, 55),
+                "keyframes": (55, 65),
+                "video": (65, 82),
+                "skeleton": (82, 100),
                 "done": (100, 100)
             }
             

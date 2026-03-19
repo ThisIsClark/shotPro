@@ -146,6 +146,7 @@ class AnalysisResult(BaseModel):
     suggestions: list[Suggestion]
     key_frames: list[KeyFrame]
     annotated_video_url: Optional[str] = None
+    skeleton_video_url: Optional[str] = None  # 骨骼运动视频URL
     total_frames: int
     fps: float
     duration: float
