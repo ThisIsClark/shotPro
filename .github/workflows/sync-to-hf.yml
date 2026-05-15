@@ -1,0 +1,44 @@
+name: Sync to Hugging Face Spaces
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  sync-to-hf:
+    runs-on: ubuntu-latest
+
+    # 只在测试通过后才同步（依赖 ci.yml 的 test job）
+    # 如果你想让同步独立运行（不等待测试），可以删除下面的 needs
+    needs: []  # 设置为空表示独立运行；设置为 ['test'] 则等待测试通过
+
+    steps:
+      - name: Checkout GitHub repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史，确保 git push 正常
+
+      - name: Setup Git
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+      - name: Push to Hugging Face
+        run: |
+          # 添加 HF Spaces 作为 remote
+          git remote add hf https://${{ secrets.HF_USERNAME }}:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ secrets.HF_USERNAME }}/shotPro
+
+          # 推送到 HF (main -> main)
+          # --force 确保完全同步，覆盖 HF 上的内容
+          git push hf main --force
+
+        env:
+          HF_USERNAME: ${{ secrets.HF_USERNAME }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+      - name: Sync completed
+        run: |
+          echo "Successfully synced to Hugging Face Spaces!"
+          echo "View your Space at: https://huggingface.co/spaces/${{ secrets.HF_USERNAME }}/shotPro"
