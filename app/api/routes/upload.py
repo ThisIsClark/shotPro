@@ -6,22 +6,27 @@ Upload Routes
 import uuid
 import shutil
 import aiofiles
+import asyncio
 from pathlib import Path
 from datetime import datetime
-from typing import List
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
+from typing import List, Optional
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Depends
 
 from ...config import settings
 from ...models.schemas import UploadResponse, TaskStatus, TaskStatusResponse
 from ...services.analysis_service import AnalysisService, AnalysisConfig, AnalysisProgress
+from ...services.db_service import db_service
+from ...services.storage_service import storage_service
+from ...services.supabase_client import is_supabase_enabled
 from ...models.template import TemplateManager
+from ..deps import get_current_user_optional, get_user_id
 
 router = APIRouter(prefix="/videos", tags=["videos"])
 
-# 任务状态存储（简单实现，生产环境应使用 Redis）
+# 任务状态存储（内存 fallback，当数据库不可用时使用）
 task_store: dict[str, dict] = {}
 
-# 最大保留任务数量
+# 最大保留内存任务数量（仅用于 fallback）
 MAX_TASKS = 10
 
 # 模板管理器
@@ -106,17 +111,28 @@ def cleanup_old_tasks(keep_count: int = MAX_TASKS) -> List[str]:
     return deleted_ids
 
 
-def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", shooting_style: str = "one_motion", template_id: str = None, generate_video: bool = False, generate_skeleton_video: bool = False):
-    """运行分析任务（后台任务）"""
+def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", shooting_style: str = "one_motion", template_id: str = None, generate_video: bool = False, generate_skeleton_video: bool = False, user_id: Optional[str] = None, video_filename: str = None, video_storage_uploaded: bool = False):
+    """运行分析任务（后台任务）- 支持数据库和内存两种模式"""
     try:
-        # 更新状态
-        task_store[task_id]["status"] = TaskStatus.PROCESSING
-        task_store[task_id]["message"] = "正在分析..."
+        # 使用数据库更新状态（如果可用）
+        use_db = is_supabase_enabled() and db_service.is_available()
+
+        if use_db:
+            asyncio.run(db_service.update_analysis(task_id, status="processing", progress=0))
+        else:
+            # 内存 fallback
+            task_store[task_id]["status"] = TaskStatus.PROCESSING
+            task_store[task_id]["message"] = "正在分析..."
 
         # 进度回调
         def progress_callback(progress: AnalysisProgress):
-            task_store[task_id]["progress"] = progress.percentage
-            task_store[task_id]["message"] = progress.message
+            if use_db:
+                # 数据库模式：异步更新需要在线程中执行
+                asyncio.run(db_service.update_analysis(task_id, progress=progress.percentage))
+            else:
+                # 内存 fallback
+                task_store[task_id]["progress"] = progress.percentage
+                task_store[task_id]["message"] = progress.message
 
         # 创建分析服务
         config = AnalysisConfig(
@@ -174,16 +190,53 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
                 print(f"[DEBUG] 生成的模板建议数量：{len(template_suggestions)}")
             else:
                 print(f"[DEBUG] 模板未找到: {template_id}")
-        
-        # 更新结果
-        task_store[task_id]["status"] = TaskStatus.COMPLETED
-        task_store[task_id]["progress"] = 100
-        task_store[task_id]["message"] = "分析完成"
-        task_store[task_id]["result"] = result_dict
+
+        # 更新完成状态
+        if use_db:
+            asyncio.run(db_service.update_analysis(
+                task_id,
+                status="completed",
+                progress=100,
+                overall_score=result_dict.get("overall_score"),
+                rating=result_dict.get("rating"),
+                total_frames=result_dict.get("total_frames"),
+                fps=result_dict.get("fps"),
+                duration=result_dict.get("duration")
+            ))
+        else:
+            # 内存 fallback
+            task_store[task_id]["status"] = TaskStatus.COMPLETED
+            task_store[task_id]["progress"] = 100
+            task_store[task_id]["message"] = "分析完成"
+            task_store[task_id]["result"] = result_dict
         
         # 持久化结果到磁盘
         result_dir = settings.results_dir / task_id
         result_file = result_dir / "result.json"
+
+        # 上传关键帧图片到 Supabase Storage（如果可用）
+        if storage_service.is_available():
+            print(f"[Storage] Uploading key frames for task {task_id}")
+            for kf in result_dict.get("key_frames", []):
+                local_image_path = kf.get("image_url", "")
+                # 本地路径格式: /results/{task_id}/keyframe_{phase}.jpg
+                if local_image_path.startswith("/results/"):
+                    # 提取文件名
+                    image_filename = local_image_path.split("/")[-1]
+                    full_local_path = settings.results_dir / task_id / image_filename
+
+                    if full_local_path.exists():
+                        storage_url = storage_service.upload_result_image(
+                            full_local_path,
+                            user_id=user_id,
+                            task_id=task_id,
+                            image_name=image_filename
+                        )
+                        if storage_url:
+                            print(f"[Storage] Uploaded: {image_filename} -> {storage_url}")
+                            # 更新 URL 为 Storage URL
+                            kf["image_url"] = storage_url
+
         with open(result_file, 'w', encoding='utf-8') as f:
             import json
             json.dump(result_dict, f, ensure_ascii=False, indent=2)
@@ -191,11 +244,36 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
         print(f"[DEBUG] 结果包含 template_comparison: {'template_comparison' in result_dict}")
         if 'template_comparison' in result_dict:
             print(f"[DEBUG] template_comparison.comparisons 数量: {len(result_dict['template_comparison']['comparisons'])}")
+
+        # ===== 分析完成后删除原始视频（节省存储空间）=====
+        # 删除本地视频文件
+        try:
+            if video_path.exists():
+                video_path.unlink()
+                print(f"[CLEANUP] 已删除本地视频文件: {video_path}")
+        except Exception as cleanup_error:
+            print(f"[CLEANUP] 删除本地视频失败: {cleanup_error}")
+
+        # 删除 Supabase Storage 中的视频（如果上传了）
+        if video_storage_uploaded and video_filename:
+            try:
+                storage_service.delete_video_by_task(
+                    task_id=task_id,
+                    filename=video_filename,
+                    user_id=user_id
+                )
+                print(f"[CLEANUP] 已删除 Storage 视频: {task_id}/{video_filename}")
+            except Exception as cleanup_error:
+                print(f"[CLEANUP] 删除 Storage 视频失败: {cleanup_error}")
         
     except Exception as e:
-        task_store[task_id]["status"] = TaskStatus.FAILED
-        task_store[task_id]["error"] = str(e)
-        task_store[task_id]["message"] = f"分析失败: {str(e)}"
+        error_msg = str(e)
+        if use_db:
+            asyncio.run(db_service.update_analysis(task_id, status="failed", error_message=error_msg))
+        else:
+            task_store[task_id]["status"] = TaskStatus.FAILED
+            task_store[task_id]["error"] = error_msg
+            task_store[task_id]["message"] = f"分析失败: {error_msg}"
 
 
 def _generate_comparison(user_frames, template_frames):
@@ -440,10 +518,11 @@ async def upload_video(
     shooting_style: str = "one_motion",
     template_id: str = None,
     generate_video: bool = False,
-    generate_skeleton_video: bool = False
+    generate_skeleton_video: bool = False,
+    user: Optional[dict] = Depends(get_current_user_optional)
 ):
     """
-    上传投篮视频
+    上传投篮视频（支持可选用户绑定）
 
     - **file**: 视频文件 (支持 mp4, mov, avi, webm)
     - **shooting_hand**: 投篮手 ("left" 或 "right")
@@ -452,18 +531,20 @@ async def upload_video(
     - **generate_video**: 是否生成标注视频（默认false，提高速度）
     - **generate_skeleton_video**: 是否生成骨骼运动视频（默认false）
 
+    如果请求头携带 Authorization: Bearer {token}，分析结果将关联到该用户。
+
     返回 task_id，可用于查询分析状态和结果
     """
     # 验证文件
     validate_video_file(file)
-    
+
     # 验证投篮手参数
     if shooting_hand not in ["left", "right"]:
         raise HTTPException(
             status_code=400,
             detail="shooting_hand 必须是 'left' 或 'right'"
         )
-    
+
     # 如果指定了模板，验证模板是否存在
     if template_id:
         template = template_manager.get_template(template_id)
@@ -472,45 +553,101 @@ async def upload_video(
                 status_code=404,
                 detail=f"模板不存在: {template_id}"
             )
-    
+
+    # 获取用户 ID（可选）
+    user_id = get_user_id(user)
+
+    # 判断是否使用数据库
+    use_db = is_supabase_enabled() and db_service.is_available()
+
     # 生成任务 ID
     task_id = str(uuid.uuid4())
-    
+
+    # 创建数据库记录（如果可用）
+    if use_db:
+        db_record = await db_service.create_analysis(
+            analysis_id=task_id,  # 使用预生成的 task_id
+            user_id=user_id,
+            video_filename=file.filename or "unknown",
+            video_path="",  # 暂时为空，保存文件后更新
+            shooting_hand=shooting_hand,
+            shooting_style=shooting_style,
+            template_id=template_id,
+            generate_video=generate_video,
+            generate_skeleton_video=generate_skeleton_video
+        )
+        if db_record:
+            print(f"[DB] Created analysis record with ID: {task_id}")
+
     # 保存文件
     file_ext = Path(file.filename).suffix if file.filename else ".mp4"
     video_path = settings.upload_dir / f"{task_id}{file_ext}"
-    
+
     await save_upload_file(file, video_path)
-    
+
+    # 上传视频到 Supabase Storage（如果可用）
+    storage_url = None
+    video_storage_uploaded = False
+    if storage_service.is_available():
+        storage_url = storage_service.upload_video(
+            video_path,
+            user_id=user_id,
+            task_id=task_id
+        )
+        if storage_url:
+            video_storage_uploaded = True
+            print(f"[Storage] Video uploaded: {storage_url}")
+        else:
+            print(f"[Storage] Video upload skipped, using local storage")
+
     # 检查文件大小
     file_size_mb = video_path.stat().st_size / (1024 * 1024)
     if file_size_mb > settings.max_video_size_mb:
         video_path.unlink()  # 删除文件
+        if use_db:
+            await db_service.delete_analysis(task_id)
         raise HTTPException(
             status_code=400,
             detail=f"文件过大: {file_size_mb:.1f}MB，最大允许 {settings.max_video_size_mb}MB"
         )
-    
-    # 初始化任务状态
-    task_store[task_id] = {
-        "status": TaskStatus.PENDING,
-        "progress": 0,
-        "message": "任务已创建，等待处理",
-        "result": None,
-        "error": None,
-        "video_path": str(video_path),
-        "filename": file.filename,
-        "template_id": template_id,
-        "created_at": datetime.now().isoformat()
-    }
 
-    # 清理旧任务（保留最近 MAX_TASKS 个）
-    deleted = cleanup_old_tasks()
-    if deleted:
-        print(f"[CLEANUP] 自动清理了 {len(deleted)} 个旧任务")
+    # 更新视频路径（数据库）
+    if use_db:
+        await db_service.update_analysis(task_id, result_path=str(video_path))
+
+    # 内存 fallback：初始化任务状态
+    if not use_db:
+        task_store[task_id] = {
+            "status": TaskStatus.PENDING,
+            "progress": 0,
+            "message": "任务已创建，等待处理",
+            "result": None,
+            "error": None,
+            "video_path": str(video_path),
+            "filename": file.filename,
+            "template_id": template_id,
+            "created_at": datetime.now().isoformat()
+        }
+
+        # 清理旧任务（仅内存模式）
+        deleted = cleanup_old_tasks()
+        if deleted:
+            print(f"[CLEANUP] 自动清理了 {len(deleted)} 个旧任务")
 
     # 添加后台任务
-    background_tasks.add_task(run_analysis, task_id, video_path, shooting_hand, shooting_style, template_id, generate_video, generate_skeleton_video)
+    background_tasks.add_task(
+        run_analysis,
+        task_id,
+        video_path,
+        shooting_hand,
+        shooting_style,
+        template_id,
+        generate_video,
+        generate_skeleton_video,
+        user_id,
+        video_path.name,  # 视频文件名（用于删除 Storage）
+        video_storage_uploaded  # 是否上传到了 Storage
+    )
     
     return UploadResponse(
         task_id=task_id,
@@ -523,21 +660,37 @@ async def upload_video(
 async def get_task_status(task_id: str):
     """
     获取分析任务状态
-    
+
     - **task_id**: 任务ID
     """
+    # 尝试从数据库获取
+    use_db = is_supabase_enabled() and db_service.is_available()
+
+    if use_db:
+        analysis = await db_service.get_analysis(task_id)
+        if analysis:
+            return TaskStatusResponse(
+                task_id=task_id,
+                status=analysis.get("status", "pending"),
+                progress=analysis.get("progress", 0),
+                message="",  # 数据库不存储 message
+                result=None,  # 结果需要从磁盘读取
+                error=analysis.get("error_message")
+            )
+
+    # 内存 fallback
     if task_id not in task_store:
         raise HTTPException(status_code=404, detail="任务不存在")
-    
+
     task = task_store[task_id]
-    
+
     return TaskStatusResponse(
         task_id=task_id,
         status=task["status"],
         progress=task["progress"],
         message=task["message"],
-        result=task["result"],
-        error=task["error"]
+        result=task.get("result"),
+        error=task.get("error")
     )
 
 
@@ -545,55 +698,97 @@ async def get_task_status(task_id: str):
 async def get_task_result(task_id: str):
     """
     获取分析结果
-    
+
     - **task_id**: 任务ID
     """
-    if task_id not in task_store:
+    # 尝试从数据库获取状态
+    use_db = is_supabase_enabled() and db_service.is_available()
+
+    status_info = None
+    if use_db:
+        analysis = await db_service.get_analysis(task_id)
+        if analysis:
+            status_info = analysis
+
+    # 内存 fallback
+    if not status_info and task_id in task_store:
+        status_info = task_store[task_id]
+
+    if not status_info:
         raise HTTPException(status_code=404, detail="任务不存在")
-    
-    task = task_store[task_id]
-    
-    if task["status"] == TaskStatus.PENDING:
+
+    # 检查状态
+    task_status = status_info.get("status", "pending")
+
+    if task_status == "pending":
         raise HTTPException(status_code=202, detail="任务等待处理中")
-    
-    if task["status"] == TaskStatus.PROCESSING:
+
+    if task_status == "processing":
+        progress = status_info.get("progress", 0)
         raise HTTPException(
-            status_code=202, 
-            detail=f"任务处理中: {task['progress']}%"
+            status_code=202,
+            detail=f"任务处理中: {progress}%"
         )
-    
-    if task["status"] == TaskStatus.FAILED:
+
+    if task_status == "failed":
+        error_msg = status_info.get("error_message") or status_info.get("error")
         raise HTTPException(
             status_code=500,
-            detail=f"分析失败: {task['error']}"
+            detail=f"分析失败: {error_msg}"
         )
-    
-    return task["result"]
+
+    # 从磁盘读取结果
+    result_dir = settings.results_dir / task_id
+    result_file = result_dir / "result.json"
+
+    if result_file.exists():
+        import json
+        with open(result_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+    # 内存 fallback：返回内存中的结果
+    return status_info.get("result")
 
 
 @router.delete("/tasks/{task_id}")
 async def delete_task(task_id: str):
     """
     删除任务及相关文件
-    
+
     - **task_id**: 任务ID
     """
-    if task_id not in task_store:
+    use_db = is_supabase_enabled() and db_service.is_available()
+
+    # 获取任务信息
+    task_info = None
+    if use_db:
+        analysis = await db_service.get_analysis(task_id)
+        if analysis:
+            task_info = analysis
+
+    # 内存 fallback
+    if not task_info and task_id in task_store:
+        task_info = task_store[task_id]
+
+    if not task_info:
         raise HTTPException(status_code=404, detail="任务不存在")
-    
-    task = task_store[task_id]
-    
+
     # 删除上传的视频
-    video_path = Path(task.get("video_path", ""))
+    video_path = Path(task_info.get("video_path") or task_info.get("result_path", ""))
     if video_path.exists():
         video_path.unlink()
-    
+
     # 删除结果目录
     result_dir = settings.results_dir / task_id
     if result_dir.exists():
         shutil.rmtree(result_dir)
-    
-    # 从存储中删除
-    del task_store[task_id]
-    
+
+    # 从数据库删除（如果可用）
+    if use_db:
+        await db_service.delete_analysis(task_id)
+
+    # 从内存删除（如果存在）
+    if task_id in task_store:
+        del task_store[task_id]
+
     return {"message": "任务已删除", "task_id": task_id}

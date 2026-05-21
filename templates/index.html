@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>投篮姿势分析器 - Basketball Shooting Form Analyzer</title>
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1548,9 +1550,320 @@
                 font-size: 2.5rem;
             }
         }
+
+        /* ===== 登录模态框样式 ===== */
+        .auth-section {
+            position: absolute;
+            top: 20px;
+            right: 80px;
+            z-index: 100;
+        }
+
+        .auth-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .user-email {
+            font-size: 0.9rem;
+            color: #48dbfb;
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            background: rgba(255, 107, 107, 0.15);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 107, 107, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #48dbfb, #a855f7);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 12px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(72, 219, 251, 0.3);
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(72, 219, 251, 0.4);
+        }
+
+        /* 登录模态框 */
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .auth-modal.active {
+            display: flex;
+        }
+
+        .auth-modal-content {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(30px);
+            border-radius: 24px;
+            padding: 40px;
+            width: 400px;
+            max-width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .auth-modal-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .auth-modal-header h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #48dbfb, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .auth-modal-header p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95rem;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .auth-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .auth-input-group label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+        }
+
+        .auth-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: #48dbfb;
+            background: rgba(72, 219, 251, 0.1);
+            box-shadow: 0 0 20px rgba(72, 219, 251, 0.2);
+        }
+
+        .auth-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .auth-submit-btn {
+            background: linear-gradient(135deg, #48dbfb, #a855f7);
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .auth-submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(72, 219, 251, 0.4);
+        }
+
+        .auth-submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .auth-switch a {
+            color: #48dbfb;
+            cursor: pointer;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .auth-switch a:hover {
+            color: #feca57;
+        }
+
+        .auth-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .auth-close-btn:hover {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        .auth-modal-content {
+            position: relative;
+        }
+
+        .auth-error {
+            background: rgba(255, 107, 107, 0.15);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #ff6b6b;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .auth-error.show {
+            display: block;
+        }
+
+        .auth-success {
+            background: rgba(0, 210, 106, 0.15);
+            border: 1px solid rgba(0, 210, 106, 0.3);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #00d26a;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .auth-success.show {
+            display: block;
+        }
+
+        /* 历史记录按钮 */
+        .history-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: none;
+        }
+
+        .history-btn:hover {
+            background: rgba(72, 219, 251, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .history-btn.show {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
     </style>
 </head>
 <body>
+    <!-- 登录模态框 -->
+    <div class="auth-modal" id="authModal">
+        <div class="auth-modal-content">
+            <button class="auth-close-btn" onclick="closeAuthModal()">×</button>
+            <div class="auth-modal-header">
+                <h2 id="authModalTitle">登录</h2>
+                <p id="authModalDesc">登录以保存您的分析历史</p>
+            </div>
+            <div class="auth-error" id="authError"></div>
+            <div class="auth-success" id="authSuccess"></div>
+            <form class="auth-form" id="authForm" onsubmit="handleAuthSubmit(event)">
+                <div class="auth-input-group">
+                    <label for="authEmail">邮箱</label>
+                    <input type="email" id="authEmail" class="auth-input" placeholder="your@email.com" required>
+                </div>
+                <div class="auth-input-group">
+                    <label for="authPassword">密码</label>
+                    <input type="password" id="authPassword" class="auth-input" placeholder="至少6个字符" required minlength="6">
+                </div>
+                <button type="submit" class="auth-submit-btn" id="authSubmitBtn">登录</button>
+            </form>
+            <div class="auth-switch">
+                <span id="authSwitchText">还没有账号？</span>
+                <a onclick="toggleAuthMode()" id="authSwitchLink">注册</a>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <header>
             <div class="language-switcher">
@@ -1558,6 +1871,24 @@
                     <span class="icon">🌐</span>
                     <span id="langText">中文</span>
                 </button>
+            </div>
+            <!-- 登录状态区域 -->
+            <div class="auth-section">
+                <div class="auth-status" id="authStatus">
+                    <!-- 未登录时显示登录按钮 -->
+                    <button class="login-btn" id="loginBtn" onclick="openAuthModal()" style="display: none;">
+                        登录
+                    </button>
+                    <!-- 已登录时显示用户信息和登出按钮 -->
+                    <div class="user-info" id="userInfo" style="display: none;">
+                        <span class="user-email" id="userEmail"></span>
+                        <button class="logout-btn" onclick="handleLogout()">登出</button>
+                    </div>
+                    <!-- 历史记录按钮（登录后显示） -->
+                    <button class="history-btn" id="historyBtn" onclick="showHistory()" style="display: none;">
+                        📊 历史记录
+                    </button>
+                </div>
             </div>
             <h1 data-i18n="title">🏀 投篮姿势分析器</h1>
             <p data-i18n="subtitle">上传你的投篮视频，获取专业的姿势分析和改进建议</p>
@@ -1806,6 +2137,223 @@
     </div>
 
     <script>
+        // ==================== Supabase 配置 ====================
+        const SUPABASE_URL = 'https://cfsabjichjyzjraarrjh.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmc2FiamljaGp5empyYWFycmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5Mjg4OTcsImV4cCI6MjA5NDUwNDg5N30.4x7sU66DLNezLJNVwXGBTQv0X2G5QmsKGKcGhf-d2EU';
+
+        let supabaseClient = null;
+        let currentUser = null;
+        let isAuthModeLogin = true; // true = 登录, false = 注册
+
+        // 初始化 Supabase 客户端
+        function initSupabase() {
+            if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+                try {
+                    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    console.log('[Supabase] Client initialized');
+                    checkAuthState();
+                } catch (e) {
+                    console.error('[Supabase] Init failed:', e);
+                    showLoginButton(); // 显示登录按钮但可能功能受限
+                }
+            } else {
+                console.log('[Supabase] Not configured, running in guest mode');
+                showLoginButton();
+            }
+        }
+
+        // 检查认证状态
+        async function checkAuthState() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session && session.user) {
+                    currentUser = session.user;
+                    showLoggedInState(currentUser.email);
+                } else {
+                    currentUser = null;
+                    showLoginButton();
+                }
+            } catch (e) {
+                console.error('[Supabase] Check auth failed:', e);
+                showLoginButton();
+            }
+        }
+
+        // 显示已登录状态
+        function showLoggedInState(email) {
+            document.getElementById('loginBtn').style.display = 'none';
+            document.getElementById('userInfo').style.display = 'flex';
+            document.getElementById('userEmail').textContent = email;
+            document.getElementById('historyBtn').classList.add('show');
+            currentUser = { email };
+        }
+
+        // 显示登录按钮
+        function showLoginButton() {
+            document.getElementById('loginBtn').style.display = 'block';
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('historyBtn').classList.remove('show');
+            currentUser = null;
+        }
+
+        // 打开登录/注册模态框
+        function openAuthModal() {
+            if (!supabaseClient) {
+                alert('登录功能暂未配置，请联系管理员');
+                return;
+            }
+            document.getElementById('authModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            resetAuthForm();
+        }
+
+        // 关闭模态框
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // 重置表单
+        function resetAuthForm() {
+            document.getElementById('authEmail').value = '';
+            document.getElementById('authPassword').value = '';
+            hideAuthMessages();
+        }
+
+        // 显示错误消息
+        function showAuthError(msg) {
+            const el = document.getElementById('authError');
+            el.textContent = msg;
+            el.classList.add('show');
+        }
+
+        // 显示成功消息
+        function showAuthSuccess(msg) {
+            const el = document.getElementById('authSuccess');
+            el.textContent = msg;
+            el.classList.add('show');
+        }
+
+        // 隐藏消息
+        function hideAuthMessages() {
+            document.getElementById('authError').classList.remove('show');
+            document.getElementById('authSuccess').classList.remove('show');
+        }
+
+        // 切换登录/注册模式
+        function toggleAuthMode() {
+            isAuthModeLogin = !isAuthModeLogin;
+            const title = document.getElementById('authModalTitle');
+            const desc = document.getElementById('authModalDesc');
+            const btn = document.getElementById('authSubmitBtn');
+            const switchText = document.getElementById('authSwitchText');
+            const switchLink = document.getElementById('authSwitchLink');
+
+            if (isAuthModeLogin) {
+                title.textContent = '登录';
+                desc.textContent = '登录以保存您的分析历史';
+                btn.textContent = '登录';
+                switchText.textContent = '还没有账号？';
+                switchLink.textContent = '注册';
+            } else {
+                title.textContent = '注册';
+                desc.textContent = '注册账号以保存分析历史';
+                btn.textContent = '注册';
+                switchText.textContent = '已有账号？';
+                switchLink.textContent = '登录';
+            }
+            hideAuthMessages();
+        }
+
+        // 处理登录/注册提交
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            hideAuthMessages();
+
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            const btn = document.getElementById('authSubmitBtn');
+
+            btn.disabled = true;
+            btn.textContent = isAuthModeLogin ? '登录中...' : '注册中...';
+
+            try {
+                let result;
+                if (isAuthModeLogin) {
+                    result = await supabaseClient.auth.signInWithPassword({
+                        email,
+                        password
+                    });
+                } else {
+                    result = await supabaseClient.auth.signUp({
+                        email,
+                        password
+                    });
+                }
+
+                if (result.error) {
+                    showAuthError(result.error.message);
+                } else {
+                    if (isAuthModeLogin) {
+                        showAuthSuccess('登录成功！');
+                        currentUser = result.data.user;
+                        setTimeout(() => {
+                            closeAuthModal();
+                            showLoggedInState(email);
+                        }, 1000);
+                    } else {
+                        showAuthSuccess('注册成功！请查收验证邮件');
+                    }
+                }
+            } catch (err) {
+                showAuthError('操作失败：' + err.message);
+            }
+
+            btn.disabled = false;
+            btn.textContent = isAuthModeLogin ? '登录' : '注册';
+        }
+
+        // 登出
+        async function handleLogout() {
+            try {
+                if (supabaseClient) {
+                    await supabaseClient.auth.signOut();
+                }
+                currentUser = null;
+                showLoginButton();
+            } catch (e) {
+                console.error('[Supabase] Logout failed:', e);
+            }
+        }
+
+        // 获取当前用户 Token（用于 API 请求）
+        async function getAuthToken() {
+            if (!supabaseClient || !currentUser) return null;
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                return session?.access_token || null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // 获取 Authorization header
+        async function getAuthHeaders() {
+            const token = await getAuthToken();
+            if (token) {
+                return { 'Authorization': `Bearer ${token}` };
+            }
+            return {};
+        }
+
+        // 显示历史记录（暂未实现，可后续添加）
+        function showHistory() {
+            alert('历史记录功能正在开发中...');
+        }
+
+        // 页面加载时初始化
+        initSupabase();
+
         // ==================== 国际化支持 ====================
         const i18n = {
             'zh-CN': {
@@ -2514,10 +3062,14 @@
                     if (templateId) {
                         url += `&template_id=${templateId}`;
                     }
-                    
+
+                    // 获取认证 header（如果已登录）
+                    const authHeaders = await getAuthHeaders();
+
                     uploadResponse = await fetch(url, {
                         method: 'POST',
-                        body: formData
+                        body: formData,
+                        headers: authHeaders
                     });
                     
                     if (!uploadResponse.ok) {
