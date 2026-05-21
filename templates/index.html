@@ -63,42 +63,6 @@
             position: relative;
         }
 
-        /* 语言切换按钮 */
-        .language-switcher {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 100;
-        }
-
-        .lang-btn {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .lang-btn:hover {
-            background: rgba(72, 219, 251, 0.2);
-            border-color: rgba(72, 219, 251, 0.5);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(72, 219, 251, 0.3);
-        }
-
-        .lang-btn .icon {
-            font-size: 1.2rem;
-        }
-
         /* 导出按钮区域 */
         .export-section {
             display: flex;
@@ -1674,11 +1638,6 @@
             }
 
             /* 小屏幕下按钮布局调整 */
-            .language-switcher {
-                top: 60px;
-                right: 20px;
-            }
-
             .auth-section {
                 top: 20px;
                 right: 20px;
@@ -1689,7 +1648,7 @@
         .auth-section {
             position: absolute;
             top: 20px;
-            right: 140px;
+            right: 20px;
             z-index: 100;
         }
 
@@ -2153,12 +2112,6 @@
 
     <div class="container">
         <header>
-            <div class="language-switcher">
-                <button class="lang-btn" id="langToggle" onclick="toggleLanguage()">
-                    <span class="icon">🌐</span>
-                    <span id="langText">中文</span>
-                </button>
-            </div>
             <!-- 登录状态区域 -->
             <div class="auth-section">
                 <div class="auth-status" id="authStatus">
@@ -3052,20 +3005,10 @@
         // 当前语言
         let currentLang = localStorage.getItem('language') || 'en-US';
 
-        // 切换语言函数
-        function toggleLanguage() {
-            currentLang = currentLang === 'zh-CN' ? 'en-US' : 'zh-CN';
-            localStorage.setItem('language', currentLang);
-            updateLanguage();
-        }
-
         // 更新界面语言
         function updateLanguage() {
             const lang = i18n[currentLang];
-            
-            // 更新按钮文本
-            document.getElementById('langText').textContent = currentLang === 'zh-CN' ? 'EN' : '中文';
-            
+
             // 更新所有带 data-i18n 属性的元素
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
