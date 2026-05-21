@@ -28,7 +28,12 @@ class Settings(BaseSettings):
     target_fps: int = 30  # Target FPS for analysis
     min_detection_confidence: float = 0.5
     min_tracking_confidence: float = 0.5
-    
+
+    # Supabase Configuration
+    supabase_url: str = ""  # e.g., "https://xxxxx.supabase.co"
+    supabase_anon_key: str = ""  # Public key for frontend
+    supabase_service_key: str = ""  # Service role key for backend (higher privileges)
+
     class Config:
         env_file = ".env"
         extra = "ignore"
