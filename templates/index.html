@@ -925,6 +925,129 @@
             text-shadow: 0 0 10px rgba(72, 219, 251, 0.3);
         }
 
+        /* Footer 样式 */
+        .site-footer {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px 0;
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 10px;
+        }
+
+        .footer-link {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+            cursor: pointer;
+        }
+
+        .footer-link:hover {
+            color: #48dbfb;
+        }
+
+        .footer-copyright {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+        }
+
+        /* 法律文档模态框 */
+        .legal-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .legal-modal.active {
+            display: flex;
+        }
+
+        .legal-modal-content {
+            background: #1a1f3a;
+            border-radius: 20px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .legal-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .legal-modal-header h2 {
+            font-size: 1.5rem;
+            color: #48dbfb;
+        }
+
+        .legal-modal-close {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .legal-modal-close:hover {
+            background: rgba(255, 107, 107, 0.2);
+        }
+
+        .legal-content {
+            color: rgba(255, 255, 255, 0.85);
+            line-height: 1.8;
+        }
+
+        .legal-content h3 {
+            color: #48dbfb;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .legal-content p {
+            margin-bottom: 15px;
+        }
+
+        .legal-content ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .legal-content li {
+            margin-bottom: 8px;
+        }
+
+        .legal-content a {
+            color: #48dbfb;
+        }
+
         /* 评分部分 - 弱化 */
         .score-section {
             background: rgba(255, 255, 255, 0.06);
@@ -2465,6 +2588,11 @@
                     shareCardFailed: '分享卡片导出失败',
                     shareCard: '📱 分享卡片',
                     shareCardDesc: '导出一张精美的长图，包含所有阶段对比和改进建议，适合发朋友圈/社交媒体'
+                },
+                footer: {
+                    privacy: '隐私政策',
+                    terms: '服务条款',
+                    contact: '联系我们'
                 }
             },
             'en-US': {
@@ -2576,6 +2704,11 @@
                     shareCardFailed: 'Share card export failed',
                     shareCard: '📱 Share Card',
                     shareCardDesc: 'Export a beautiful long image with all phase comparisons and tips, perfect for social media'
+                },
+                footer: {
+                    privacy: 'Privacy Policy',
+                    terms: 'Terms of Service',
+                    contact: 'Contact Us'
                 }
             }
         };
@@ -3787,7 +3920,163 @@
         document.addEventListener('DOMContentLoaded', function() {
             const body = document.body;
             body.insertAdjacentHTML('beforeend', exportImagesModalHTML);
+
+            // 添加法律文档模态框
+            body.insertAdjacentHTML('beforeend', privacyModalHTML);
+            body.insertAdjacentHTML('beforeend', termsModalHTML);
+        });
+
+        // ===== 隐私政策和服务条款 =====
+        const privacyModalHTML = `
+            <div id="privacyModal" class="legal-modal">
+                <div class="legal-modal-content">
+                    <div class="legal-modal-header">
+                        <h2>🔒 <span data-i18n="footer.privacy">Privacy Policy</span></h2>
+                        <button class="legal-modal-close" onclick="hidePrivacyModal()">×</button>
+                    </div>
+                    <div class="legal-content">
+                        <p><strong>Last Updated: May 2026</strong></p>
+
+                        <h3>1. Information We Collect</h3>
+                        <p>When you use our basketball shooting analysis service, we may collect:</p>
+                        <ul>
+                            <li><strong>Video Files:</strong> Videos you upload for analysis. These are automatically deleted after analysis completion.</li>
+                            <li><strong>Analysis Results:</strong> Key frame images and analysis scores generated from your videos.</li>
+                            <li><strong>Account Information:</strong> If you register an account, we collect your email address and username.</li>
+                            <li><strong>Usage Data:</strong> Device type, browser type, and general usage patterns.</li>
+                        </ul>
+
+                        <h3>2. How We Use Your Information</h3>
+                        <p>We use your information to:</p>
+                        <ul>
+                            <li>Provide basketball shooting form analysis services</li>
+                            <li>Save and display your analysis history (for registered users)</li>
+                            <li>Improve our analysis algorithms and user experience</li>
+                            <li>Communicate with you about your account or services</li>
+                        </ul>
+
+                        <h3>3. Data Storage and Deletion</h3>
+                        <p><strong>Video Files:</strong> Uploaded videos are automatically deleted after analysis completion to save storage space and protect your privacy.</p>
+                        <p><strong>Analysis Results:</strong> Key frame images and analysis data are retained for your reference. You can delete them at any time.</p>
+                        <p><strong>Account Data:</strong> You can request account deletion at any time, which will remove all your personal data.</p>
+
+                        <h3>4. Data Security</h3>
+                        <p>We implement industry-standard security measures to protect your data, including encrypted storage and secure transmission protocols.</p>
+
+                        <h3>5. Third-Party Services</h3>
+                        <p>We use Supabase for secure data storage and authentication. They have their own privacy policies that apply to the data they process.</p>
+
+                        <h3>6. Your Rights</h3>
+                        <p>You have the right to:</p>
+                        <ul>
+                            <li>Access your personal data</li>
+                            <li>Request correction of inaccurate data</li>
+                            <li>Request deletion of your data</li>
+                            <li>Opt-out of certain data processing activities</li>
+                        </ul>
+
+                        <h3>7. Contact Us</h3>
+                        <p>If you have questions about this privacy policy, please contact us at: <a href="mailto:ThisIsClark@163.com">ThisIsClark@163.com</a></p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const termsModalHTML = `
+            <div id="termsModal" class="legal-modal">
+                <div class="legal-modal-content">
+                    <div class="legal-modal-header">
+                        <h2>📋 <span data-i18n="footer.terms">Terms of Service</span></h2>
+                        <button class="legal-modal-close" onclick="hideTermsModal()">×</button>
+                    </div>
+                    <div class="legal-content">
+                        <p><strong>Last Updated: May 2026</strong></p>
+
+                        <h3>1. Acceptance of Terms</h3>
+                        <p>By using ShotPro basketball shooting analysis service, you agree to these terms of service. If you do not agree, please do not use our service.</p>
+
+                        <h3>2. Service Description</h3>
+                        <p>ShotPro provides AI-powered basketball shooting form analysis using video processing technology. The service:</p>
+                        <ul>
+                            <li>Analyzes your shooting posture and provides improvement suggestions</li>
+                            <li>Generates key frame images showing different shooting phases</li>
+                            <li>Offers comparison with professional player templates</li>
+                            <li>Provides scoring and detailed feedback</li>
+                        </ul>
+
+                        <h3>3. User Responsibilities</h3>
+                        <p>You agree to:</p>
+                        <ul>
+                            <li>Upload only basketball-related videos for analysis</li>
+                            <li>Not upload inappropriate, offensive, or copyrighted content without permission</li>
+                            <li>Use the service for personal or legitimate basketball training purposes</li>
+                            <li>Not attempt to disrupt or abuse the service</li>
+                        </ul>
+
+                        <h3>4. Intellectual Property</h3>
+                        <p>The analysis results, templates, and technology behind ShotPro are protected by intellectual property rights. You retain ownership of your uploaded videos, but grant us temporary permission to process them.</p>
+
+                        <h3>5. Disclaimer</h3>
+                        <p><strong>Our analysis is for educational and training purposes only.</strong> We do not guarantee specific improvements in basketball performance. The analysis is based on AI estimation and may not be 100% accurate. Always consult with professional coaches for serious training.</p>
+
+                        <h3>6. Service Limitations</h3>
+                        <p>We may limit:</p>
+                        <ul>
+                            <li>Video file size (maximum 50MB)</li>
+                            <li>Video duration (maximum 10 seconds)</li>
+                            <li>Number of analyses per user per day</li>
+                        </ul>
+
+                        <h3>7. Privacy</h3>
+                        <p>Your use of the service is also governed by our Privacy Policy. Uploaded videos are automatically deleted after analysis to protect your privacy.</p>
+
+                        <h3>8. Modifications</h3>
+                        <p>We may modify these terms at any time. Continued use of the service after modifications means you accept the new terms.</p>
+
+                        <h3>9. Termination</h3>
+                        <p>We may terminate or suspend your account for violating these terms. You may also terminate your account at any time.</p>
+
+                        <h3>10. Contact</h3>
+                        <p>For questions about these terms, contact us at: <a href="mailto:ThisIsClark@163.com">ThisIsClark@163.com</a></p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        function showPrivacyModal() {
+            document.getElementById('privacyModal').classList.add('active');
+        }
+
+        function hidePrivacyModal() {
+            document.getElementById('privacyModal').classList.remove('active');
+        }
+
+        function showTermsModal() {
+            document.getElementById('termsModal').classList.add('active');
+        }
+
+        function hideTermsModal() {
+            document.getElementById('termsModal').classList.remove('active');
+        }
+
+        // 点击模态框外部关闭
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('legal-modal')) {
+                e.target.classList.remove('active');
+            }
         });
     </script>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-links">
+            <span class="footer-link" onclick="showPrivacyModal()" data-i18n="footer.privacy">Privacy Policy</span>
+            <span class="footer-link" onclick="showTermsModal()" data-i18n="footer.terms">Terms of Service</span>
+            <a class="footer-link" href="mailto:ThisIsClark@163.com" data-i18n="footer.contact">Contact Us</a>
+        </div>
+        <div class="footer-copyright">
+            © 2026 ShotPro. All rights reserved.
+        </div>
+    </footer>
 </body>
 </html>
