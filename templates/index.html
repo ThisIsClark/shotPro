@@ -1967,6 +1967,146 @@
             align-items: center;
             gap: 6px;
         }
+
+        /* 登录提示弹窗样式 */
+        .login-prompt-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 10001;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .login-prompt-modal.active {
+            display: flex;
+        }
+
+        .login-prompt-content {
+            background: linear-gradient(135deg, rgba(30, 40, 60, 0.95) 0%, rgba(20, 30, 50, 0.95) 100%);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .login-prompt-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .login-prompt-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #48dbfb;
+            margin-bottom: 12px;
+        }
+
+        .login-prompt-message {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .login-prompt-btn {
+            background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(72, 219, 251, 0.3);
+        }
+
+        .login-prompt-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(72, 219, 251, 0.4);
+        }
+
+        .login-prompt-cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .login-prompt-cancel:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* 登录提示标签 */
+        .login-required-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-left: 8px;
+            padding: 4px 8px;
+            background: rgba(255, 107, 107, 0.15);
+            border-radius: 6px;
+        }
+
+        /* 演示模式样式 */
+        .demo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, rgba(254, 202, 87, 0.2) 0%, rgba(255, 107, 107, 0.2) 100%);
+            border: 1px solid rgba(254, 202, 87, 0.4);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            color: #feca57;
+            margin-bottom: 24px;
+        }
+
+        .demo-container {
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            border: 1px dashed rgba(254, 202, 87, 0.3);
+        }
+
+        .demo-try-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(72, 219, 251, 0.3);
+        }
+
+        .demo-try-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(72, 219, 251, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -1995,6 +2135,19 @@
                 <span id="authSwitchText">还没有账号？</span>
                 <a onclick="toggleAuthMode()" id="authSwitchLink">注册</a>
             </div>
+        </div>
+    </div>
+
+    <!-- 登录提示弹窗 -->
+    <div class="login-prompt-modal" id="loginPromptModal">
+        <div class="login-prompt-content">
+            <div class="login-prompt-icon">🔒</div>
+            <div class="login-prompt-title" id="loginPromptTitle">登录后可用</div>
+            <div class="login-prompt-message" id="loginPromptMessage">登录后可导出分析结果和创建模板</div>
+            <button class="login-prompt-btn" onclick="closeLoginPrompt(); openAuthModal();">
+                <span id="loginPromptBtn">立即登录</span>
+            </button>
+            <button class="login-prompt-cancel" onclick="closeLoginPrompt()">取消</button>
         </div>
     </div>
 
@@ -2059,6 +2212,7 @@
                             <label class="radio-option">
                                 <input type="radio" name="analysis_type" value="create_template" id="typeTemplate">
                                 <span data-i18n="upload.typeTemplate">创建模板</span>
+                                <span class="login-required-hint" id="templateLoginHint">🔒</span>
                             </label>
                         </div>
                     </div>
@@ -2161,8 +2315,70 @@
             <!-- Results Section -->
             <div class="results-section">
                 <div id="emptyState">
-                    <div class="icon">📊</div>
-                    <p data-i18n="results.emptyState">上传视频后即可查看分析结果</p>
+                    <div class="demo-badge">
+                        <span>🎬</span>
+                        <span data-i18n="demo.label">演示示例 - 体验分析效果</span>
+                    </div>
+                    <div class="demo-container" id="demoContainer">
+                        <div style="text-align: center; margin-bottom: 24px;">
+                            <div style="font-size: 1.3rem; font-weight: 700; color: #48dbfb; margin-bottom: 8px;">
+                                <span data-i18n="demo.title">投篮分析结果示例</span>
+                            </div>
+                            <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                                <span data-i18n="demo.subtitle">这是预设的分析结果，展示系统如何分析您的投篮姿势</span>
+                            </div>
+                        </div>
+                        <!-- Demo key frames -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                            <div style="position: relative; border-radius: 12px; overflow: hidden; border: 2px solid rgba(72, 219, 251, 0.3);">
+                                <img src="/static/demo_preparation.jpg" alt="Preparation" onerror="this.src='https://placehold.co/300x200/1a1f3a/48dbfb?text=Preparation'" style="width: 100%; display: block;">
+                                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 24px 12px 12px; font-weight: 600;">
+                                    <span data-i18n="phases.preparation">准备阶段</span>
+                                </div>
+                            </div>
+                            <div style="position: relative; border-radius: 12px; overflow: hidden; border: 2px solid rgba(72, 219, 251, 0.3);">
+                                <img src="/static/demo_lifting.jpg" alt="Lifting" onerror="this.src='https://placehold.co/300x200/1a1f3a/48dbfb?text=Lifting'" style="width: 100%; display: block;">
+                                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 24px 12px 12px; font-weight: 600;">
+                                    <span data-i18n="phases.lifting">上升阶段</span>
+                                </div>
+                            </div>
+                            <div style="position: relative; border-radius: 12px; overflow: hidden; border: 2px solid rgba(254, 202, 87, 0.5);">
+                                <img src="/static/demo_release.jpg" alt="Release" onerror="this.src='https://placehold.co/300x200/1a1f3a/feca57?text=Release'" style="width: 100%; display: block;">
+                                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 24px 12px 12px; font-weight: 600; color: #feca57;">
+                                    <span data-i18n="phases.release">出手阶段</span> ⭐
+                                </div>
+                            </div>
+                            <div style="position: relative; border-radius: 12px; overflow: hidden; border: 2px solid rgba(72, 219, 251, 0.3);">
+                                <img src="/static/demo_follow_through.jpg" alt="Follow Through" onerror="this.src='https://placehold.co/300x200/1a1f3a/48dbfb?text=Follow+Through'" style="width: 100%; display: block;">
+                                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 24px 12px 12px; font-weight: 600;">
+                                    <span data-i18n="phases.follow_through">跟随阶段</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Demo score -->
+                        <div style="display: flex; align-items: center; gap: 24px; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 24px;">
+                            <div style="font-size: 2.5rem; font-weight: 800; color: #48dbfb;">85</div>
+                            <div>
+                                <div style="font-size: 1rem; font-weight: 600; color: #48dbfb;" data-i18n="ratings.good">良好</div>
+                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);" data-i18n="results.scoreNote">*仅供参考</div>
+                            </div>
+                        </div>
+                        <!-- Demo suggestion -->
+                        <div style="background: rgba(254, 202, 87, 0.1); border-left: 3px solid #feca57; padding: 16px; border-radius: 0 12px 12px 0; margin-bottom: 24px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;" data-i18n="demo.suggestionTitle">改进建议示例</div>
+                            <div style="color: rgba(255,255,255,0.8); font-size: 0.9rem;" data-i18n="demo.suggestion">💡 出手时肘部应保持约90度弯曲，确保力量传递顺畅...</div>
+                        </div>
+                        <!-- Try now button -->
+                        <div style="text-align: center;">
+                            <button class="demo-try-btn" onclick="document.getElementById('uploadArea').click()">
+                                <span>📹</span>
+                                <span data-i18n="demo.tryNow">立即上传视频体验</span>
+                            </button>
+                            <p style="margin-top: 12px; font-size: 0.85rem; color: rgba(255,255,255,0.5);" data-i18n="demo.hint">
+                                上传您的投篮视频，获取专属分析报告
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="results-container" id="resultsContainer">
@@ -2171,10 +2387,12 @@
                         <button class="btn-export" id="exportPdfBtn" onclick="exportPDF()">
                             <span class="icon">📄</span>
                             <span data-i18n="export.pdf">导出PDF报告</span>
+                            <span class="login-required-hint" id="pdfLoginHint" style="display: none;">🔒</span>
                         </button>
                         <button class="btn-export btn-export-image" id="exportImagesBtn" onclick="showExportImagesModal()">
                             <span class="icon">🖼️</span>
                             <span data-i18n="export.images">导出图片</span>
+                            <span class="login-required-hint" id="imagesLoginHint" style="display: none;">🔒</span>
                         </button>
                     </div>
 
@@ -2320,6 +2538,13 @@
             document.getElementById('userEmail').textContent = email;
             document.getElementById('historyBtn').classList.add('show');
             currentUser = { email };
+
+            // 隐藏导出按钮的登录提示
+            updateExportButtonsLoginHint();
+
+            // 移除分析完成后的登录引导（如果存在）
+            const guidance = document.querySelector('.login-guidance');
+            if (guidance) guidance.remove();
         }
 
         // 显示登录按钮
@@ -2328,6 +2553,9 @@
             document.getElementById('userInfo').style.display = 'none';
             document.getElementById('historyBtn').classList.remove('show');
             currentUser = null;
+
+            // 显示导出按钮的登录提示
+            updateExportButtonsLoginHint();
         }
 
         // 打开登录/注册模态框
@@ -2480,6 +2708,85 @@
             return {};
         }
 
+        // ==================== 登录检查功能 ====================
+        // 检查是否需要登录
+        function requireLogin(message) {
+            if (!currentUser) {
+                showLoginPrompt(message);
+                return false;
+            }
+            return true;
+        }
+
+        // 显示登录提示弹窗
+        function showLoginPrompt(message) {
+            const modal = document.getElementById('loginPromptModal');
+            const titleEl = document.getElementById('loginPromptTitle');
+            const messageEl = document.getElementById('loginPromptMessage');
+            const btnEl = document.getElementById('loginPromptBtn');
+
+            // 根据当前语言设置文本
+            const titleText = currentLang === 'zh-CN' ? '登录后可用' : 'Login Required';
+            const btnText = currentLang === 'zh-CN' ? '立即登录' : 'Login Now';
+
+            titleEl.textContent = titleText;
+            messageEl.textContent = message;
+            btnEl.textContent = btnText;
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 关闭登录提示弹窗
+        function closeLoginPrompt() {
+            const modal = document.getElementById('loginPromptModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // 更新登录提示显示（导出按钮和创建模板）
+        function updateExportButtonsLoginHint() {
+            const pdfHint = document.getElementById('pdfLoginHint');
+            const imagesHint = document.getElementById('imagesLoginHint');
+            const templateHint = document.getElementById('templateLoginHint');
+
+            if (!currentUser) {
+                // 未登录时显示登录提示
+                if (pdfHint) pdfHint.style.display = 'inline-flex';
+                if (imagesHint) imagesHint.style.display = 'inline-flex';
+                if (templateHint) templateHint.style.display = 'inline-flex';
+            } else {
+                // 已登录时隐藏登录提示
+                if (pdfHint) pdfHint.style.display = 'none';
+                if (imagesHint) imagesHint.style.display = 'none';
+                if (templateHint) templateHint.style.display = 'none';
+            }
+        }
+
+        // 显示分析完成后的登录引导
+        function showAnalysisLoginGuidance() {
+            if (!currentUser && currentTaskId) {
+                // 创建登录引导提示
+                const guidanceDiv = document.createElement('div');
+                guidanceDiv.className = 'login-guidance';
+                guidanceDiv.style.cssText = 'background: rgba(254, 202, 87, 0.15); border: 1px solid rgba(254, 202, 87, 0.3); border-radius: 12px; padding: 16px 20px; margin-top: 16px; text-align: center;';
+                guidanceDiv.innerHTML = `
+                    <p style="color: #feca57; font-weight: 600; margin-bottom: 8px;">
+                        💡 ${currentLang === 'zh-CN' ? '登录后可保存历史记录和导出分析结果' : 'Login to save history and export results'}
+                    </p>
+                    <button onclick="openAuthModal()" style="background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%); color: white; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                        ${currentLang === 'zh-CN' ? '立即登录' : 'Login Now'}
+                    </button>
+                `;
+
+                // 插入到导出按钮区域后面
+                const exportSection = document.querySelector('.export-section');
+                if (exportSection && !exportSection.querySelector('.login-guidance')) {
+                    exportSection.appendChild(guidanceDiv);
+                }
+            }
+        }
+
         // 显示历史记录（暂未实现，可后续添加）
         function showHistory() {
             alert('历史记录功能正在开发中...');
@@ -2600,6 +2907,15 @@
                     shareCard: '📱 分享卡片',
                     shareCardDesc: '导出一张精美的长图，包含所有阶段对比和改进建议，适合发朋友圈/社交媒体'
                 },
+                demo: {
+                    label: '演示示例 - 体验分析效果',
+                    title: '投篮分析结果示例',
+                    subtitle: '这是预设的分析结果，展示系统如何分析您的投篮姿势',
+                    suggestionTitle: '改进建议示例',
+                    suggestion: '💡 出手时肘部应保持约90度弯曲，确保力量传递顺畅...',
+                    tryNow: '立即上传视频体验',
+                    hint: '上传您的投篮视频，获取专属分析报告'
+                },
                 footer: {
                     privacy: '隐私政策',
                     terms: '服务条款',
@@ -2715,6 +3031,15 @@
                     shareCardFailed: 'Share card export failed',
                     shareCard: '📱 Share Card',
                     shareCardDesc: 'Export a beautiful long image with all phase comparisons and tips, perfect for social media'
+                },
+                demo: {
+                    label: 'Demo - Experience Analysis Results',
+                    title: 'Sample Shooting Analysis',
+                    subtitle: 'This is a preset analysis result showing how the system analyzes your shooting form',
+                    suggestionTitle: 'Sample Improvement Tip',
+                    suggestion: '💡 Keep your elbow at about 90 degrees during release to ensure smooth power transfer...',
+                    tryNow: 'Upload Your Video Now',
+                    hint: 'Upload your shooting video to get your personalized analysis report'
                 },
                 footer: {
                     privacy: 'Privacy Policy',
@@ -2848,6 +3173,16 @@
         });
 
         document.getElementById('typeTemplate').addEventListener('change', () => {
+            // 检查是否已登录
+            const loginMessage = currentLang === 'zh-CN'
+                ? '登录后可创建投篮模板，保存您的最佳姿势'
+                : 'Login to create shooting templates and save your best form';
+            if (!requireLogin(loginMessage)) {
+                // 如果未登录，重新选择"分析投篮"
+                document.getElementById('typeAnalyze').checked = true;
+                return;
+            }
+
             document.getElementById('templateNameGroup').style.display = 'block';
             document.getElementById('templateSelectGroup').style.display = 'none';
             document.getElementById('shootingStyleGroup').style.display = 'none';
@@ -3496,6 +3831,9 @@
                     `;
                 }).join('');
             }
+
+            // 如果用户未登录，显示登录引导
+            showAnalysisLoginGuidance();
         }
 
         // 渲染模板对比视图
@@ -3687,6 +4025,12 @@
 
         // 导出PDF功能
         async function exportPDF() {
+            // 检查是否已登录
+            const loginMessage = currentLang === 'zh-CN'
+                ? '登录后可导出PDF报告，保存您的分析结果'
+                : 'Login to export PDF report and save your analysis results';
+            if (!requireLogin(loginMessage)) return;
+
             if (!currentTaskId) {
                 alert(t('errors.unknownError'));
                 return;
@@ -3733,6 +4077,12 @@
 
         // 显示图片导出模态框
         function showExportImagesModal() {
+            // 检查是否已登录
+            const loginMessage = currentLang === 'zh-CN'
+                ? '登录后可导出分析图片，保存您的分析结果'
+                : 'Login to export analysis images and save your results';
+            if (!requireLogin(loginMessage)) return;
+
             const modal = document.getElementById('exportImagesModal');
             if (modal) {
                 modal.classList.add('active');
