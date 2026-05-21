@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse
 
 from .config import settings
 from .api.routes import upload, health, export, templates
+from .api.routes import auth, users
 
 # 最大保留任务数量
 MAX_TASKS = 10
@@ -122,6 +123,8 @@ app.mount("/template_images", StaticFiles(directory=str(template_images_dir)), n
 
 # 注册路由
 app.include_router(health.router)
+app.include_router(auth.router, prefix="/api/v1")  # 认证路由
+app.include_router(users.router, prefix="/api/v1")  # 用户管理路由
 app.include_router(upload.router, prefix="/api/v1")
 app.include_router(export.router, prefix="/api/v1")
 app.include_router(templates.router)
