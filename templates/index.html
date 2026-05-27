@@ -2074,25 +2074,25 @@
         <div class="auth-modal-content">
             <button class="auth-close-btn" onclick="closeAuthModal()">×</button>
             <div class="auth-modal-header">
-                <h2 id="authModalTitle">登录</h2>
-                <p id="authModalDesc">登录以保存您的分析历史</p>
+                <h2 id="authModalTitle">Login</h2>
+                <p id="authModalDesc">Login to save your analysis history</p>
             </div>
             <div class="auth-error" id="authError"></div>
             <div class="auth-success" id="authSuccess"></div>
             <form class="auth-form" id="authForm" onsubmit="handleAuthSubmit(event)">
                 <div class="auth-input-group">
-                    <label for="authEmail">邮箱</label>
+                    <label for="authEmail">Email</label>
                     <input type="email" id="authEmail" class="auth-input" placeholder="your@email.com" required>
                 </div>
                 <div class="auth-input-group">
-                    <label for="authPassword">密码</label>
-                    <input type="password" id="authPassword" class="auth-input" placeholder="至少6个字符" required minlength="6">
+                    <label for="authPassword">Password</label>
+                    <input type="password" id="authPassword" class="auth-input" placeholder="At least 6 characters" required minlength="6">
                 </div>
-                <button type="submit" class="auth-submit-btn" id="authSubmitBtn">登录</button>
+                <button type="submit" class="auth-submit-btn" id="authSubmitBtn">Login</button>
             </form>
             <div class="auth-switch">
-                <span id="authSwitchText">还没有账号？</span>
-                <a onclick="toggleAuthMode()" id="authSwitchLink">注册</a>
+                <span id="authSwitchText">Don't have an account?</span>
+                <a onclick="toggleAuthMode()" id="authSwitchLink">Sign Up</a>
             </div>
         </div>
     </div>
@@ -2101,10 +2101,10 @@
     <div class="login-prompt-modal" id="loginPromptModal">
         <div class="login-prompt-content">
             <div class="login-prompt-icon">🔒</div>
-            <div class="login-prompt-title" id="loginPromptTitle">登录后可用</div>
-            <div class="login-prompt-message" id="loginPromptMessage">登录后可导出分析结果和创建模板</div>
+            <div class="login-prompt-title" id="loginPromptTitle">Login Required</div>
+            <div class="login-prompt-message" id="loginPromptMessage">Login to export analysis results and create templates</div>
             <button class="login-prompt-btn" onclick="closeLoginPrompt(); openAuthModal();">
-                <span id="loginPromptBtn">立即登录</span>
+                <span id="loginPromptBtn">Login Now</span>
             </button>
             <button class="login-prompt-cancel" onclick="closeLoginPrompt()">Cancel</button>
         </div>
@@ -2122,28 +2122,28 @@
                     <!-- 已登录时显示用户信息和登出按钮 -->
                     <div class="user-info" id="userInfo" style="display: none;">
                         <span class="user-email" id="userEmail"></span>
-                        <button class="logout-btn" onclick="handleLogout()">登出</button>
+                        <button class="logout-btn" onclick="handleLogout()">Logout</button>
                     </div>
                     <!-- 历史记录按钮（登录后显示） -->
                     <button class="history-btn" id="historyBtn" onclick="showHistory()" style="display: none;">
-                        📊 历史记录
+                        📊 History
                     </button>
                 </div>
             </div>
             <h1 data-i18n="title">🏀 Basketball Shooting Form Analyzer</h1>
-            <p data-i18n="subtitle">上传你的投篮视频，获取专业的姿势分析和改进建议</p>
+            <p data-i18n="subtitle">Upload your shooting video to get professional form analysis and improvement suggestions</p>
         </header>
 
         <div class="main-content">
             <!-- Upload Section -->
             <div class="upload-section">
                 <div class="card">
-                    <h2 data-i18n="upload.title">上传视频</h2>
+                    <h2 data-i18n="upload.title">Upload Video</h2>
                     
                     <div class="upload-area" id="uploadArea">
                         <div class="upload-icon">📹</div>
-                        <p data-i18n="upload.clickOrDrag">点击或拖拽视频到这里</p>
-                        <p class="hint" data-i18n="upload.hint">支持 MP4, MOV, AVI, WebM<br>最大 50MB</p>
+                        <p data-i18n="upload.clickOrDrag">Click or drag video here</p>
+                        <p class="hint" data-i18n="upload.hint">Supports MP4, MOV, AVI, WebM<br>Max 50MB</p>
                     </div>
                     <input type="file" id="fileInput" accept="video/*">
 
@@ -2156,15 +2156,15 @@
                     </div>
 
                     <div class="option-group">
-                        <label data-i18n="upload.analysisType">分析类型</label>
+                        <label data-i18n="upload.analysisType">Analysis Type</label>
                         <div class="radio-group">
                             <label class="radio-option">
                                 <input type="radio" name="analysis_type" value="analyze" checked id="typeAnalyze">
-                                <span data-i18n="upload.typeAnalyze">分析投篮</span>
+                                <span data-i18n="upload.typeAnalyze">Analyze Shooting</span>
                             </label>
                             <label class="radio-option">
                                 <input type="radio" name="analysis_type" value="create_template" id="typeTemplate">
-                                <span data-i18n="upload.typeTemplate">创建模板</span>
+                                <span data-i18n="upload.typeTemplate">Create Template</span>
                                 <span class="login-required-hint" id="templateLoginHint">🔒</span>
                             </label>
                         </div>
@@ -2172,64 +2172,64 @@
 
                     <!-- 模板名称输入（创建模板时显示） -->
                     <div class="option-group" id="templateNameGroup" style="display: none;">
-                        <label data-i18n="upload.templateName">模板名称</label>
-                        <input type="text" id="templateNameInput" placeholder="如：Curry投篮、我的最佳投篮" 
+                        <label data-i18n="upload.templateName">Template Name</label>
+                        <input type="text" id="templateNameInput" placeholder="e.g., Curry Shooting, My Best Shot"
                                data-i18n-placeholder="upload.templateNamePlaceholder"
                                style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-size: 1rem;">
-                        <input type="text" id="templateDescInput" placeholder="描述（可选）" 
+                        <input type="text" id="templateDescInput" placeholder="Description (optional)"
                                data-i18n-placeholder="upload.templateDescPlaceholder"
                                style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-size: 0.95rem; margin-top: 8px;">
                     </div>
 
                     <!-- 模板选择（分析投篮时显示） -->
                     <div class="option-group" id="templateSelectGroup">
-                        <label data-i18n="upload.compareTemplate">对比模板（可选）</label>
+                        <label data-i18n="upload.compareTemplate">Compare Template (optional)</label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <select id="templateSelect" 
                                     style="flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-size: 1rem;">
-                                <option value="" data-i18n="upload.noTemplate">不使用模板</option>
+                                <option value="" data-i18n="upload.noTemplate">No Template</option>
                             </select>
                             <button id="manageTemplatesBtn" type="button"
                                     style="padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; font-size: 0.9rem; cursor: pointer; white-space: nowrap; transition: all 0.3s;">
-                                <span data-i18n="upload.manageTemplates">📋 管理</span>
+                                <span data-i18n="upload.manageTemplates">📋 Manage</span>
                             </button>
                         </div>
                     </div>
 
                     <div class="option-group">
-                        <label data-i18n="upload.shootingHand">投篮手</label>
+                        <label data-i18n="upload.shootingHand">Shooting Hand</label>
                         <div class="radio-group">
                             <label class="radio-option">
                                 <input type="radio" name="shooting_hand" value="right" checked>
-                                <span data-i18n="upload.rightHand">右手</span>
+                                <span data-i18n="upload.rightHand">Right</span>
                             </label>
                             <label class="radio-option">
                                 <input type="radio" name="shooting_hand" value="left">
-                                <span data-i18n="upload.leftHand">左手</span>
+                                <span data-i18n="upload.leftHand">Left</span>
                             </label>
                         </div>
                     </div>
 
                     <div class="option-group" id="shootingStyleGroup">
-                        <label data-i18n="upload.shootingStyle">投篮方式</label>
+                        <label data-i18n="upload.shootingStyle">Shooting Style</label>
                         <div class="radio-group" style="flex-direction: column; gap: 10px;">
                             <label class="radio-option">
                                 <input type="radio" name="shooting_style" value="one_motion" checked>
-                                <span data-i18n="upload.oneMotion">一段式（流畅型）</span>
+                                <span data-i18n="upload.oneMotion">One Motion (Fluid)</span>
                             </label>
                             <label class="radio-option">
                                 <input type="radio" name="shooting_style" value="two_motion">
-                                <span data-i18n="upload.twoMotion">二段式（传统型）</span>
+                                <span data-i18n="upload.twoMotion">Two Motion (Traditional)</span>
                             </label>
                         </div>
                         <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem;">
                             <div style="margin-bottom: 5px;">
-                                <strong style="color: #48dbfb;" data-i18n="upload.oneMotionLabel">一段式：</strong>
-                                <span data-i18n="upload.oneMotionDesc">快速流畅，一气呵成 (如Curry)</span>
+                                <strong style="color: #48dbfb;" data-i18n="upload.oneMotionLabel">One Motion:</strong>
+                                <span data-i18n="upload.oneMotionDesc">Quick and fluid, seamless release (e.g., Curry)</span>
                             </div>
                             <div>
-                                <strong style="color: #feca57;" data-i18n="upload.twoMotionLabel">二段式：</strong>
-                                <span data-i18n="upload.twoMotionDesc">举球停顿，稳定出手 (如Kobe)</span>
+                                <strong style="color: #feca57;" data-i18n="upload.twoMotionLabel">Two Motion:</strong>
+                                <span data-i18n="upload.twoMotionDesc">Pause at set point, stable release (e.g., Kobe)</span>
                             </div>
                         </div>
                     </div>
@@ -2238,29 +2238,29 @@
                     <div class="option-group" id="advancedOptionsGroup">
                         <label>
                             <input type="checkbox" id="generateVideoCheckbox" style="margin-right: 8px;">
-                            <span data-i18n="upload.generateVideo">生成标注视频（耗时较长）</span>
+                            <span data-i18n="upload.generateVideo">Generate Annotated Video (slower)</span>
                         </label>
                         <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.8rem; color: rgba(255,255,255,0.5);">
-                            <span data-i18n="upload.generateVideoHint">💡 不生成标注视频可大幅提升分析速度</span>
+                            <span data-i18n="upload.generateVideoHint">💡 Skipping annotated video significantly speeds up analysis</span>
                         </div>
                         <label style="margin-top: 12px; display: block;">
                             <input type="checkbox" id="generateSkeletonVideoCheckbox" style="margin-right: 8px;">
-                            <span data-i18n="upload.generateSkeletonVideo">生成骨骼运动视频</span>
+                            <span data-i18n="upload.generateSkeletonVideo">Generate Skeleton Motion Video</span>
                         </label>
                         <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.8rem; color: rgba(255,255,255,0.5);">
-                            <span data-i18n="upload.generateSkeletonVideoHint">💡 生成纯骨骼运动视频，适合对比分析动作轨迹</span>
+                            <span data-i18n="upload.generateSkeletonVideoHint">💡 Generate pure skeleton motion video, ideal for analyzing movement trajectory</span>
                         </div>
                     </div>
 
                     <button class="btn" id="analyzeBtn" disabled data-i18n="upload.analyze">
-                        开始分析
+                        Start Analysis
                     </button>
 
                     <div class="progress-container" id="progressContainer">
                         <div class="progress-bar">
                             <div class="progress-fill" id="progressFill"></div>
                         </div>
-                        <p class="progress-text" id="progressText">准备中...</p>
+                        <p class="progress-text" id="progressText">Preparing...</p>
                     </div>
                 </div>
             </div>
@@ -2270,15 +2270,15 @@
                 <div id="emptyState">
                     <div class="demo-badge">
                         <span>🎬</span>
-                        <span data-i18n="demo.label">演示示例 - 体验分析效果</span>
+                        <span data-i18n="demo.label">Demo Example - Experience Analysis</span>
                     </div>
                     <div class="demo-container" id="demoContainer">
                         <div style="text-align: center; margin-bottom: 24px;">
                             <div style="font-size: 1.3rem; font-weight: 700; color: #48dbfb; margin-bottom: 8px;">
-                                <span data-i18n="demo.title">投篮分析结果示例</span>
+                                <span data-i18n="demo.title">Shooting Analysis Example</span>
                             </div>
                             <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
-                                <span data-i18n="demo.subtitle">这是预设的分析结果，展示系统如何分析您的投篮姿势</span>
+                                <span data-i18n="demo.subtitle">This is a sample analysis result showing how the system analyzes your shooting form</span>
                             </div>
                         </div>
                         <!-- Demo key frames -->
@@ -2286,25 +2286,25 @@
                             <div style="position: relative; border-radius: 12px; overflow: hidden; border: 2px solid rgba(72, 219, 251, 0.3);">
                                 <img src="/static/demo_preparation.jpg" alt="Preparation" onerror="this.src='https://placehold.co/300x200/1a1f3a/48dbfb?text=Preparation'" style="width: 100%; display: block;">
                                 <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 24px 12px 12px; font-weight: 600;">
-                                    <span data-i18n="phases.preparation">准备阶段</span>
+                                    <span data-i18n="phases.preparation">Preparation</span>
                                 </div>
                             </div>
                             <div style="position: relative; border-radius: 12px; overflow: hidden; border: 2px solid rgba(72, 219, 251, 0.3);">
                                 <img src="/static/demo_lifting.jpg" alt="Lifting" onerror="this.src='https://placehold.co/300x200/1a1f3a/48dbfb?text=Lifting'" style="width: 100%; display: block;">
                                 <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 24px 12px 12px; font-weight: 600;">
-                                    <span data-i18n="phases.lifting">上升阶段</span>
+                                    <span data-i18n="phases.lifting">Lifting</span>
                                 </div>
                             </div>
                             <div style="position: relative; border-radius: 12px; overflow: hidden; border: 2px solid rgba(254, 202, 87, 0.5);">
                                 <img src="/static/demo_release.jpg" alt="Release" onerror="this.src='https://placehold.co/300x200/1a1f3a/feca57?text=Release'" style="width: 100%; display: block;">
                                 <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 24px 12px 12px; font-weight: 600; color: #feca57;">
-                                    <span data-i18n="phases.release">出手阶段</span> ⭐
+                                    <span data-i18n="phases.release">Release</span> ⭐
                                 </div>
                             </div>
                             <div style="position: relative; border-radius: 12px; overflow: hidden; border: 2px solid rgba(72, 219, 251, 0.3);">
                                 <img src="/static/demo_follow_through.jpg" alt="Follow Through" onerror="this.src='https://placehold.co/300x200/1a1f3a/48dbfb?text=Follow+Through'" style="width: 100%; display: block;">
                                 <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 24px 12px 12px; font-weight: 600;">
-                                    <span data-i18n="phases.follow_through">跟随阶段</span>
+                                    <span data-i18n="phases.follow_through">Follow Through</span>
                                 </div>
                             </div>
                         </div>
@@ -2312,23 +2312,23 @@
                         <div style="display: flex; align-items: center; gap: 24px; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 24px;">
                             <div style="font-size: 2.5rem; font-weight: 800; color: #48dbfb;">85</div>
                             <div>
-                                <div style="font-size: 1rem; font-weight: 600; color: #48dbfb;" data-i18n="ratings.good">良好</div>
-                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);" data-i18n="results.scoreNote">*仅供参考</div>
+                                <div style="font-size: 1rem; font-weight: 600; color: #48dbfb;" data-i18n="ratings.good">Good</div>
+                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);" data-i18n="results.scoreNote">*For reference only</div>
                             </div>
                         </div>
                         <!-- Demo suggestion -->
                         <div style="background: rgba(254, 202, 87, 0.1); border-left: 3px solid #feca57; padding: 16px; border-radius: 0 12px 12px 0; margin-bottom: 24px;">
-                            <div style="font-weight: 600; margin-bottom: 8px;" data-i18n="demo.suggestionTitle">改进建议示例</div>
-                            <div style="color: rgba(255,255,255,0.8); font-size: 0.9rem;" data-i18n="demo.suggestion">💡 出手时肘部应保持约90度弯曲，确保力量传递顺畅...</div>
+                            <div style="font-weight: 600; margin-bottom: 8px;" data-i18n="demo.suggestionTitle">Improvement Suggestion Example</div>
+                            <div style="color: rgba(255,255,255,0.8); font-size: 0.9rem;" data-i18n="demo.suggestion">💡 Keep elbow bent at about 90 degrees during release to ensure smooth power transfer...</div>
                         </div>
                         <!-- Try now button -->
                         <div style="text-align: center;">
                             <button class="demo-try-btn" onclick="document.getElementById('uploadArea').click()">
                                 <span>📹</span>
-                                <span data-i18n="demo.tryNow">立即上传视频体验</span>
+                                <span data-i18n="demo.tryNow">Upload Your Video Now</span>
                             </button>
                             <p style="margin-top: 12px; font-size: 0.85rem; color: rgba(255,255,255,0.5);" data-i18n="demo.hint">
-                                上传您的投篮视频，获取专属分析报告
+                                Upload your shooting video to get your personalized analysis report
                             </p>
                         </div>
                     </div>
@@ -2339,12 +2339,12 @@
                     <div class="export-section">
                         <button class="btn-export" id="exportPdfBtn" onclick="exportPDF()">
                             <span class="icon">📄</span>
-                            <span data-i18n="export.pdf">导出PDF报告</span>
+                            <span data-i18n="export.pdf">Export PDF Report</span>
                             <span class="login-required-hint" id="pdfLoginHint" style="display: none;">🔒</span>
                         </button>
                         <button class="btn-export btn-export-image" id="exportImagesBtn" onclick="showExportImagesModal()">
                             <span class="icon">🖼️</span>
-                            <span data-i18n="export.images">导出图片</span>
+                            <span data-i18n="export.images">Export Images</span>
                             <span class="login-required-hint" id="imagesLoginHint" style="display: none;">🔒</span>
                         </button>
                     </div>
@@ -2353,7 +2353,7 @@
                     <div class="key-frames-section">
                         <h2 class="section-title">
                             <span class="section-title-icon">🎬</span>
-                            <span data-i18n="results.keyFrames">投篮动作关键帧</span>
+                            <span data-i18n="results.keyFrames">Key Frames</span>
                         </h2>
                         <div class="key-frames-grid" id="keyFrames">
                             <!-- Populated by JS -->
@@ -2364,10 +2364,10 @@
                     <div class="video-section" id="videoResult">
                         <h2 class="section-title">
                             <span class="section-title-icon">🎥</span>
-                            <span data-i18n="results.annotatedVideo">完整标注视频</span>
+                            <span data-i18n="results.annotatedVideo">Annotated Video</span>
                         </h2>
                         <video id="resultVideo" controls preload="metadata" playsinline>
-                            <span data-i18n="results.browserNotSupported">您的浏览器不支持视频播放。</span>
+                            <span data-i18n="results.browserNotSupported">Your browser does not support video playback.</span>
                         </video>
                     </div>
 
@@ -2375,10 +2375,10 @@
                     <div class="video-section" id="skeletonVideoResult" style="display: none;">
                         <h2 class="section-title">
                             <span class="section-title-icon">🦴</span>
-                            <span data-i18n="results.skeletonVideo">骨骼运动视频</span>
+                            <span data-i18n="results.skeletonVideo">Skeleton Motion Video</span>
                         </h2>
                         <video id="skeletonVideo" controls preload="metadata" playsinline>
-                            <span data-i18n="results.browserNotSupported">您的浏览器不支持视频播放。</span>
+                            <span data-i18n="results.browserNotSupported">Your browser does not support video playback.</span>
                         </video>
                     </div>
 
@@ -2386,7 +2386,7 @@
                     <div class="issues-section">
                         <h2 class="section-title">
                             <span class="section-title-icon">💡</span>
-                            <span data-i18n="results.suggestions">改进建议</span>
+                            <span data-i18n="results.suggestions">Improvement Suggestions</span>
                         </h2>
                         <div class="issues-list" id="issuesList">
                             <!-- Populated by JS -->
@@ -2396,13 +2396,13 @@
                     <!-- 评分 - 弱化，使用折叠 -->
                     <details class="score-section">
                         <summary>
-                            <span>📊 <span data-i18n="results.referenceScore">参考评分</span></span>
+                            <span>📊 <span data-i18n="results.referenceScore">Reference Score</span></span>
                         </summary>
                         <div class="score-display">
                             <div class="score-number" id="overallScore">--</div>
                             <div class="score-info">
-                                <div class="score-rating" id="ratingText" data-i18n="results.waitingAnalysis">等待分析</div>
-                                <div class="score-note" data-i18n="results.scoreNote">*仅供参考，建议关注具体改进建议</div>
+                                <div class="score-rating" id="ratingText" data-i18n="results.waitingAnalysis">Waiting for Analysis</div>
+                                <div class="score-note" data-i18n="results.scoreNote">*For reference only, focus on specific improvement suggestions</div>
                             </div>
                         </div>
                         <div class="dimension-scores" id="dimensionScores">
@@ -2429,13 +2429,13 @@
     <div class="template-modal" id="templateModal">
         <div class="template-modal-content">
             <div class="template-modal-header">
-                <h2 data-i18n="template.manageTitle">模板管理</h2>
+                <h2 data-i18n="template.manageTitle">Template Management</h2>
                 <button class="template-modal-close" id="templateModalClose">✕</button>
             </div>
             <div class="template-modal-body" id="templateModalBody">
                 <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">
                     <div class="spinner" style="margin: 0 auto 16px;"></div>
-                    <div data-i18n="template.loading">加载中...</div>
+                    <div data-i18n="template.loading">Loading...</div>
                 </div>
             </div>
         </div>
@@ -2514,7 +2514,7 @@
         // 打开登录/注册模态框
         function openAuthModal() {
             if (!supabaseClient) {
-                alert('登录功能暂未配置，请联系管理员');
+                alert('Login feature is not configured, please contact the administrator');
                 return;
             }
             document.getElementById('authModal').classList.add('active');
@@ -2565,17 +2565,17 @@
             const switchLink = document.getElementById('authSwitchLink');
 
             if (isAuthModeLogin) {
-                title.textContent = '登录';
-                desc.textContent = '登录以保存您的分析历史';
-                btn.textContent = '登录';
-                switchText.textContent = '还没有账号？';
-                switchLink.textContent = '注册';
+                title.textContent = 'Login';
+                desc.textContent = 'Login to save your analysis history';
+                btn.textContent = 'Login';
+                switchText.textContent = 'Don\'t have an account?';
+                switchLink.textContent = 'Sign Up';
             } else {
-                title.textContent = '注册';
-                desc.textContent = '注册账号以保存分析历史';
-                btn.textContent = '注册';
-                switchText.textContent = '已有账号？';
-                switchLink.textContent = '登录';
+                title.textContent = 'Sign Up';
+                desc.textContent = 'Create an account to save your analysis history';
+                btn.textContent = 'Sign Up';
+                switchText.textContent = 'Already have an account?';
+                switchLink.textContent = 'Login';
             }
             hideAuthMessages();
         }
@@ -2590,7 +2590,7 @@
             const btn = document.getElementById('authSubmitBtn');
 
             btn.disabled = true;
-            btn.textContent = isAuthModeLogin ? '登录中...' : '注册中...';
+            btn.textContent = isAuthModeLogin ? 'Logging in...' : 'Signing up...';
 
             try {
                 let result;
@@ -2610,22 +2610,22 @@
                     showAuthError(result.error.message);
                 } else {
                     if (isAuthModeLogin) {
-                        showAuthSuccess('登录成功！');
+                        showAuthSuccess('Login successful!');
                         currentUser = result.data.user;
                         setTimeout(() => {
                             closeAuthModal();
                             showLoggedInState(email);
                         }, 1000);
                     } else {
-                        showAuthSuccess('注册成功！请查收验证邮件');
+                        showAuthSuccess('Registration successful! Please check your email for verification');
                     }
                 }
             } catch (err) {
-                showAuthError('操作失败：' + err.message);
+                showAuthError('Operation failed: ' + err.message);
             }
 
             btn.disabled = false;
-            btn.textContent = isAuthModeLogin ? '登录' : '注册';
+            btn.textContent = isAuthModeLogin ? 'Login' : 'Sign Up';
         }
 
         // 登出
@@ -2742,7 +2742,7 @@
 
         // 显示历史记录（暂未实现，可后续添加）
         function showHistory() {
-            alert('历史记录功能正在开发中...');
+            alert('History feature is under development...');
         }
 
         // 页面加载时初始化
@@ -3418,7 +3418,7 @@
             if (analysisType === 'create_template') {
                 const templateName = document.getElementById('templateNameInput').value.trim();
                 if (!templateName) {
-                    alert('请输入模板名称');
+                    alert('Please enter template name');
                     return;
                 }
             }
@@ -4188,7 +4188,7 @@
             <div id="exportImagesModal" class="template-modal">
                 <div class="template-modal-content">
                     <div class="template-modal-header">
-                        <h2>🖼️ <span data-i18n="export.images">导出图片</span></h2>
+                        <h2>🖼️ <span data-i18n="export.images">Export Images</span></h2>
                         <button class="template-modal-close" onclick="hideExportImagesModal()">×</button>
                     </div>
                     <div class="template-modal-body">
