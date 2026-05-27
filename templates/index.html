@@ -2162,10 +2162,9 @@
                                 <input type="radio" name="analysis_type" value="analyze" checked id="typeAnalyze">
                                 <span data-i18n="upload.typeAnalyze">Analyze Shooting</span>
                             </label>
-                            <label class="radio-option">
+                            <label class="radio-option" id="typeTemplateOption" style="display: none;">
                                 <input type="radio" name="analysis_type" value="create_template" id="typeTemplate">
                                 <span data-i18n="upload.typeTemplate">Create Template</span>
-                                <span class="login-required-hint" id="templateLoginHint">🔒</span>
                             </label>
                         </div>
                     </div>
@@ -2189,8 +2188,7 @@
                                     style="flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-size: 1rem;">
                                 <option value="" data-i18n="upload.noTemplate">No Template</option>
                             </select>
-                            <button id="manageTemplatesBtn" type="button"
-                                    style="padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; font-size: 0.9rem; cursor: pointer; white-space: nowrap; transition: all 0.3s;">
+                            <button id="manageTemplatesBtn" type="button" class="admin-only-btn" style="display: none; padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; font-size: 0.9rem; cursor: pointer; white-space: nowrap; transition: all 0.3s;">
                                 <span data-i18n="upload.manageTemplates">📋 Manage</span>
                             </button>
                         </div>
@@ -2455,7 +2453,7 @@
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session && session.user) {
                     currentUser = session.user;
-                    showLoggedInState(currentUser.email);
+                    showLoggedInState(currentUser.email, false);  // Supabase 用户不是管理员
                 } else {
                     currentUser = null;
                     showLoginButton();
@@ -2467,12 +2465,27 @@
         }
 
         // 显示已登录状态
-        function showLoggedInState(email) {
+        function showLoggedInState(email, isAdmin = false) {
             document.getElementById('loginBtn').style.display = 'none';
             document.getElementById('userInfo').style.display = 'flex';
             document.getElementById('userEmail').textContent = email;
             document.getElementById('historyBtn').classList.add('show');
-            currentUser = { email };
+
+            // 管理员专属功能显示控制
+            const typeTemplateOption = document.getElementById('typeTemplateOption');
+            const manageTemplatesBtn = document.getElementById('manageTemplatesBtn');
+
+            if (isAdmin) {
+                // 管理员：显示创建模板和管理模板按钮
+                if (typeTemplateOption) typeTemplateOption.style.display = 'flex';
+                if (manageTemplatesBtn) manageTemplatesBtn.style.display = 'block';
+            } else {
+                // 普通用户：隐藏这些功能
+                if (typeTemplateOption) typeTemplateOption.style.display = 'none';
+                if (manageTemplatesBtn) manageTemplatesBtn.style.display = 'none';
+            }
+
+            currentUser = { email, isAdmin };
 
             // 隐藏导出按钮的登录提示
             updateExportButtonsLoginHint();
@@ -2482,12 +2495,18 @@
             if (guidance) guidance.remove();
         }
 
-        // 显示登录按钮
+        // 显示登录按钮（未登录状态）
         function showLoginButton() {
             document.getElementById('loginBtn').style.display = 'block';
             document.getElementById('userInfo').style.display = 'none';
             document.getElementById('historyBtn').classList.remove('show');
             currentUser = null;
+
+            // 隐藏管理员专属功能
+            const typeTemplateOption = document.getElementById('typeTemplateOption');
+            const manageTemplatesBtn = document.getElementById('manageTemplatesBtn');
+            if (typeTemplateOption) typeTemplateOption.style.display = 'none';
+            if (manageTemplatesBtn) manageTemplatesBtn.style.display = 'none';
 
             // 显示导出按钮的登录提示
             updateExportButtonsLoginHint();
@@ -2584,15 +2603,17 @@
                     if (localLoginResult.success) {
                         // 本地登录成功
                         showAuthSuccess('Login successful!');
+                        const isAdmin = localLoginResult.user.role === 'admin';
                         currentUser = {
                             id: localLoginResult.user.id,
                             email: localLoginResult.user.email,
                             isLocal: true,
-                            role: localLoginResult.user.role
+                            role: localLoginResult.user.role,
+                            isAdmin
                         };
                         setTimeout(() => {
                             closeAuthModal();
-                            showLoggedInState(email);
+                            showLoggedInState(email, isAdmin);
                         }, 1000);
                         btn.disabled = false;
                         btn.textContent = 'Login';
@@ -2629,7 +2650,7 @@
                         currentUser = result.data.user;
                         setTimeout(() => {
                             closeAuthModal();
-                            showLoggedInState(email);
+                            showLoggedInState(email, false);  // Supabase 用户不是管理员
                         }, 1000);
                     } else {
                         showAuthSuccess('Registration successful! Please check your email for verification');
