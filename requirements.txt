@@ -26,6 +26,9 @@ pillow>=10.0.0
 supabase>=2.0.0
 python-jose[cryptography]>=3.3.0  # JWT verification
 
+# Local Auth
+bcrypt>=4.0.0  # Password hashing
+
 # Optional: For future async task queue
 # celery>=5.3.0
 # redis>=5.0.0

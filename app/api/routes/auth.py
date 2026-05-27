@@ -1,6 +1,6 @@
 """
 Authentication API Routes
-认证 API 路由
+认证 API 路由：支持 Supabase 认证和本地管理员账号
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from ..deps import get_current_user_required
 from ...services.supabase_client import get_supabase_client_anon, is_supabase_enabled
+from ...services.local_auth_service import local_auth_service
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -18,22 +19,67 @@ class TokenVerifyRequest(BaseModel):
     token: str
 
 
+class LocalLoginRequest(BaseModel):
+    username: str
+    password: str
+
+
 class UserInfoResponse(BaseModel):
     id: str
     email: str
     email_verified: bool
+    role: str = "user"
+    is_local: bool = False
 
 
 class AuthStatusResponse(BaseModel):
     enabled: bool
+    local_auth_enabled: bool = True
+
+
+class LocalLoginResponse(BaseModel):
+    success: bool
+    user: Optional[UserInfoResponse] = None
+    message: str = ""
 
 
 # ===== Routes =====
 
 @router.get("/status", response_model=AuthStatusResponse)
 async def get_auth_status():
-    """检查认证服务是否已启用"""
-    return AuthStatusResponse(enabled=is_supabase_enabled())
+    """检查认证服务状态"""
+    return AuthStatusResponse(
+        enabled=is_supabase_enabled(),
+        local_auth_enabled=True
+    )
+
+
+@router.post("/local-login", response_model=LocalLoginResponse)
+async def local_login(request: LocalLoginRequest):
+    """
+    本地账号登录
+
+    用于管理员账号登录，账号密码存储在本地
+    """
+    user = local_auth_service.authenticate(request.username, request.password)
+
+    if not user:
+        return LocalLoginResponse(
+            success=False,
+            message="Invalid username or password"
+        )
+
+    return LocalLoginResponse(
+        success=True,
+        user=UserInfoResponse(
+            id=user["username"],  # 使用 username 作为 id
+            email=user.get("email", ""),
+            email_verified=True,  # 本地账号默认已验证
+            role=user.get("role", "user"),
+            is_local=True
+        ),
+        message="Login successful"
+    )
 
 
 @router.post("/verify", response_model=UserInfoResponse)
@@ -88,5 +134,7 @@ async def get_current_user_info(
     return UserInfoResponse(
         id=user["id"],
         email=user["email"],
-        email_verified=user.get("email_verified", False)
+        email_verified=user.get("email_verified", False),
+        role=user.get("role", "user"),
+        is_local=user.get("is_local", False)
     )

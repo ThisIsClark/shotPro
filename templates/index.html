@@ -2081,8 +2081,8 @@
             <div class="auth-success" id="authSuccess"></div>
             <form class="auth-form" id="authForm" onsubmit="handleAuthSubmit(event)">
                 <div class="auth-input-group">
-                    <label for="authEmail">Email</label>
-                    <input type="email" id="authEmail" class="auth-input" placeholder="your@email.com" required>
+                    <label for="authEmail">Username / Email</label>
+                    <input type="text" id="authEmail" class="auth-input" placeholder="Enter username or email" required>
                 </div>
                 <div class="auth-input-group">
                     <label for="authPassword">Password</label>
@@ -2495,10 +2495,6 @@
 
         // 打开登录/注册模态框
         function openAuthModal() {
-            if (!supabaseClient) {
-                alert('Login feature is not configured, please contact the administrator');
-                return;
-            }
             document.getElementById('authModal').classList.add('active');
             document.body.style.overflow = 'hidden';
             resetAuthForm();
@@ -2575,6 +2571,43 @@
             btn.textContent = isAuthModeLogin ? 'Logging in...' : 'Signing up...';
 
             try {
+                // 尝试本地登录（管理员账号）
+                if (isAuthModeLogin) {
+                    const localLoginResponse = await fetch('/api/v1/auth/local-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: email, password })
+                    });
+
+                    const localLoginResult = await localLoginResponse.json();
+
+                    if (localLoginResult.success) {
+                        // 本地登录成功
+                        showAuthSuccess('Login successful!');
+                        currentUser = {
+                            id: localLoginResult.user.id,
+                            email: localLoginResult.user.email,
+                            isLocal: true,
+                            role: localLoginResult.user.role
+                        };
+                        setTimeout(() => {
+                            closeAuthModal();
+                            showLoggedInState(email);
+                        }, 1000);
+                        btn.disabled = false;
+                        btn.textContent = 'Login';
+                        return;
+                    }
+                }
+
+                // 如果本地登录失败，尝试 Supabase 登录
+                if (!supabaseClient) {
+                    showAuthError('Invalid username or password');
+                    btn.disabled = false;
+                    btn.textContent = isAuthModeLogin ? 'Login' : 'Sign Up';
+                    return;
+                }
+
                 let result;
                 if (isAuthModeLogin) {
                     result = await supabaseClient.auth.signInWithPassword({
@@ -2613,18 +2646,31 @@
         // 登出
         async function handleLogout() {
             try {
+                // 如果是本地用户，直接清除状态
+                if (currentUser && currentUser.isLocal) {
+                    currentUser = null;
+                    showLoginButton();
+                    return;
+                }
+
+                // Supabase 用户登出
                 if (supabaseClient) {
                     await supabaseClient.auth.signOut();
                 }
                 currentUser = null;
                 showLoginButton();
             } catch (e) {
-                console.error('[Supabase] Logout failed:', e);
+                console.error('[Auth] Logout failed:', e);
             }
         }
 
         // 获取当前用户 Token（用于 API 请求）
         async function getAuthToken() {
+            // 本地用户不需要 token
+            if (currentUser && currentUser.isLocal) {
+                return 'local-' + currentUser.id;
+            }
+
             if (!supabaseClient || !currentUser) return null;
             try {
                 const { data: { session } } = await supabaseClient.auth.getSession();

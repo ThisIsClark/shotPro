@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse
 from .config import settings
 from .api.routes import upload, health, export, templates
 from .api.routes import auth, users
+from .services.local_auth_service import local_auth_service
 
 # 最大保留任务数量
 MAX_TASKS = 10
@@ -87,11 +88,16 @@ def cleanup_disk_tasks():
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时执行
-    print("[STARTUP] 投篮姿势分析系统启动中...")
+    print("[STARTUP] Basketball Shooting Form Analyzer starting...")
     cleanup_disk_tasks()
+
+    # 初始化管理员账号
+    print("[STARTUP] Initializing admin account...")
+    local_auth_service.init_admin_user(username="admin", password="myjob123")
+
     yield
     # 关闭时执行
-    print("[SHUTDOWN] 投篮姿势分析系统关闭")
+    print("[SHUTDOWN] Basketball Shooting Form Analyzer stopped")
 
 
 # 创建 FastAPI 应用
