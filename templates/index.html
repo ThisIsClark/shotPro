@@ -2234,24 +2234,6 @@
                         </div>
                     </div>
 
-                    <!-- 高级选项 -->
-                    <div class="option-group" id="advancedOptionsGroup">
-                        <label>
-                            <input type="checkbox" id="generateVideoCheckbox" style="margin-right: 8px;">
-                            <span data-i18n="upload.generateVideo">Generate Annotated Video (slower)</span>
-                        </label>
-                        <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.8rem; color: rgba(255,255,255,0.5);">
-                            <span data-i18n="upload.generateVideoHint">💡 Skipping annotated video significantly speeds up analysis</span>
-                        </div>
-                        <label style="margin-top: 12px; display: block;">
-                            <input type="checkbox" id="generateSkeletonVideoCheckbox" style="margin-right: 8px;">
-                            <span data-i18n="upload.generateSkeletonVideo">Generate Skeleton Motion Video</span>
-                        </label>
-                        <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.8rem; color: rgba(255,255,255,0.5);">
-                            <span data-i18n="upload.generateSkeletonVideoHint">💡 Generate pure skeleton motion video, ideal for analyzing movement trajectory</span>
-                        </div>
-                    </div>
-
                     <button class="btn" id="analyzeBtn" disabled data-i18n="upload.analyze">
                         Start Analysis
                     </button>
@@ -3112,7 +3094,6 @@
             document.getElementById('templateNameGroup').style.display = 'none';
             document.getElementById('templateSelectGroup').style.display = 'block';
             document.getElementById('shootingStyleGroup').style.display = 'block';
-            document.getElementById('advancedOptionsGroup').style.display = 'block';
         });
 
         document.getElementById('typeTemplate').addEventListener('change', () => {
@@ -3129,7 +3110,6 @@
             document.getElementById('templateNameGroup').style.display = 'block';
             document.getElementById('templateSelectGroup').style.display = 'none';
             document.getElementById('shootingStyleGroup').style.display = 'none';
-            document.getElementById('advancedOptionsGroup').style.display = 'none';
         });
 
         // 模板管理对话框
@@ -3378,8 +3358,6 @@
             document.getElementById('templateNameGroup').style.display = 'none';
             document.getElementById('templateSelectGroup').style.display = 'block';
             document.getElementById('shootingStyleGroup').style.display = 'block';
-            document.getElementById('advancedOptionsGroup').style.display = 'block';
-            document.getElementById('generateVideoCheckbox').checked = false;
         }
 
         function handleFile(file) {
@@ -3477,10 +3455,8 @@
                     // 正常分析
                     const shootingStyle = document.querySelector('input[name="shooting_style"]:checked').value;
                     const templateId = document.getElementById('templateSelect').value;
-                    const generateVideo = document.getElementById('generateVideoCheckbox').checked;
-                    const generateSkeletonVideo = document.getElementById('generateSkeletonVideoCheckbox').checked;
 
-                    let url = `/api/v1/videos/upload?shooting_hand=${shootingHand}&shooting_style=${shootingStyle}&generate_video=${generateVideo}&generate_skeleton_video=${generateSkeletonVideo}`;
+                    let url = `/api/v1/videos/upload?shooting_hand=${shootingHand}&shooting_style=${shootingStyle}&generate_video=false&generate_skeleton_video=false`;
                     if (templateId) {
                         url += `&template_id=${templateId}`;
                     }
