@@ -3,6 +3,7 @@ Authentication API Routes
 认证 API 路由：支持 Supabase 认证和本地管理员账号
 """
 
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
