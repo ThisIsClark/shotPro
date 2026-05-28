@@ -17,6 +17,7 @@ from .config import settings
 from .api.routes import upload, health, export, templates
 from .api.routes import auth, users, admin
 from .services.local_auth_service import local_auth_service
+from .services.db_init_service import init_database
 
 # 最大保留任务数量
 MAX_TASKS = 10
@@ -94,6 +95,10 @@ async def lifespan(app: FastAPI):
     # 初始化管理员账号
     print("[STARTUP] Initializing admin account...")
     local_auth_service.init_admin_user(username="admin", password="myjob123")
+
+    # 初始化数据库表（检查是否存在）
+    print("[STARTUP] Checking database tables...")
+    await init_database()
 
     yield
     # 关闭时执行
