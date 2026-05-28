@@ -1644,6 +1644,416 @@
             }
         }
 
+        /* ===== 落地页样式（未登录用户） ===== */
+        .landing-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .landing-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(26, 31, 58, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+
+        .landing-logo {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .landing-logo span {
+            font-size: 1.6rem;
+        }
+
+        .landing-login-btn {
+            background: linear-gradient(135deg, #48dbfb, #a855f7);
+            border: none;
+            padding: 12px 28px;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(72, 219, 251, 0.3);
+        }
+
+        .landing-login-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(72, 219, 251, 0.4);
+        }
+
+        .landing-hero {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 120px 40px 60px;
+            text-align: center;
+        }
+
+        .landing-hero-content {
+            max-width: 800px;
+        }
+
+        .landing-hero h1 {
+            font-size: 3.2rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 35%, #48dbfb 70%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+
+        .landing-hero p {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .landing-cta-btn {
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            border: none;
+            padding: 18px 48px;
+            border-radius: 16px;
+            color: #1a1f3a;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 30px rgba(255, 107, 107, 0.4);
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .landing-cta-btn:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(255, 107, 107, 0.5);
+        }
+
+        .landing-cta-btn span {
+            font-size: 1.4rem;
+        }
+
+        .landing-benefits {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 30px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.95rem;
+        }
+
+        .landing-benefits div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .landing-benefits div::before {
+            content: '✓';
+            color: #48dbfb;
+            font-weight: 600;
+        }
+
+        /* 功能亮点区域 */
+        .landing-features {
+            padding: 80px 40px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .landing-features-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 50px;
+            color: #fff;
+        }
+
+        .landing-features-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .landing-feature-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 30px 24px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .landing-feature-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(72, 219, 251, 0.4);
+            box-shadow: 0 12px 40px rgba(72, 219, 251, 0.2);
+        }
+
+        .landing-feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        .landing-feature-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #48dbfb;
+            margin-bottom: 12px;
+        }
+
+        .landing-feature-card p {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.5;
+        }
+
+        /* 示例展示区域 */
+        .landing-demo {
+            padding: 80px 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .landing-demo-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+            color: #fff;
+        }
+
+        .landing-demo-container {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .landing-demo-frames {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .landing-demo-frame {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(72, 219, 251, 0.3);
+        }
+
+        .landing-demo-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .landing-demo-frame-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+            padding: 24px 12px 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .landing-demo-frame.release {
+            border-color: rgba(254, 202, 87, 0.5);
+        }
+
+        .landing-demo-frame.release .landing-demo-frame-label {
+            color: #feca57;
+        }
+
+        .landing-demo-score {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .landing-demo-score-number {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #48dbfb;
+        }
+
+        .landing-demo-score-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #48dbfb;
+        }
+
+        .landing-demo-score-note {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .landing-demo-tip {
+            background: rgba(254, 202, 87, 0.1);
+            border-left: 3px solid #feca57;
+            padding: 16px 20px;
+            border-radius: 0 12px 12px 0;
+            margin-bottom: 30px;
+        }
+
+        .landing-demo-tip-title {
+            font-weight: 600;
+            color: #feca57;
+            margin-bottom: 8px;
+        }
+
+        .landing-demo-tip-text {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* 定价区域 */
+        .landing-pricing {
+            padding: 60px 40px 100px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .landing-pricing-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 30px;
+        }
+
+        .landing-pricing-plans {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .landing-pricing-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 24px 36px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .landing-pricing-card:hover {
+            border-color: rgba(72, 219, 251, 0.3);
+        }
+
+        .landing-pricing-card.featured {
+            border-color: rgba(168, 85, 247, 0.4);
+            background: rgba(168, 85, 247, 0.1);
+        }
+
+        .landing-pricing-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 8px;
+        }
+
+        .landing-pricing-price {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .landing-pricing-price span {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .landing-pricing-note {
+            font-size: 0.85rem;
+            color: #48dbfb;
+            margin-top: 8px;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 900px) {
+            .landing-features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .landing-demo-frames {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .landing-pricing-plans {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .landing-hero h1 {
+                font-size: 2.4rem;
+            }
+
+            .landing-benefits {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .landing-header {
+                padding: 16px 20px;
+            }
+
+            .landing-hero {
+                padding: 100px 20px 40px;
+            }
+
+            .landing-hero h1 {
+                font-size: 1.8rem;
+            }
+
+            .landing-cta-btn {
+                padding: 14px 32px;
+                font-size: 1rem;
+            }
+
+            .landing-features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .landing-demo-frames {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* ===== 登录模态框样式 ===== */
         .auth-section {
             position: absolute;
@@ -1768,6 +2178,21 @@
         .auth-modal-header p {
             color: rgba(255, 255, 255, 0.7);
             font-size: 0.95rem;
+        }
+
+        .auth-free-trial-badge {
+            background: linear-gradient(135deg, rgba(254, 202, 87, 0.2), rgba(255, 107, 107, 0.2));
+            border: 1px solid rgba(254, 202, 87, 0.3);
+            border-radius: 10px;
+            padding: 10px 16px;
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #feca57;
+            font-weight: 600;
         }
 
         .auth-form {
@@ -2069,6 +2494,118 @@
     </style>
 </head>
 <body>
+    <!-- 落地页（未登录用户） -->
+    <div class="landing-page" id="landingPage">
+        <header class="landing-header">
+            <div class="landing-logo">
+                <span>🏀</span>
+                Shot Analyzer
+            </div>
+            <button class="landing-login-btn" onclick="openAuthModal()">
+                Login / Sign Up
+            </button>
+        </header>
+
+        <section class="landing-hero">
+            <div class="landing-hero-content">
+                <h1 data-i18n="landing.title">AI-Powered Basketball Shooting Form Analysis</h1>
+                <p data-i18n="landing.subtitle">Get professional-level shooting form analysis with BEEF scoring, key frame annotation, and NBA player template comparison. Improve your shooting technique today!</p>
+                <button class="landing-cta-btn" onclick="openAuthModal()">
+                    <span>🎯</span>
+                    <span data-i18n="landing.cta">Start Free Trial</span>
+                </button>
+                <div class="landing-benefits">
+                    <div data-i18n="landing.benefit1">Free trial: 3 analyses</div>
+                    <div data-i18n="landing.benefit2">No credit card required</div>
+                    <div data-i18n="landing.benefit3">Start instantly</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-features">
+            <h2 class="landing-features-title" data-i18n="landing.featuresTitle">Core Features</h2>
+            <div class="landing-features-grid">
+                <div class="landing-feature-card">
+                    <div class="landing-feature-icon">🎯</div>
+                    <h3 data-i18n="landing.feature1Title">Pose Detection</h3>
+                    <p data-i18n="landing.feature1Desc">33 key body points tracked using advanced AI vision technology</p>
+                </div>
+                <div class="landing-feature-card">
+                    <div class="landing-feature-icon">📊</div>
+                    <h3 data-i18n="landing.feature2Title">BEEF Scoring</h3>
+                    <p data-i18n="landing.feature2Desc">Balance, Eyes, Elbow, Follow-through - the NBA standard evaluation</p>
+                </div>
+                <div class="landing-feature-card">
+                    <div class="landing-feature-icon">🏆</div>
+                    <h3 data-i18n="landing.feature3Title">Template Comparison</h3>
+                    <p data-i18n="landing.feature3Desc">Compare your form with NBA player shooting templates</p>
+                </div>
+                <div class="landing-feature-card">
+                    <div class="landing-feature-icon">📄</div>
+                    <h3 data-i18n="landing.feature4Title">Professional Reports</h3>
+                    <p data-i18n="landing.feature4Desc">Export PDF reports with detailed improvement suggestions</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-demo">
+            <h2 class="landing-demo-title" data-i18n="landing.demoTitle">Analysis Example</h2>
+            <div class="landing-demo-container">
+                <div class="landing-demo-frames">
+                    <div class="landing-demo-frame">
+                        <img src="/static/demo_preparation.jpg" alt="Preparation" onerror="this.src='https://placehold.co/300x225/1a1f3a/48dbfb?text=Preparation'">
+                        <div class="landing-demo-frame-label" data-i18n="phases.preparation">Preparation</div>
+                    </div>
+                    <div class="landing-demo-frame">
+                        <img src="/static/demo_lifting.jpg" alt="Lifting" onerror="this.src='https://placehold.co/300x225/1a1f3a/48dbfb?text=Lifting'">
+                        <div class="landing-demo-frame-label" data-i18n="phases.lifting">Lifting</div>
+                    </div>
+                    <div class="landing-demo-frame release">
+                        <img src="/static/demo_release.jpg" alt="Release" onerror="this.src='https://placehold.co/300x225/1a1f3a/feca57?text=Release'">
+                        <div class="landing-demo-frame-label">⭐ <span data-i18n="phases.release">Release</span></div>
+                    </div>
+                    <div class="landing-demo-frame">
+                        <img src="/static/demo_follow_through.jpg" alt="Follow Through" onerror="this.src='https://placehold.co/300x225/1a1f3a/48dbfb?text=Follow+Through'">
+                        <div class="landing-demo-frame-label" data-i18n="phases.follow_through">Follow Through</div>
+                    </div>
+                </div>
+                <div class="landing-demo-score">
+                    <div class="landing-demo-score-number">85</div>
+                    <div>
+                        <div class="landing-demo-score-text" data-i18n="ratings.good">Good</div>
+                        <div class="landing-demo-score-note" data-i18n="landing.scoreNote">*For reference only</div>
+                    </div>
+                </div>
+                <div class="landing-demo-tip">
+                    <div class="landing-demo-tip-title" data-i18n="landing.tipTitle">💡 Improvement Suggestion Example</div>
+                    <div class="landing-demo-tip-text" data-i18n="landing.tipText">Keep your elbow bent at about 90 degrees during the release phase to ensure smooth power transfer from your legs through your arm to the ball...</div>
+                </div>
+                <div style="text-align: center;">
+                    <button class="landing-cta-btn" onclick="openAuthModal()">
+                        <span>🎯</span>
+                        <span data-i18n="landing.ctaDemo">Try It Now - Free</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-pricing">
+            <h2 class="landing-pricing-title" data-i18n="landing.pricingTitle">After free trial, choose your plan:</h2>
+            <div class="landing-pricing-plans">
+                <div class="landing-pricing-card">
+                    <div class="landing-pricing-name" data-i18n="landing.monthly">Monthly</div>
+                    <div class="landing-pricing-price">¥29<span>/month</span></div>
+                    <div class="landing-pricing-note" data-i18n="landing.unlimited">Unlimited analyses</div>
+                </div>
+                <div class="landing-pricing-card featured">
+                    <div class="landing-pricing-name" data-i18n="landing.yearly">Yearly</div>
+                    <div class="landing-pricing-price">¥199<span>/year</span></div>
+                    <div class="landing-pricing-note" data-i18n="landing.save">Save ¥149</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
     <!-- 登录模态框 -->
     <div class="auth-modal" id="authModal">
         <div class="auth-modal-content">
@@ -2076,6 +2613,10 @@
             <div class="auth-modal-header">
                 <h2 id="authModalTitle">Login</h2>
                 <p id="authModalDesc">Login to save your analysis history</p>
+                <div class="auth-free-trial-badge" id="authFreeTrialBadge" style="display: block;">
+                    <span>🎉</span>
+                    <span data-i18n="auth.freeTrial">New users get 3 free analyses!</span>
+                </div>
             </div>
             <div class="auth-error" id="authError"></div>
             <div class="auth-success" id="authSuccess"></div>
@@ -2466,6 +3007,12 @@
 
         // 显示已登录状态
         function showLoggedInState(email, isAdmin = false) {
+            // 隐藏落地页，显示主功能区域
+            const landingPage = document.getElementById('landingPage');
+            const mainContainer = document.querySelector('.container');
+            if (landingPage) landingPage.style.display = 'none';
+            if (mainContainer) mainContainer.style.display = 'block';
+
             document.getElementById('loginBtn').style.display = 'none';
             document.getElementById('userInfo').style.display = 'flex';
             document.getElementById('userEmail').textContent = email;
@@ -2497,7 +3044,13 @@
 
         // 显示登录按钮（未登录状态）
         function showLoginButton() {
-            document.getElementById('loginBtn').style.display = 'block';
+            // 显示落地页，隐藏主功能区域
+            const landingPage = document.getElementById('landingPage');
+            const mainContainer = document.querySelector('.container');
+            if (landingPage) landingPage.style.display = 'flex';
+            if (mainContainer) mainContainer.style.display = 'none';
+
+            document.getElementById('loginBtn').style.display = 'none';  // 落地页有自己的登录按钮
             document.getElementById('userInfo').style.display = 'none';
             document.getElementById('historyBtn').classList.remove('show');
             currentUser = null;
@@ -2560,19 +3113,22 @@
             const btn = document.getElementById('authSubmitBtn');
             const switchText = document.getElementById('authSwitchText');
             const switchLink = document.getElementById('authSwitchLink');
+            const freeTrialBadge = document.getElementById('authFreeTrialBadge');
 
             if (isAuthModeLogin) {
                 title.textContent = 'Login';
-                desc.textContent = 'Login to save your analysis history';
+                desc.textContent = 'Login to access your analysis history';
                 btn.textContent = 'Login';
                 switchText.textContent = 'Don\'t have an account?';
                 switchLink.textContent = 'Sign Up';
+                if (freeTrialBadge) freeTrialBadge.style.display = 'flex';
             } else {
-                title.textContent = 'Sign Up';
-                desc.textContent = 'Create an account to save your analysis history';
-                btn.textContent = 'Sign Up';
+                title.textContent = 'Sign Up - Free Trial';
+                desc.textContent = 'Create account to get 3 free analyses';
+                btn.textContent = 'Sign Up Now';
                 switchText.textContent = 'Already have an account?';
                 switchLink.textContent = 'Login';
+                if (freeTrialBadge) freeTrialBadge.style.display = 'flex';
             }
             hideAuthMessages();
         }
@@ -2922,6 +3478,36 @@
                     privacy: '隐私政策',
                     terms: '服务条款',
                     contact: '联系我们'
+                },
+                landing: {
+                    title: 'AI 篮球投篮姿势分析',
+                    subtitle: '专业级投篮姿势分析，BEEF 评分系统、关键帧标注、NBA 球员模板对比，助你提升投篮技术！',
+                    cta: '开始免费试用',
+                    ctaDemo: '立即体验 - 免费',
+                    benefit1: '免费试用 3 次',
+                    benefit2: '无需信用卡',
+                    benefit3: '即刻开始',
+                    featuresTitle: '核心功能',
+                    feature1Title: '姿势检测',
+                    feature1Desc: 'AI 视觉技术追踪 33 个身体关键点',
+                    feature2Title: 'BEEF 评分',
+                    feature2Desc: 'Balance, Eyes, Elbow, Follow-through - NBA 标准评估体系',
+                    feature3Title: '模板对比',
+                    feature3Desc: '与 NBA 球员投篮模板进行对比分析',
+                    feature4Title: '专业报告',
+                    feature4Desc: '导出 PDF 报告，详细改进建议',
+                    demoTitle: '分析结果示例',
+                    scoreNote: '*仅供参考',
+                    tipTitle: '💡 改进建议示例',
+                    tipText: '出手时肘部应保持约90度弯曲，确保力量从腿部顺畅传递到手臂再到篮球...',
+                    pricingTitle: '免费试用后，选择您的订阅方案：',
+                    monthly: '月度会员',
+                    yearly: '年度会员',
+                    unlimited: '无限次分析',
+                    save: '省 ¥149'
+                },
+                auth: {
+                    freeTrial: '新用户可获得 3 次免费分析！'
                 }
             },
             'en-US': {
@@ -3047,6 +3633,36 @@
                     privacy: 'Privacy Policy',
                     terms: 'Terms of Service',
                     contact: 'Contact Us'
+                },
+                landing: {
+                    title: 'AI-Powered Basketball Shooting Form Analysis',
+                    subtitle: 'Professional shooting form analysis with BEEF scoring, key frame annotation, and NBA player template comparison. Improve your shooting technique today!',
+                    cta: 'Start Free Trial',
+                    ctaDemo: 'Try It Now - Free',
+                    benefit1: 'Free trial: 3 analyses',
+                    benefit2: 'No credit card required',
+                    benefit3: 'Start instantly',
+                    featuresTitle: 'Core Features',
+                    feature1Title: 'Pose Detection',
+                    feature1Desc: '33 key body points tracked using advanced AI vision',
+                    feature2Title: 'BEEF Scoring',
+                    feature2Desc: 'Balance, Eyes, Elbow, Follow-through - the NBA standard',
+                    feature3Title: 'Template Comparison',
+                    feature3Desc: 'Compare your form with NBA player shooting templates',
+                    feature4Title: 'Professional Reports',
+                    feature4Desc: 'Export PDF reports with detailed improvement suggestions',
+                    demoTitle: 'Analysis Example',
+                    scoreNote: '*For reference only',
+                    tipTitle: '💡 Improvement Suggestion Example',
+                    tipText: 'Keep your elbow bent at about 90 degrees during release to ensure smooth power transfer from legs through arm to the ball...',
+                    pricingTitle: 'After free trial, choose your plan:',
+                    monthly: 'Monthly',
+                    yearly: 'Yearly',
+                    unlimited: 'Unlimited analyses',
+                    save: 'Save ¥149'
+                },
+                auth: {
+                    freeTrial: 'New users get 3 free analyses!'
                 }
             }
         };

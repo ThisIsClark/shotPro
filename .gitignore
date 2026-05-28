@@ -5,6 +5,7 @@ venv/
 .env
 uploads/
 results/
-templates/
+templates/template_*
+templates/index.json
 temp/
 modelVideo/
