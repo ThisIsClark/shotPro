@@ -8,8 +8,8 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# 安装系统依赖 (MediaPipe 和 OpenCV 可能需要)
-# 虽然使用了 headless 版本，但某些底层库可能仍需依赖 glib
+# 安装系统依赖 (MediaPipe 和 OpenCV 需要)
+# MediaPipe 需要 OpenGL ES 和 EGL 库
 RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     libsm6 \
@@ -17,6 +17,9 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev \
     libgl1 \
     libgomp1 \
+    libegl1 \
+    libgles2 \
+    libglvnd0 \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制依赖文件
