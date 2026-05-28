@@ -18,6 +18,7 @@ from ...services.analysis_service import AnalysisService, AnalysisConfig, Analys
 from ...services.db_service import db_service
 from ...services.storage_service import storage_service
 from ...services.supabase_client import is_supabase_enabled
+from ...services.audit_service import audit_service, AuditAction
 from ...models.template import TemplateManager
 from ..deps import get_current_user_optional, get_user_id
 
@@ -202,6 +203,22 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
                 total_frames=result_dict.get("total_frames"),
                 fps=result_dict.get("fps"),
                 duration=result_dict.get("duration")
+            ))
+
+            # 记录审计日志
+            asyncio.run(audit_service.log(
+                action=AuditAction.ANALYSIS_COMPLETED,
+                user_id=user_id,
+                resource_id=task_id,
+                resource_type="analysis",
+                details={
+                    "overall_score": result_dict.get("overall_score"),
+                    "rating": result_dict.get("rating"),
+                    "shooting_hand": shooting_hand,
+                    "shooting_style": shooting_style,
+                    "template_id": template_id,
+                    "video_filename": video_filename
+                }
             ))
         else:
             # 内存 fallback
@@ -648,7 +665,25 @@ async def upload_video(
         video_path.name,  # 视频文件名（用于删除 Storage）
         video_storage_uploaded  # 是否上传到了 Storage
     )
-    
+
+    # 记录审计日志（分析开始）
+    if use_db:
+        await audit_service.log(
+            action=AuditAction.ANALYSIS_STARTED,
+            user_id=user_id,
+            resource_id=task_id,
+            resource_type="analysis",
+            details={
+                "video_filename": file.filename,
+                "shooting_hand": shooting_hand,
+                "shooting_style": shooting_style,
+                "template_id": template_id,
+                "generate_video": generate_video,
+                "generate_skeleton_video": generate_skeleton_video,
+                "file_size_mb": file_size_mb
+            }
+        )
+
     return UploadResponse(
         task_id=task_id,
         message="视频上传成功，开始分析",
