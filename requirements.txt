@@ -5,7 +5,7 @@ python-multipart>=0.0.9
 
 # Video & Image Processing
 opencv-python-headless==4.10.0.84  # 稳定版本，避免 GStreamer 循环导入问题
-mediapipe==0.10.8  # 0.10.9+ 移除了 solutions API
+mediapipe>=0.10.13  # 使用新版本，需要更新 pose_detector.py
 numpy>=1.26.0
 
 # Async Support
