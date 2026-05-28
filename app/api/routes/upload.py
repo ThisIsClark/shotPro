@@ -285,12 +285,33 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
         
     except Exception as e:
         error_msg = str(e)
+        print(f"[Analysis] Analysis failed: {error_msg}")
+
         if use_db:
             asyncio.run(db_service.update_analysis(task_id, status="failed", error_message=error_msg))
+            # 记录审计日志（分析失败）
+            asyncio.run(audit_service.log(
+                action=AuditAction.ANALYSIS_FAILED,
+                user_id=user_id,
+                resource_id=task_id,
+                resource_type="analysis",
+                details={
+                    "error": error_msg,
+                    "video_filename": video_filename
+                }
+            ))
         else:
             task_store[task_id]["status"] = TaskStatus.FAILED
             task_store[task_id]["error"] = error_msg
             task_store[task_id]["message"] = f"分析失败: {error_msg}"
+
+        # ===== 分析失败时也删除原始视频（节省存储空间）=====
+        try:
+            if video_path and video_path.exists():
+                video_path.unlink()
+                print(f"[CLEANUP] 已删除本地视频文件（失败后清理）: {video_path}")
+        except Exception as cleanup_error:
+            print(f"[CLEANUP] 删除本地视频失败: {cleanup_error}")
 
 
 def _generate_comparison(user_frames, template_frames):
