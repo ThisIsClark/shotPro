@@ -3057,6 +3057,27 @@
 
         // 检查认证状态
         async function checkAuthState() {
+            // 先检查本地用户登录状态（localStorage）
+            const localUser = localStorage.getItem('localUser');
+            if (localUser) {
+                try {
+                    const userData = JSON.parse(localUser);
+                    currentUser = userData;
+                    showLoggedInState(userData.email, userData.isAdmin);
+                    console.log('[Auth] Restored local user session:', userData.email);
+                    return;
+                } catch (e) {
+                    localStorage.removeItem('localUser');
+                }
+            }
+
+            // 检查 Supabase session
+            if (!supabaseClient) {
+                currentUser = null;
+                showLoginButton();
+                return;
+            }
+
             try {
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session && session.user) {
@@ -3234,6 +3255,8 @@
                             role: localLoginResult.user.role,
                             isAdmin
                         };
+                        // 存储到 localStorage 以持久化登录状态
+                        localStorage.setItem('localUser', JSON.stringify(currentUser));
                         setTimeout(() => {
                             closeAuthModal();
                             showLoggedInState(email, isAdmin);
@@ -3290,8 +3313,9 @@
         // 登出
         async function handleLogout() {
             try {
-                // 如果是本地用户，直接清除状态
+                // 如果是本地用户，清除 localStorage 和状态
                 if (currentUser && currentUser.isLocal) {
+                    localStorage.removeItem('localUser');
                     currentUser = null;
                     showLoginButton();
                     return;
