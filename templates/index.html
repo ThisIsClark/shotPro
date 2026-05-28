@@ -900,6 +900,15 @@
             text-align: center;
         }
 
+        .landing-footer {
+            background: rgba(26, 31, 58, 0.9);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 24px 0;
+            text-align: center;
+            margin-top: auto;
+        }
+
         .footer-links {
             display: flex;
             justify-content: center;
@@ -2674,6 +2683,18 @@
                 </div>
             </div>
         </section>
+
+        <!-- Footer for landing page -->
+        <footer class="landing-footer">
+            <div class="footer-links">
+                <span class="footer-link" onclick="showPrivacyModal()" data-i18n="footer.privacy">Privacy Policy</span>
+                <span class="footer-link" onclick="showTermsModal()" data-i18n="footer.terms">Terms of Service</span>
+                <a class="footer-link" href="mailto:ThisIsClark@163.com" data-i18n="footer.contact">Contact Us</a>
+            </div>
+            <div class="footer-copyright">
+                © 2026 ShotPro. All rights reserved.
+            </div>
+        </footer>
     </div>
 
     <!-- 登录模态框 -->
