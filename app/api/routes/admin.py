@@ -8,9 +8,9 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..deps import get_current_user_required
-from ..services.audit_service import audit_service, AuditAction
-from ..services.db_service import db_service
-from ..services.local_auth_service import local_auth_service
+from ...services.audit_service import audit_service, AuditAction
+from ...services.db_service import db_service
+from ...services.local_auth_service import local_auth_service
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
