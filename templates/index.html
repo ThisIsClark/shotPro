@@ -215,8 +215,7 @@
 
         /* Upload Section */
         .upload-section {
-            position: sticky;
-            top: 20px;
+            /* 移除 sticky，让左右同步滚动 */
         }
 
         .upload-area {
@@ -2987,19 +2986,19 @@
                     </details>
                 </div>
             </div>
-
-            <!-- Footer for logged-in users -->
-            <footer class="site-footer">
-                <div class="footer-links">
-                    <span class="footer-link" onclick="showPrivacyModal()" data-i18n="footer.privacy">Privacy Policy</span>
-                    <span class="footer-link" onclick="showTermsModal()" data-i18n="footer.terms">Terms of Service</span>
-                    <a class="footer-link" href="mailto:ThisIsClark@163.com" data-i18n="footer.contact">Contact Us</a>
-                </div>
-                <div class="footer-copyright">
-                    © 2026 ShotPro. All rights reserved.
-                </div>
-            </footer>
         </div>
+
+        <!-- Footer for logged-in users (outside main-content) -->
+        <footer class="site-footer">
+            <div class="footer-links">
+                <span class="footer-link" onclick="showPrivacyModal()" data-i18n="footer.privacy">Privacy Policy</span>
+                <span class="footer-link" onclick="showTermsModal()" data-i18n="footer.terms">Terms of Service</span>
+                <a class="footer-link" href="mailto:ThisIsClark@163.com" data-i18n="footer.contact">Contact Us</a>
+            </div>
+            <div class="footer-copyright">
+                © 2026 ShotPro. All rights reserved.
+            </div>
+        </footer>
     </div>
 
     <!-- 图片放大 Lightbox -->
