@@ -417,18 +417,34 @@ class PhaseDetector:
             if segment.phase == ShootingPhase.UNKNOWN:
                 continue
 
+            # 打印阶段调试信息
+            print(f"[PhaseDetector] Phase: {segment.phase.value}, Frames: {segment.start_frame}-{segment.end_frame}, Count: {len(segment.frames)}")
+
             if segment.phase == ShootingPhase.PREPARATION:
                 # 准备阶段：选择中间位置的帧（最能代表准备姿势）
                 if segment.frames:
                     mid_idx = len(segment.frames) // 2
-                    key_frames[ShootingPhase.PREPARATION] = segment.frames[mid_idx]
+                    selected_frame = segment.frames[mid_idx]
+                    key_frames[ShootingPhase.PREPARATION] = selected_frame
+                    # 打印关键帧调试信息
+                    if selected_frame.angles:
+                        print(f"[PhaseDetector] PREPARATION keyframe: frame#{selected_frame.frame_number}, "
+                              f"elbow={selected_frame.angles.elbow_angle:.1f}°, "
+                              f"shoulder={selected_frame.angles.shoulder_angle:.1f}°, "
+                              f"knee={selected_frame.angles.knee_angle:.1f}°, "
+                              f"trunk={selected_frame.angles.trunk_angle:.1f}°")
 
             elif segment.phase == ShootingPhase.LIFTING:
                 # 上升阶段：选择阶段的前 2-3 帧（手臂刚开始显著上升）
                 if segment.frames:
                     # 选择第 2 帧（索引 1）或前 10%
                     idx = min(2, len(segment.frames) - 1)
-                    key_frames[ShootingPhase.LIFTING] = segment.frames[idx]
+                    selected_frame = segment.frames[idx]
+                    key_frames[ShootingPhase.LIFTING] = selected_frame
+                    if selected_frame.angles:
+                        print(f"[PhaseDetector] LIFTING keyframe: frame#{selected_frame.frame_number}, "
+                              f"elbow={selected_frame.angles.elbow_angle:.1f}°, "
+                              f"shoulder={selected_frame.angles.shoulder_angle:.1f}°")
 
             elif segment.phase == ShootingPhase.RELEASE:
                 # 出手阶段：找手臂伸直、手腕高位的帧
@@ -468,10 +484,23 @@ class PhaseDetector:
                     else:
                         key_frames[ShootingPhase.RELEASE] = segment.frames[0]
 
+                    # 打印 RELEASE 关键帧调试信息
+                    release_frame = key_frames[ShootingPhase.RELEASE]
+                    if release_frame and release_frame.angles:
+                        print(f"[PhaseDetector] RELEASE keyframe: frame#{release_frame.frame_number}, "
+                              f"elbow={release_frame.angles.elbow_angle:.1f}°, "
+                              f"shoulder={release_frame.angles.shoulder_angle:.1f}°, "
+                              f"wrist_y={release_frame.wrist_y:.4f}")
+
             elif segment.phase == ShootingPhase.FOLLOW_THROUGH:
                 # 跟随阶段：选择第一帧
                 if segment.frames:
-                    key_frames[ShootingPhase.FOLLOW_THROUGH] = segment.frames[0]
+                    selected_frame = segment.frames[0]
+                    key_frames[ShootingPhase.FOLLOW_THROUGH] = selected_frame
+                    if selected_frame.angles:
+                        print(f"[PhaseDetector] FOLLOW_THROUGH keyframe: frame#{selected_frame.frame_number}, "
+                              f"elbow={selected_frame.angles.elbow_angle:.1f}°, "
+                              f"shoulder={selected_frame.angles.shoulder_angle:.1f}°")
 
         # 备选：如果 release 未找到，在整个历史中搜索手腕最高点
         if key_frames[ShootingPhase.RELEASE] is None and self.frame_history:
