@@ -4082,7 +4082,7 @@
                     
                     return `
                         <div class="key-frame" onclick="openLightbox(${index})">
-                            <img src="${kf.image_url}" alt="${phaseName}">
+                            <img src="${kf.image_url}?t=${Date.now()}" alt="${phaseName}">
                             <div class="key-frame-label">
                                 <span class="phase-name">${phaseName}</span>
                                 <span class="expand-hint">${t('results.clickToZoom')}</span>
@@ -4364,7 +4364,7 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
                     ${keyFrameImages.map((kf, index) => `
                         <div class="key-frame" onclick="openLightbox(${index})">
-                            <img src="${kf.image_url}" alt="${t('phases.' + kf.phase)}">
+                            <img src="${kf.image_url}?t=${Date.now()}" alt="${t('phases.' + kf.phase)}">
                             <div class="key-frame-label">
                                 <span class="phase-name">${t('phases.' + kf.phase)}</span>
                                 <span class="expand-hint">${t('results.clickToZoom')}</span>
@@ -4431,7 +4431,7 @@
                     // 显示普通视图
                     keyFrames.innerHTML = result.key_frames.map((kf, index) => `
                         <div class="key-frame" onclick="openLightbox(${index})">
-                            <img src="${kf.image_url}" alt="${t('phases.' + kf.phase)}">
+                            <img src="${kf.image_url}?t=${Date.now()}" alt="${t('phases.' + kf.phase)}">
                             <div class="key-frame-label">
                                 <span class="phase-name">${t('phases.' + kf.phase)}</span>
                                 <span class="expand-hint">${t('results.clickToZoom')}</span>
@@ -4595,7 +4595,7 @@
                                     ${t('comparison.yourShot')}
                                 </div>
                                 <div style="position: relative; border: 2px solid rgba(254, 202, 87, 0.5); border-radius: 12px; overflow: hidden; cursor: pointer; flex: 1;" onclick="openLightbox(${index})">
-                                    <img src="${userFrame.image_url}" alt="${phaseName}" style="width: 100%; height: 100%; object-fit: contain; display: block; background: rgba(0,0,0,0.2);">
+                                    <img src="${userFrame.image_url}?t=${Date.now()}" alt="${phaseName}" style="width: 100%; height: 100%; object-fit: contain; display: block; background: rgba(0,0,0,0.2);">
                                 </div>
                                 ${renderAngles(userFrame.angles, 'user')}
                             </div>
@@ -4606,7 +4606,7 @@
                                     ${templateName}
                                 </div>
                                 <div style="position: relative; border: 2px solid rgba(72, 219, 251, 0.5); border-radius: 12px; overflow: hidden; flex: 1;">
-                                    <img src="${templateFrame ? templateFrame.image_url : ''}" alt="${phaseName}" style="width: 100%; height: 100%; object-fit: contain; display: block; background: rgba(0,0,0,0.2);">
+                                    <img src="${templateFrame ? templateFrame.image_url + '?t=' + Date.now() : ''}" alt="${phaseName}" style="width: 100%; height: 100%; object-fit: contain; display: block; background: rgba(0,0,0,0.2);">
                                 </div>
                                 ${templateFrame ? renderAngles(templateFrame.angles, 'template') : `<p style="color: #999; margin-top: 10px; text-align: center;">${t('comparison.noPhase')}</p>`}
                             </div>
@@ -4703,7 +4703,7 @@
             
             currentImageIndex = index;
             
-            lightboxImage.src = keyFrameImages[index].image_url;
+            lightboxImage.src = keyFrameImages[index].image_url + '?t=' + Date.now();
             lightboxCaption.textContent = t('phases.' + keyFrameImages[index].phase);
             lightbox.classList.add('active');
             document.body.style.overflow = 'hidden';
