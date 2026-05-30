@@ -123,7 +123,7 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
         else:
             # 内存 fallback
             task_store[task_id]["status"] = TaskStatus.PROCESSING
-            task_store[task_id]["message"] = "正在分析..."
+            task_store[task_id]["message"] = "Analyzing..."
 
         # 进度回调
         def progress_callback(progress: AnalysisProgress):
@@ -224,7 +224,7 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
             # 内存 fallback
             task_store[task_id]["status"] = TaskStatus.COMPLETED
             task_store[task_id]["progress"] = 100
-            task_store[task_id]["message"] = "分析完成"
+            task_store[task_id]["message"] = "Analysis complete"
             task_store[task_id]["result"] = result_dict
         
         # 持久化结果到磁盘
@@ -291,7 +291,7 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
         else:
             task_store[task_id]["status"] = TaskStatus.FAILED
             task_store[task_id]["error"] = error_msg
-            task_store[task_id]["message"] = f"分析失败: {error_msg}"
+            task_store[task_id]["message"] = f"Analysis failed: {error_msg}"
 
         # ===== 分析失败时也删除原始视频（节省存储空间）=====
         try:
@@ -631,7 +631,7 @@ async def upload_video(
         task_store[task_id] = {
             "status": TaskStatus.PENDING,
             "progress": 0,
-            "message": "任务已创建，等待处理",
+            "message": "Task created, processing...",
             "result": None,
             "error": None,
             "video_path": str(video_path),
@@ -678,7 +678,7 @@ async def upload_video(
 
     return UploadResponse(
         task_id=task_id,
-        message="视频上传成功，开始分析",
+        message="Video uploaded, starting analysis",
         filename=file.filename or "unknown"
     )
 

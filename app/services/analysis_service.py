@@ -194,11 +194,11 @@ class AnalysisService:
         self.phase_detector.reset()
         
         # 获取视频信息
-        self._report_progress(progress_callback, "info", 0, 1, "获取视频信息...")
+        self._report_progress(progress_callback, "info", 0, 1, "Getting video info...")
         video_info = self.video_processor.get_video_info(video_path)
         
         # 第一阶段：检测姿态和计算角度
-        self._report_progress(progress_callback, "detection", 0, video_info.total_frames, "检测人体姿态...")
+        self._report_progress(progress_callback, "detection", 0, video_info.total_frames, "Detecting pose...")
         
         frame_data_list: list[FrameData] = []
         pose_results: dict[int, PoseResult] = {}
@@ -262,13 +262,13 @@ class AnalysisService:
                 "detection", 
                 processed_frame.frame_number, 
                 video_info.total_frames,
-                f"处理帧 {processed_frame.frame_number}/{video_info.total_frames}"
+                f"Processing frame {processed_frame.frame_number}/{video_info.total_frames}"
             )
         
         # 第二阶段：评估（如果需要）
         evaluation = None
         if self.config.generate_evaluation:
-            self._report_progress(progress_callback, "evaluation", 0, 1, "评估投篮姿势...")
+            self._report_progress(progress_callback, "evaluation", 0, 1, "Evaluating shooting form...")
             phase_segments = self.phase_detector.get_phase_segments()
             evaluation = self.rules_engine.evaluate(phase_segments, frame_data_list)
         
@@ -276,7 +276,7 @@ class AnalysisService:
         key_frames: list[KeyFrameInfo] = []
         
         if self.config.generate_key_frames:
-            self._report_progress(progress_callback, "keyframes", 0, 4, "生成关键帧...")
+            self._report_progress(progress_callback, "keyframes", 0, 4, "Generating keyframes...")
             
             key_frame_data = self.phase_detector.get_key_frames()
             
@@ -338,7 +338,7 @@ class AnalysisService:
                             angles=frame_data.angles
                         ))
                 
-                self._report_progress(progress_callback, "keyframes", i + 1, 4, f"生成关键帧 {i + 1}/4")
+                self._report_progress(progress_callback, "keyframes", i + 1, 4, f"Generating keyframe {i + 1}/4")
             
             # 确保关键帧按照时间顺序排列（按frame_number排序）
             key_frames.sort(key=lambda kf: kf.frame_number)
@@ -347,7 +347,7 @@ class AnalysisService:
         annotated_video_path = None
         
         if self.config.generate_annotated_video:
-            self._report_progress(progress_callback, "video", 0, video_info.total_frames, "生成标注视频...")
+            self._report_progress(progress_callback, "video", 0, video_info.total_frames, "Generating annotated video...")
             
             output_video_path = result_dir / "annotated.mp4"
             
@@ -429,7 +429,7 @@ class AnalysisService:
         skeleton_video_path = None
 
         if self.config.generate_skeleton_video:
-            self._report_progress(progress_callback, "skeleton", 0, video_info.total_frames, "生成骨骼运动视频...")
+            self._report_progress(progress_callback, "skeleton", 0, video_info.total_frames, "Generating skeleton video...")
 
             output_skeleton_path = result_dir / "skeleton.mp4"
 
@@ -511,7 +511,7 @@ class AnalysisService:
                 skeleton_video_path = f"/results/{task_id}/skeleton.mp4"
 
         # 完成
-        self._report_progress(progress_callback, "done", 1, 1, "分析完成")
+        self._report_progress(progress_callback, "done", 1, 1, "Analysis complete")
 
         return FullAnalysisResult(
             task_id=task_id,
