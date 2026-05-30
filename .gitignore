@@ -9,3 +9,6 @@ templates/template_*
 templates/index.json
 temp/
 modelVideo/
+data/
+models/
+*.bak

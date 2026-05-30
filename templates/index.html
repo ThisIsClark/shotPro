@@ -4290,7 +4290,24 @@
 
                 if (status.status === 'completed') {
                     clearInterval(pollInterval);
-                    displayResults(status.result);
+                    // 如果 status.result 为空，需要调用 /result endpoint 获取结果
+                    if (status.result) {
+                        displayResults(status.result);
+                    } else {
+                        // 从 /result endpoint 获取完整结果
+                        try {
+                            const resultResponse = await fetch(`/api/v1/videos/tasks/${currentTaskId}/result`);
+                            if (resultResponse.ok) {
+                                const result = await resultResponse.json();
+                                displayResults(result);
+                            } else {
+                                alert(t('errors.analysisFailed') + ': Failed to fetch results');
+                            }
+                        } catch (e) {
+                            console.error('Failed to fetch result:', e);
+                            alert(t('errors.analysisFailed') + ': ' + e.message);
+                        }
+                    }
                     resetUploadState();
                 } else if (status.status === 'failed') {
                     clearInterval(pollInterval);

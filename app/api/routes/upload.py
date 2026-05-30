@@ -112,7 +112,7 @@ def cleanup_old_tasks(keep_count: int = MAX_TASKS) -> List[str]:
     return deleted_ids
 
 
-def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", shooting_style: str = "one_motion", template_id: str = None, generate_video: bool = False, generate_skeleton_video: bool = False, user_id: Optional[str] = None, video_filename: str = None, video_storage_uploaded: bool = False):
+def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", shooting_style: str = "one_motion", template_id: str = None, generate_video: bool = False, generate_skeleton_video: bool = False, user_id: Optional[str] = None):
     """运行分析任务（后台任务）- 支持数据库和内存两种模式"""
     try:
         # 使用数据库更新状态（如果可用）
@@ -217,7 +217,7 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
                     "shooting_hand": shooting_hand,
                     "shooting_style": shooting_style,
                     "template_id": template_id,
-                    "video_filename": video_filename
+                    "video_filename": video_path.name if video_path else "unknown"
                 }
             ))
         else:
@@ -271,18 +271,6 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
         except Exception as cleanup_error:
             print(f"[CLEANUP] 删除本地视频失败: {cleanup_error}")
 
-        # 删除 Supabase Storage 中的视频（如果上传了）
-        if video_storage_uploaded and video_filename:
-            try:
-                storage_service.delete_video_by_task(
-                    task_id=task_id,
-                    filename=video_filename,
-                    user_id=user_id
-                )
-                print(f"[CLEANUP] 已删除 Storage 视频: {task_id}/{video_filename}")
-            except Exception as cleanup_error:
-                print(f"[CLEANUP] 删除 Storage 视频失败: {cleanup_error}")
-        
     except Exception as e:
         error_msg = str(e)
         print(f"[Analysis] Analysis failed: {error_msg}")
@@ -297,7 +285,7 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
                 resource_type="analysis",
                 details={
                     "error": error_msg,
-                    "video_filename": video_filename
+                    "video_filename": video_path.name if video_path else "unknown"
                 }
             ))
         else:
@@ -623,21 +611,6 @@ async def upload_video(
 
     await save_upload_file(file, video_path)
 
-    # 上传视频到 Supabase Storage（如果可用）
-    storage_url = None
-    video_storage_uploaded = False
-    if storage_service.is_available():
-        storage_url = storage_service.upload_video(
-            video_path,
-            user_id=user_id,
-            task_id=task_id
-        )
-        if storage_url:
-            video_storage_uploaded = True
-            print(f"[Storage] Video uploaded: {storage_url}")
-        else:
-            print(f"[Storage] Video upload skipped, using local storage")
-
     # 检查文件大小
     file_size_mb = video_path.stat().st_size / (1024 * 1024)
     if file_size_mb > settings.max_video_size_mb:
@@ -682,9 +655,7 @@ async def upload_video(
         template_id,
         generate_video,
         generate_skeleton_video,
-        user_id,
-        video_path.name,  # 视频文件名（用于删除 Storage）
-        video_storage_uploaded  # 是否上传到了 Storage
+        user_id
     )
 
     # 记录审计日志（分析开始）
