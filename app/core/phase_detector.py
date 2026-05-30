@@ -25,8 +25,9 @@ class PhaseThresholds:
     """阶段检测阈值"""
     # 准备阶段
     prep_max_knee_angle: float = 130.0      # 膝盖角度 < 此值认为在下蹲
-    prep_max_elbow_angle: float = 110.0     # 肘部角度 < 此值认为手臂未展开
+    prep_max_elbow_angle: float = 90.0      # 肘部角度 < 此值认为手臂未展开（降低阈值）
     prep_max_trunk_angle: float = 20.0      # 躯干角度 < 此值认为身体直立
+    prep_max_shoulder_angle: float = 45.0   # 肩部角度 < 此值认为手臂未抬起（新增）
     
     # 出手阶段
     release_min_elbow_angle: float = 150.0  # 肘部角度 > 此值认为手臂伸展
@@ -315,10 +316,12 @@ class PhaseDetector:
         knee_bent = angles.knee_angle is not None and angles.knee_angle < th.prep_max_knee_angle
         elbow_bent = angles.elbow_angle is not None and angles.elbow_angle < th.prep_max_elbow_angle
         trunk_upright = angles.trunk_angle is not None and angles.trunk_angle < th.prep_max_trunk_angle
-        
-        # 至少膝盖或肘部弯曲，且躯干直立，且手腕未上升
+        arm_down = angles.shoulder_angle is not None and angles.shoulder_angle < th.prep_max_shoulder_angle  # 手臂低位
+
+        # 至少膝盖或肘部弯曲，且躯干直立，且手臂低位，且手腕未上升
         # 优化：如果手腕已经在上升（即使速度不快），也不应判为准备阶段
-        if (knee_bent or elbow_bent) and trunk_upright and not is_wrist_rising and prev_phase not in (ShootingPhase.LIFTING, ShootingPhase.RELEASE, ShootingPhase.FOLLOW_THROUGH):
+        # 关键：手臂必须低位（肩角小）才是真正的准备阶段
+        if (knee_bent or elbow_bent) and trunk_upright and arm_down and not is_wrist_rising and prev_phase not in (ShootingPhase.LIFTING, ShootingPhase.RELEASE, ShootingPhase.FOLLOW_THROUGH):
             self.shooting_started = True
             return ShootingPhase.PREPARATION
         
