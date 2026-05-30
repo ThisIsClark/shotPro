@@ -329,11 +329,24 @@ class PhaseDetector:
         if is_wrist_falling and self.wrist_rising:
             self.release_detected = True
             return ShootingPhase.RELEASE
-        
+
         # 默认返回准备阶段或上升阶段
         if self.wrist_rising or (prev_phase == ShootingPhase.LIFTING and not self.release_detected):
             return ShootingPhase.LIFTING
-        
+
+        # 如果手臂已经抬起（肩角大），不应该返回 PREPARATION
+        if angles.shoulder_angle is not None and angles.shoulder_angle > th.prep_max_shoulder_angle:
+            # 手臂已抬起，根据手腕运动判断
+            if is_wrist_rising:
+                return ShootingPhase.LIFTING
+            elif is_wrist_falling:
+                return ShootingPhase.RELEASE
+            else:
+                # 手腕稳定但手臂抬起，可能是上升或出手
+                if angles.elbow_angle > 110:
+                    return ShootingPhase.RELEASE
+                return ShootingPhase.LIFTING
+
         return ShootingPhase.PREPARATION
     
     def get_phase_segments(self) -> list[PhaseSegment]:
