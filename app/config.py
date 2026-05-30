@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     supabase_anon_key: str = ""  # Public key for frontend
     supabase_service_key: str = ""  # Service role key for backend (higher privileges)
 
+    # Model Configuration
+    # Use a fixed model URL to ensure consistent pose detection results
+    # If empty, will use local models/ directory
+    pose_model_url: str = ""  # e.g., "https://your-supabase.supabase.co/storage/v1/object/public/models/pose_landmarker.task"
+
     class Config:
         env_file = ".env"
         extra = "ignore"

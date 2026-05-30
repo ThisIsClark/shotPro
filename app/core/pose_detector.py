@@ -107,16 +107,41 @@ class PoseResult:
 
 # 模型文件路径
 MODEL_PATH = Path(__file__).parent.parent.parent / "models" / "pose_landmarker.task"
-MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task"
+# 默认使用 latest 版本（不推荐，可能不稳定）
+DEFAULT_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task"
 
 
 def download_model():
-    """下载 MediaPipe 模型文件"""
+    """下载/加载 MediaPipe 模型文件"""
+    from app.config import settings
+
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    # 优先使用配置的固定模型 URL
+    model_url = settings.pose_model_url or DEFAULT_MODEL_URL
+
     if not MODEL_PATH.exists():
-        print(f"[MediaPipe] Downloading model from {MODEL_URL}")
-        urllib.request.urlretrieve(MODEL_URL, str(MODEL_PATH))
-        print(f"[MediaPipe] Model saved to {MODEL_PATH}")
+        print(f"[MediaPipe] Downloading model from {model_url}")
+        try:
+            urllib.request.urlretrieve(model_url, str(MODEL_PATH))
+            print(f"[MediaPipe] Model saved to {MODEL_PATH}")
+        except Exception as e:
+            print(f"[MediaPipe] Failed to download from {model_url}: {e}")
+            # 回退到默认 URL
+            if model_url != DEFAULT_MODEL_URL:
+                print(f"[MediaPipe] Falling back to default URL")
+                urllib.request.urlretrieve(DEFAULT_MODEL_URL, str(MODEL_PATH))
+                print(f"[MediaPipe] Model saved to {MODEL_PATH}")
+            else:
+                raise
+
+    # 打印模型文件信息，便于调试
+    if MODEL_PATH.exists():
+        import hashlib
+        with open(MODEL_PATH, 'rb') as f:
+            md5 = hashlib.md5(f.read()).hexdigest()
+        print(f"[MediaPipe] Using model file: {MODEL_PATH} (MD5: {md5})")
+
     return MODEL_PATH
 
 

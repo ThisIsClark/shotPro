@@ -10,5 +10,4 @@ templates/index.json
 temp/
 modelVideo/
 data/
-models/
-*.bak
+models/*.bak
