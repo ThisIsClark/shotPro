@@ -219,64 +219,78 @@ class VideoProcessor:
         padding_ratio: float = 0.15,
         horizontal_padding_ratio: Optional[float] = None,
         text_margin: int = 150
-    ) -> np.ndarray:
+    ) -> tuple[np.ndarray, dict]:
         """
         根据姿态关键点裁剪图像，只保留人物部分
-        
+
         Args:
             frame: 原始帧图像
             pose_result: 姿态检测结果
             padding_ratio: 垂直边距比例（相对于人物高度）
             horizontal_padding_ratio: 水平边距比例（相对于人物宽度），如果为None则使用padding_ratio
             text_margin: 额外的文字标注边距（像素），确保标注文字不被裁切
-            
+
         Returns:
-            裁剪后的图像
+            tuple: (裁剪后的图像, 裁剪信息字典)
+            裁剪信息包含: crop_x1, crop_y1, crop_x2, crop_y2, orig_width, orig_height
         """
         if not pose_result or not pose_result.landmarks:
-            return frame
-        
+            height, width = frame.shape[:2]
+            return frame, {'crop_x1': 0, 'crop_y1': 0, 'crop_x2': width, 'crop_y2': height,
+                          'orig_width': width, 'orig_height': height}
+
         height, width = frame.shape[:2]
-        
+
         # 收集所有可见关键点的坐标
         x_coords = []
         y_coords = []
-        
+
         # pose_result.landmarks 是一个字典，遍历其值
         for landmark in pose_result.landmarks.values():
             if landmark.visibility > 0.5:  # 只考虑可见度高的关键点
                 x_coords.append(landmark.x * width)
                 y_coords.append(landmark.y * height)
-        
+
         if not x_coords or not y_coords:
-            return frame
-        
+            return frame, {'crop_x1': 0, 'crop_y1': 0, 'crop_x2': width, 'crop_y2': height,
+                          'orig_width': width, 'orig_height': height}
+
         # 计算边界框
         min_x = int(min(x_coords))
         max_x = int(max(x_coords))
         min_y = int(min(y_coords))
         max_y = int(max(y_coords))
-        
+
         # 计算人物的宽度和高度
         person_width = max_x - min_x
         person_height = max_y - min_y
-        
+
         # 添加边距（左右可以和上下不同）
         h_padding = horizontal_padding_ratio if horizontal_padding_ratio is not None else padding_ratio
         padding_x = int(person_width * h_padding)
         padding_y = int(person_height * padding_ratio)
-        
+
         # 应用边距并确保不超出图像边界
         # 右侧和下方额外增加文字边距，因为标注通常在关键点的右侧或下方
         crop_x1 = max(0, min_x - padding_x)
         crop_x2 = min(width, max_x + padding_x + text_margin)  # 右侧额外加文字边距
         crop_y1 = max(0, min_y - padding_y - int(text_margin * 0.5))  # 上方也加一些边距（阶段标签在顶部）
         crop_y2 = min(height, max_y + padding_y + int(text_margin * 0.3))  # 下方加少量边距
-        
+
         # 裁剪图像
         cropped = frame[crop_y1:crop_y2, crop_x1:crop_x2]
-        
-        return cropped
+
+        # 返回裁剪信息
+        crop_info = {
+            'crop_x1': crop_x1,
+            'crop_y1': crop_y1,
+            'crop_x2': crop_x2,
+            'crop_y2': crop_y2,
+            'orig_width': width,
+            'orig_height': height
+        }
+
+        return cropped, crop_info
     
     def create_annotated_video(
         self,
@@ -633,7 +647,7 @@ class AnnotationRenderer:
         
         # 文本内容（直接使用中文）
         text = phase_cn
-        font_size = 32
+        font_size = 18  # 缩小字体
         
         # 使用PIL测量文本大小
         temp_img = Image.new('RGB', (w, h))
@@ -664,10 +678,10 @@ class AnnotationRenderer:
         text_h = bbox[3] - bbox[1]
         
         # 居中显示在顶部
-        padding = 15
+        padding = 8
         x = (w - text_w) // 2 - padding
-        y = 20
-        
+        y = 10
+
         # 绘制背景矩形
         cv2.rectangle(
             result,
@@ -676,14 +690,14 @@ class AnnotationRenderer:
             (0, 0, 0),
             -1
         )
-        
-        # 绘制边框
+
+        # 绘制边框（缩小边框宽度）
         cv2.rectangle(
             result,
             (x, y),
             (x + text_w + padding * 2, y + text_h + padding * 2),
             color,
-            3
+            1
         )
         
         # 使用PIL绘制中文文本

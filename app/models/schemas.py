@@ -11,6 +11,11 @@ class ShootingPhase(str, Enum):
     LIFTING = "lifting"          # 上升阶段
     RELEASE = "release"          # 出手阶段
     FOLLOW_THROUGH = "follow_through"  # 跟随阶段
+    # 关键帧（4帧版本 - 发力连贯性检测）
+    SYNC_FRAME_1 = "sync_frame_1"      # 手脚同步检测帧1：沉球点（手腕最低点后上升）
+    SYNC_FRAME_2 = "sync_frame_2"      # 手脚同步检测帧2：手上升后（沉球点后N帧）
+    MAX_HOLD_FRAME = "max_hold_frame"  # 发力脱节检测帧1：最高持球点（手腕高+肘角未伸展）
+    RELEASE_FRAME = "release_frame"    # 发力脱节检测帧2：出手点（手腕最高+肘角伸展）
 
 
 class IssueSeverity(str, Enum):
@@ -34,6 +39,10 @@ class IssueType(str, Enum):
     NO_LEG_DRIVE = "no_leg_drive"         # 缺少腿部发力
     HAND_FAST_FOOT_SLOW = "hand_fast_foot_slow"  # 手快脚慢
     TEMPLATE_DIFFERENCE = "template_difference"  # 模板差异建议
+    # 新增后台分析问题类型（发力连贯性）
+    KNEE_BENDING_AFTER_DIP = "knee_bending_after_dip"  # 沉球后膝盖继续弯曲（手快脚慢）
+    INSUFFICIENT_KNEE_EXTENSION = "insufficient_knee_extension"  # 出手时膝盖未伸直
+    POWER_DISCONNECTION = "power_disconnection"  # 发力脱节
 
 
 class Rating(str, Enum):
@@ -112,19 +121,37 @@ class KeyFrame(BaseModel):
     phase: ShootingPhase
     frame_number: int
     timestamp: float
-    image_url: str
+    image_url: Optional[str] = None  # 图片URL（可能在生成后填充）
     angles: Optional[JointAngles] = None
 
 
-class DimensionScore(BaseModel):
-    """单项评分"""
-    name: str
-    name_en: str
-    score: float
-    weight: float
-    weighted_score: float
-    feedback: str
-    feedback_en: str = ""
+class CoordinationSeverity(str, Enum):
+    """发力连贯性问题严重程度"""
+    NONE = "none"          # 无问题
+    MINOR = "minor"        # 轻微问题
+    MODERATE = "moderate"  # 中等问题
+    SEVERE = "severe"      # 严重问题
+
+
+class CoordinationIssueType(str, Enum):
+    """发力连贯性问题类型"""
+    HAND_FOOT_SYNC = "hand_foot_sync"       # 手脚同步性
+    POWER_DISCONNECT = "power_disconnect"   # 发力脱节
+
+
+class CoordinationIssue(BaseModel):
+    """发力连贯性问题检测结果"""
+    issue_type: CoordinationIssueType
+    detected: bool
+    severity: CoordinationSeverity
+    frame_1: Optional[KeyFrame] = None  # 检测用的第一帧
+    frame_2: Optional[KeyFrame] = None  # 检测用的第二帧
+    knee_angle_1: Optional[float] = None  # 第一帧膝盖角度
+    knee_angle_2: Optional[float] = None  # 第二帧膝盖角度
+    description: str
+    description_en: str
+    suggestion: str
+    suggestion_en: str
 
 
 class TemplateComparison(BaseModel):
@@ -135,16 +162,11 @@ class TemplateComparison(BaseModel):
 
 
 class AnalysisResult(BaseModel):
-    """分析结果"""
+    """分析结果 - 发力连贯性检测"""
     task_id: str
     video_filename: str
-    overall_score: float
-    rating: Rating
-    dimension_scores: list[DimensionScore]
-    phases: list[PhaseMetrics]
-    issues: list[Issue]
-    suggestions: list[Suggestion]
-    key_frames: list[KeyFrame]
+    coordination_issues: list[CoordinationIssue]  # 发力连贯性检测结果
+    key_frames: list[KeyFrame]  # 所有检测用的关键帧
     annotated_video_url: Optional[str] = None
     skeleton_video_url: Optional[str] = None  # 骨骼运动视频URL
     total_frames: int

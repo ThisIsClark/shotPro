@@ -382,12 +382,20 @@ class PDFExportService:
         
         phase_names = {
             'zh-CN': {
+                'sync_frame_1': '沉球点',
+                'sync_frame_2': '手上升后',
+                'max_hold_frame': '最高持球点',
+                'release_frame': '出手点',
                 'preparation': '准备阶段',
                 'lifting': '上升阶段',
                 'release': '出手阶段',
                 'follow_through': '跟随阶段'
             },
             'en-US': {
+                'sync_frame_1': 'Dip Point',
+                'sync_frame_2': 'After Rising',
+                'max_hold_frame': 'Max Hold Point',
+                'release_frame': 'Release Point',
                 'preparation': 'Preparation',
                 'lifting': 'Lifting',
                 'release': 'Release',

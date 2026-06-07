@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import uuid
 import cv2
+import numpy as np
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Optional, Callable
@@ -16,7 +17,7 @@ from ..config import settings
 from ..core.pose_detector import PoseDetector, PoseResult, PoseLandmark
 from ..core.angle_calculator import AngleCalculator, ShootingAngles
 from ..core.phase_detector import PhaseDetector, ShootingPhase, FrameData
-from ..core.rules_engine import RulesEngine, EvaluationResult
+from ..core.rules_engine import RulesEngine, CoordinationIssue
 from ..core.video_processor import VideoProcessor, VideoInfo, AnnotationRenderer
 
 
@@ -61,52 +62,64 @@ class FullAnalysisResult:
     task_id: str
     video_filename: str
     video_info: VideoInfo
-    evaluation: Optional[EvaluationResult]  # 可选：创建模板时不生成评估
+    coordination_issues: list[CoordinationIssue]  # 发力连贯性检测结果
     key_frames: list[KeyFrameInfo]
     annotated_video_path: Optional[str] = None
     skeleton_video_path: Optional[str] = None  # 骨骼运动视频路径
+    template_comparison: Optional[dict] = None  # 模板对比结果
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    
+
     def to_dict(self) -> dict:
         """转换为字典"""
         result = {
             "task_id": self.task_id,
             "video_filename": self.video_filename
         }
-        
-        # 如果有评估结果，添加评估相关字段
-        if self.evaluation:
-            result.update({
-                "overall_score": self.evaluation.overall_score,
-                "rating": self.evaluation.rating,
-                "dimension_scores": [
-                    {
-                        "name": ds.name,
-                        "name_en": ds.name_en,
-                        "score": ds.score,
-                        "weight": ds.weight,
-                        "weighted_score": ds.weighted_score,
-                        "feedback": ds.feedback,
-                        "feedback_en": ds.feedback_en
-                    }
-                    for ds in self.evaluation.dimension_scores
-                ],
-                "phases": [],  # TODO: 添加阶段数据
-                "issues": [
-                    {
-                        "type": issue.type.value,
-                        "severity": issue.severity.value,
-                        "description": issue.description,
-                        "description_en": issue.description_en,
-                        "phase": issue.phase.value if issue.phase else None,
-                        "suggestion": issue.suggestion,
-                        "suggestion_en": issue.suggestion_en
-                    }
-                    for issue in self.evaluation.issues
-                ],
-                "suggestions": self.evaluation.suggestions
-            })
-        
+
+        # 创建 frame_number -> image_url 的映射（更可靠的匹配方式）
+        frame_num_to_image_url = {
+            kf.frame_number: kf.image_path
+            for kf in self.key_frames
+        }
+
+        # 创建 phase -> image_url 的映射
+        phase_to_image_url = {
+            kf.phase: kf.image_path
+            for kf in self.key_frames
+        }
+
+        # 发力连贯性检测结果
+        result["coordination_issues"] = [
+            {
+                "issue_type": issue.issue_type.value,
+                "detected": issue.detected,
+                "severity": issue.severity.value,
+                "frame_1": {
+                    "phase": issue.frame_1.phase.value if issue.frame_1 else None,
+                    "frame_number": issue.frame_1.frame_number if issue.frame_1 else None,
+                    "timestamp": issue.frame_1.timestamp if issue.frame_1 else None,
+                    # 使用 frame_number 匹配获取正确的 image_url
+                    "image_url": frame_num_to_image_url.get(issue.frame_1.frame_number) if issue.frame_1 else None,
+                    "angles": issue.frame_1.angles.to_dict() if issue.frame_1 and issue.frame_1.angles else None
+                } if issue.frame_1 else None,
+                "frame_2": {
+                    "phase": issue.frame_2.phase.value if issue.frame_2 else None,
+                    "frame_number": issue.frame_2.frame_number if issue.frame_2 else None,
+                    "timestamp": issue.frame_2.timestamp if issue.frame_2 else None,
+                    # 使用 frame_number 匹配获取正确的 image_url
+                    "image_url": frame_num_to_image_url.get(issue.frame_2.frame_number) if issue.frame_2 else None,
+                    "angles": issue.frame_2.angles.to_dict() if issue.frame_2 and issue.frame_2.angles else None
+                } if issue.frame_2 else None,
+                "knee_angle_1": issue.knee_angle_1,
+                "knee_angle_2": issue.knee_angle_2,
+                "description": issue.description,
+                "description_en": issue.description_en,
+                "suggestion": issue.suggestion,
+                "suggestion_en": issue.suggestion_en
+            }
+            for issue in self.coordination_issues
+        ]
+
         # 关键帧数据（总是包含）
         result["key_frames"] = [
             {
@@ -118,7 +131,7 @@ class FullAnalysisResult:
             }
             for kf in self.key_frames
         ]
-        
+
         # 其他通用字段
         result.update({
             "annotated_video_url": self.annotated_video_path,
@@ -126,17 +139,22 @@ class FullAnalysisResult:
             "total_frames": self.video_info.total_frames,
             "fps": self.video_info.fps,
             "duration": self.video_info.duration,
-            "created_at": self.created_at
+            "created_at": self.created_at,
+            "template_comparison": self.template_comparison
         })
-        
+
         return result
 
 
 class AnalysisService:
     """投篮分析服务"""
-    
-    # 阶段名称映射
+
+    # 阶段名称映射（4帧版本 - 发力连贯性检测）
     PHASE_NAMES = {
+        ShootingPhase.SYNC_FRAME_1: "沉球点",
+        ShootingPhase.SYNC_FRAME_2: "手上升后",
+        ShootingPhase.MAX_HOLD_FRAME: "最高持球点",
+        ShootingPhase.RELEASE_FRAME: "出手点",
         ShootingPhase.PREPARATION: "准备阶段",
         ShootingPhase.LIFTING: "上升阶段",
         ShootingPhase.RELEASE: "出手阶段",
@@ -147,12 +165,12 @@ class AnalysisService:
     def __init__(self, config: Optional[AnalysisConfig] = None):
         """
         初始化分析服务
-        
+
         Args:
             config: 分析配置
         """
         self.config = config or AnalysisConfig()
-        
+
         # 初始化各模块
         self.pose_detector = PoseDetector(
             min_detection_confidence=self.config.min_detection_confidence,
@@ -160,10 +178,7 @@ class AnalysisService:
         )
         self.angle_calculator = AngleCalculator()
         self.phase_detector = PhaseDetector()
-        # 根据投篮方式初始化规则引擎
-        from ..core.rules_engine import ShootingStyle
-        shooting_style_val = ShootingStyle.ONE_MOTION if self.config.shooting_style == "one_motion" else ShootingStyle.TWO_MOTION
-        self.rules_engine = RulesEngine(shooting_style=shooting_style_val)
+        self.rules_engine = RulesEngine()
         self.video_processor = VideoProcessor(target_fps=settings.target_fps)
     
     def analyze_video(
@@ -203,8 +218,12 @@ class AnalysisService:
         frame_data_list: list[FrameData] = []
         pose_results: dict[int, PoseResult] = {}
         angles_history: list[ShootingAngles] = []
-        
+        frame_cache: dict[int, np.ndarray] = {}
+
         for processed_frame in self.video_processor.read_frames(video_path):
+            # 缓存帧图像，避免后续extract_frame因视频编解码器关键帧机制导致帧不一致
+            frame_cache[processed_frame.frame_number] = processed_frame.original
+
             # 检测姿态
             pose_result = self.pose_detector.detect(processed_frame.original)
             
@@ -216,9 +235,10 @@ class AnalysisService:
                     pose_result,
                     self.config.shooting_hand
                 )
-                
+
+                # 平滑处理（如果角度存在）
+                smoothed = None
                 if angles:
-                    # 平滑处理
                     if self.config.smooth_angles and angles_history:
                         angles_history.append(angles)
                         smoothed = self.angle_calculator.smooth_angles(
@@ -228,24 +248,25 @@ class AnalysisService:
                     else:
                         angles_history.append(angles)
                         smoothed = angles
-                    
-                    # 获取手腕关键点
-                    wrist_idx = (PoseLandmark.RIGHT_WRIST 
-                                if self.config.shooting_hand == "right" 
-                                else PoseLandmark.LEFT_WRIST)
-                    wrist = pose_result.get_landmark(wrist_idx)
-                    
-                    if wrist:
-                        # 检测阶段
-                        phase = self.phase_detector.detect_phase(
-                            processed_frame.frame_number,
-                            processed_frame.timestamp,
-                            smoothed,
-                            wrist,
-                            pose_result.confidence
-                        )
-                        
-                        # 保存帧数据
+
+                # 获取手腕关键点（总是调用detect_phase以保存原始手腕Y值）
+                wrist_idx = (PoseLandmark.RIGHT_WRIST
+                            if self.config.shooting_hand == "right"
+                            else PoseLandmark.LEFT_WRIST)
+                wrist = pose_result.get_landmark(wrist_idx)
+
+                if wrist:
+                    # 检测阶段（即使角度为None也调用，以保存手腕Y值用于关键帧检测）
+                    phase = self.phase_detector.detect_phase(
+                        processed_frame.frame_number,
+                        processed_frame.timestamp,
+                        smoothed,  # 可能为None
+                        wrist,
+                        pose_result.confidence
+                    )
+
+                    # 保存帧数据（只在角度存在时保存完整数据）
+                    if smoothed:
                         frame_data = FrameData(
                             frame_number=processed_frame.frame_number,
                             timestamp=processed_frame.timestamp,
@@ -265,39 +286,41 @@ class AnalysisService:
                 f"Processing frame {processed_frame.frame_number}/{video_info.total_frames}"
             )
         
-        # 第二阶段：评估（如果需要）
-        evaluation = None
+        # 第二阶段：检测发力连贯性（如果需要）
+        coordination_issues = []
         if self.config.generate_evaluation:
-            self._report_progress(progress_callback, "evaluation", 0, 1, "Evaluating shooting form...")
-            phase_segments = self.phase_detector.get_phase_segments()
-            evaluation = self.rules_engine.evaluate(phase_segments, frame_data_list)
+            self._report_progress(progress_callback, "evaluation", 0, 1, "Detecting coordination issues...")
+            key_frame_data = self.phase_detector.get_key_frames()
+            coordination_issues = self.rules_engine.evaluate_coordination(key_frame_data, frame_data_list)
         
-        # 第三阶段：生成关键帧
+        # 第三阶段：生成关键帧（4帧版本 - 发力连贯性检测）
         key_frames: list[KeyFrameInfo] = []
-        
+
         if self.config.generate_key_frames:
             self._report_progress(progress_callback, "keyframes", 0, 4, "Generating keyframes...")
-            
+
             key_frame_data = self.phase_detector.get_key_frames()
-            
+
             for i, (phase, frame_data) in enumerate(key_frame_data.items()):
                 if frame_data and phase != ShootingPhase.UNKNOWN:
-                    # 提取帧
-                    frame = self.video_processor.extract_frame(video_path, frame_data.frame_number)
-                    
+                    # 从缓存获取帧图像（避免extract_frame因编解码器关键帧机制返回错误帧）
+                    frame = frame_cache.get(frame_data.frame_number)
+                    if frame is None:
+                        frame = self.video_processor.extract_frame(video_path, frame_data.frame_number)
+
                     if frame is not None:
                         # 获取该帧的姿态结果
                         pose_result = pose_results.get(frame_data.frame_number)
-                        
+
                         if pose_result:
-                            # 绘制标注
+                            # 直接在原始帧上绘制所有标注，不做裁剪，保证骨骼与身体完全对齐
                             annotated = self.pose_detector.draw_landmarks(
                                 frame,
                                 pose_result,
                                 highlight_shooting_arm=True,
                                 shooting_hand=self.config.shooting_hand
                             )
-                            
+
                             # 绘制角度
                             if frame_data.angles:
                                 annotated = self.pose_detector.draw_angles(
@@ -306,30 +329,21 @@ class AnalysisService:
                                     frame_data.angles.to_dict(),
                                     self.config.shooting_hand
                                 )
-                            
+
                             # 绘制阶段信息
                             annotated = AnnotationRenderer.draw_phase_indicator(
                                 annotated,
                                 phase.value,
-                                self.PHASE_NAMES[phase]
-                            )
-                            
-                            # 裁剪图像，只保留人物部分（确保标注文字不被裁切）
-                            annotated = self.video_processor.crop_to_person(
-                                annotated,
-                                pose_result,
-                                padding_ratio=0.35,  # 上下边距
-                                horizontal_padding_ratio=0.5,  # 左右边距（更大）
-                                text_margin=180  # 额外的文字标注边距（像素）
+                                self.PHASE_NAMES.get(phase, phase.value)
                             )
                         else:
                             annotated = frame
-                        
-                        # 保存关键帧
-                        image_filename = f"keyframe_{phase.value}.jpg"
+
+                        # 保存关键帧（使用PNG格式以保留骨骼点颜色）
+                        image_filename = f"keyframe_{phase.value}.png"
                         image_path = result_dir / image_filename
                         self.video_processor.save_frame(annotated, image_path)
-                        
+
                         key_frames.append(KeyFrameInfo(
                             phase=phase,
                             frame_number=frame_data.frame_number,
@@ -337,9 +351,9 @@ class AnalysisService:
                             image_path=f"/results/{task_id}/{image_filename}",
                             angles=frame_data.angles
                         ))
-                
+
                 self._report_progress(progress_callback, "keyframes", i + 1, 4, f"Generating keyframe {i + 1}/4")
-            
+
             # 确保关键帧按照时间顺序排列（按frame_number排序）
             key_frames.sort(key=lambda kf: kf.frame_number)
         
@@ -389,21 +403,14 @@ class AnalysisService:
                             frame_data.phase.value,
                             self.PHASE_NAMES[frame_data.phase]
                         )
-                
-                # 绘制分数（右上角）
-                annotated = AnnotationRenderer.draw_score_badge(
-                    annotated,
-                    evaluation.overall_score,
-                    evaluation.rating
-                )
-                
+
                 # 绘制信息面板
                 info = {
                     "Frame": f"{frame_number}",
                     "Time": f"{timestamp:.2f}s"
                 }
                 annotated = AnnotationRenderer.draw_info_panel(annotated, info, "bottom-left")
-                
+
                 return annotated
             
             def video_progress(current, total):
@@ -473,14 +480,6 @@ class AnalysisService:
                             self.PHASE_NAMES[frame_data.phase]
                         )
 
-                # 绘制分数（右上角）
-                if evaluation:
-                    annotated = AnnotationRenderer.draw_score_badge(
-                        annotated,
-                        evaluation.overall_score,
-                        evaluation.rating
-                    )
-
                 # 绘制信息面板
                 info = {
                     "Frame": f"{frame_number}",
@@ -517,7 +516,7 @@ class AnalysisService:
             task_id=task_id,
             video_filename=video_path.name,
             video_info=video_info,
-            evaluation=evaluation,
+            coordination_issues=coordination_issues,
             key_frames=key_frames,
             annotated_video_path=annotated_video_path,
             skeleton_video_path=skeleton_video_path

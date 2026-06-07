@@ -176,17 +176,9 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
                 # 生成基于模板的改进建议
                 template_suggestions = _generate_template_based_suggestions(comparison_data)
 
-                # 合并建议到现有的 issues
-                if template_suggestions:
-                    if 'issues' in result_dict:
-                        existing_issues = result_dict['issues']
-                        new_issues = existing_issues + template_suggestions
-                        # 去重但保持顺序（基于 suggestion 字段）
-                        seen = set()
-                        result_dict['issues'] = [x for x in new_issues if not (x.get('suggestion', '') in seen or seen.add(x.get('suggestion', '')))]
-                    else:
-                        # 如果原来没有问题，直接添加模板建议
-                        result_dict['issues'] = template_suggestions
+                # 模板对比建议暂时不合并到 coordination_issues
+                # coordination_issues 是专门针对发力连贯性的，模板建议作为额外的参考
+                pass
 
                 print(f"[DEBUG] 生成的模板建议数量：{len(template_suggestions)}")
             else:
@@ -198,8 +190,8 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
                 task_id,
                 status="completed",
                 progress=100,
-                overall_score=result_dict.get("overall_score"),
-                rating=result_dict.get("rating"),
+                overall_score=None,  # 新格式不再有评分
+                rating=None,  # 新格式不再有评分
                 total_frames=result_dict.get("total_frames"),
                 fps=result_dict.get("fps"),
                 duration=result_dict.get("duration")
@@ -212,8 +204,8 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
                 resource_id=task_id,
                 resource_type="analysis",
                 details={
-                    "overall_score": result_dict.get("overall_score"),
-                    "rating": result_dict.get("rating"),
+                    "coordination_issues_count": len(result_dict.get("coordination_issues", [])),
+                    "issues_detected": sum(1 for issue in result_dict.get("coordination_issues", []) if issue.get("detected")),
                     "shooting_hand": shooting_hand,
                     "shooting_style": shooting_style,
                     "template_id": template_id,
@@ -236,7 +228,7 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
             print(f"[Storage] Uploading key frames for task {task_id}")
             for kf in result_dict.get("key_frames", []):
                 local_image_path = kf.get("image_url", "")
-                # 本地路径格式: /results/{task_id}/keyframe_{phase}.jpg
+                # 本地路径格式: /results/{task_id}/keyframe_{phase}.png
                 if local_image_path.startswith("/results/"):
                     # 提取文件名
                     image_filename = local_image_path.split("/")[-1]
@@ -258,8 +250,8 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
             import json
             json.dump(result_dict, f, ensure_ascii=False, indent=2)
         print(f"[DEBUG] 结果已保存到: {result_file}")
-        print(f"[DEBUG] 结果包含 template_comparison: {'template_comparison' in result_dict}")
-        if 'template_comparison' in result_dict:
+        print(f"[DEBUG] 结果包含 template_comparison: {result_dict.get('template_comparison') is not None}")
+        if result_dict.get('template_comparison') and 'comparisons' in result_dict['template_comparison']:
             print(f"[DEBUG] template_comparison.comparisons 数量: {len(result_dict['template_comparison']['comparisons'])}")
 
         # ===== 分析完成后删除原始视频（节省存储空间）=====
@@ -382,14 +374,20 @@ def _generate_template_based_suggestions(comparison_data):
     SIGNIFICANT_DIFF_THRESHOLD = 12  # 显著差异阈值（度）- 提高阈值减少琐碎建议
     CRITICAL_DIFF_THRESHOLD = 20     # 关键差异阈值（度）- 超过此值的问题优先输出
 
-    # 阶段名称映射
+    # 阶段名称映射（3帧版本）
     phase_names_zh = {
+        'dip_point': '沉球点',
+        'min_elbow_point': '最小肘角点',
+        'release_point': '出手点',
         'preparation': '准备阶段',
         'lifting': '上升阶段',
         'release': '出手阶段',
         'follow_through': '跟随阶段'
     }
     phase_names_en = {
+        'dip_point': 'Dip Point',
+        'min_elbow_point': 'Min Elbow Angle',
+        'release_point': 'Release Point',
         'preparation': 'Preparation',
         'lifting': 'Lifting',
         'release': 'Release',

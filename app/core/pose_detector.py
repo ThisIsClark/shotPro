@@ -166,13 +166,16 @@ class PoseDetector:
         model_path = download_model()
 
         # 创建 PoseLandmarker
+        # 使用 IMAGE 模式：每帧独立检测，不依赖时序跟踪
+        # 之前用 VIDEO 模式但传入的时间戳不准确（每次+1ms），
+        # 导致 MediaPipe 光流跟踪器预测偏移，骨骼与身体不对齐
         BaseOptions = mp.tasks.BaseOptions
         PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
         VisionRunningMode = mp.tasks.vision.RunningMode
 
         options = PoseLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=str(model_path)),
-            running_mode=VisionRunningMode.VIDEO,
+            running_mode=VisionRunningMode.IMAGE,
             min_pose_detection_confidence=min_detection_confidence,
             min_pose_presence_confidence=min_tracking_confidence,
             min_tracking_confidence=min_tracking_confidence,
@@ -180,7 +183,6 @@ class PoseDetector:
         )
 
         self.landmarker = mp.tasks.vision.PoseLandmarker.create_from_options(options)
-        self._last_timestamp = 0
 
         # 投篮分析需要的关键点
         self.shooting_landmarks = [
@@ -206,7 +208,7 @@ class PoseDetector:
 
         Args:
             frame: BGR 格式的图像
-            timestamp_ms: 视频时间戳（毫秒），如果为 None 则自动递增
+            timestamp_ms: 未使用（保留兼容性），IMAGE 模式不需要时间戳
 
         Returns:
             PoseResult 或 None (如果未检测到)
@@ -219,13 +221,8 @@ class PoseDetector:
         # 创建 MediaPipe Image
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
 
-        # 处理时间戳
-        if timestamp_ms is None:
-            timestamp_ms = self._last_timestamp + 1
-        self._last_timestamp = timestamp_ms
-
-        # 检测
-        results = self.landmarker.detect_for_video(mp_image, timestamp_ms)
+        # IMAGE 模式：每帧独立检测，不需要时间戳
+        results = self.landmarker.detect(mp_image)
 
         if not results.pose_landmarks or len(results.pose_landmarks) == 0:
             return None
@@ -263,7 +260,8 @@ class PoseDetector:
         pose_result: PoseResult,
         draw_connections: bool = True,
         highlight_shooting_arm: bool = True,
-        shooting_hand: str = "right"
+        shooting_hand: str = "right",
+        crop_info: Optional[dict] = None
     ) -> np.ndarray:
         """
         在图像上绘制关键点和骨骼连接（不绘制面部关键点）
@@ -272,31 +270,61 @@ class PoseDetector:
             frame: BGR 格式的图像
             pose_result: 姿态检测结果
             draw_connections: 是否绘制骨骼连接
-            highlight_shooting_arm: 是否高亮投篮手臂
+            highlight_shooting_arm: 是否高亮投篮手臂（已废弃，现在统一大小）
             shooting_hand: 投篮手 ("left" 或 "right")
+            crop_info: 裁剪信息字典，包含 crop_x1, crop_y1, orig_width, orig_height
+                       如果提供，会将归一化坐标转换为裁剪后的相对坐标
 
         Returns:
             绘制后的图像
         """
         annotated = frame.copy()
 
-        # 使用当前帧的实际尺寸（而不是 pose_result 中存储的尺寸）
+        # 使用当前帧的实际尺寸（裁剪后的尺寸）
         height, width = frame.shape[:2]
+
+        # 如果有裁剪信息，需要调整坐标计算方式
+        if crop_info:
+            orig_width = crop_info['orig_width']
+            orig_height = crop_info['orig_height']
+            crop_x1 = crop_info['crop_x1']
+            crop_y1 = crop_info['crop_y1']
+
+            def get_pixel_coords(landmark):
+                """将归一化坐标转换为裁剪后图像的像素坐标"""
+                orig_x = landmark.x * orig_width
+                orig_y = landmark.y * orig_height
+                # 转换为裁剪后的相对坐标
+                cropped_x = orig_x - crop_x1
+                cropped_y = orig_y - crop_y1
+                return (int(cropped_x), int(cropped_y))
+        else:
+            def get_pixel_coords(landmark):
+                """将归一化坐标转换为像素坐标"""
+                return (int(landmark.x * width), int(landmark.y * height))
 
         # 自定义绘制关键点（排除面部关键点 0-10）
         # 只绘制身体关键点（11-32）
         body_landmarks = list(range(11, 33))
 
+        # 统一的关键点大小（5像素，增大以更明显）
+        point_radius = 5
+
+        print(f"[draw_landmarks] frame尺寸: {width}x{height}, crop_info: {crop_info}")
+        print(f"[draw_landmarks] pose_result.landmarks数量: {len(pose_result.landmarks) if pose_result.landmarks else 0}")
+
+        drawn_count = 0
         for idx in body_landmarks:
             landmark = pose_result.landmarks.get(idx)
             if landmark:
-                # 使用当前帧的尺寸计算像素坐标
-                coords = (int(landmark.x * width), int(landmark.y * height))
-                # 根据可见性调整透明度
-                if landmark.visibility >= 0.5:
-                    cv2.circle(annotated, coords, 5, (0, 255, 255), -1)
-                else:
-                    cv2.circle(annotated, coords, 3, (128, 128, 128), -1)
+                coords = get_pixel_coords(landmark)
+                # 检查坐标是否在当前图像范围内
+                if 0 <= coords[0] < width and 0 <= coords[1] < height:
+                    # 统一使用黄色小点
+                    cv2.circle(annotated, coords, point_radius, (0, 255, 255), -1)
+                    drawn_count += 1
+
+        print(f"[draw_landmarks] 绘制的骨骼点数量: {drawn_count}")
 
         # 绘制骨骼连接（只绘制身体连接）
         if draw_connections:
@@ -312,41 +340,12 @@ class PoseDetector:
                 start_landmark = pose_result.landmarks.get(start_idx)
                 end_landmark = pose_result.landmarks.get(end_idx)
                 if start_landmark and end_landmark:
-                    start_coords = (int(start_landmark.x * width), int(start_landmark.y * height))
-                    end_coords = (int(end_landmark.x * width), int(end_landmark.y * height))
-                    cv2.line(annotated, start_coords, end_coords, (128, 128, 128), 2)
-
-        # 高亮投篮手臂
-        if highlight_shooting_arm:
-            if shooting_hand == "right":
-                arm_landmarks = [
-                    PoseLandmark.RIGHT_SHOULDER,
-                    PoseLandmark.RIGHT_ELBOW,
-                    PoseLandmark.RIGHT_WRIST,
-                    PoseLandmark.RIGHT_INDEX
-                ]
-            else:
-                arm_landmarks = [
-                    PoseLandmark.LEFT_SHOULDER,
-                    PoseLandmark.LEFT_ELBOW,
-                    PoseLandmark.LEFT_WRIST,
-                    PoseLandmark.LEFT_INDEX
-                ]
-
-            # 绘制高亮的投篮手臂
-            points = []
-            for idx in arm_landmarks:
-                landmark = pose_result.landmarks.get(idx)
-                if landmark:
-                    coords = (int(landmark.x * width), int(landmark.y * height))
-                    points.append(coords)
-                    # 绘制关键点
-                    cv2.circle(annotated, coords, 8, (0, 255, 255), -1)  # 黄色
-                    cv2.circle(annotated, coords, 10, (0, 200, 200), 2)
-
-            # 绘制连接线
-            for i in range(len(points) - 1):
-                cv2.line(annotated, points[i], points[i + 1], (0, 255, 255), 3)
+                    start_coords = get_pixel_coords(start_landmark)
+                    end_coords = get_pixel_coords(end_landmark)
+                    # 检查坐标是否在范围内
+                    if (0 <= start_coords[0] < width and 0 <= start_coords[1] < height and
+                        0 <= end_coords[0] < width and 0 <= end_coords[1] < height):
+                        cv2.line(annotated, start_coords, end_coords, (128, 128, 128), 3)  # 线宽3像素
 
         return annotated
 
@@ -356,7 +355,8 @@ class PoseDetector:
         pose_result: PoseResult,
         angles: dict,
         shooting_hand: str = "right",
-        visibility_threshold: float = 0.5
+        visibility_threshold: float = 0.5,
+        crop_info: Optional[dict] = None
     ) -> np.ndarray:
         """
         在图像上绘制角度信息（仅标注可见的关键点）
@@ -367,20 +367,38 @@ class PoseDetector:
             angles: 角度字典
             shooting_hand: 投篮手
             visibility_threshold: 可见性阈值（0-1），低于此值不标注
+            crop_info: 裁剪信息字典，包含 crop_x1, crop_y1, orig_width, orig_height
 
         Returns:
             绘制后的图像
         """
         annotated = frame.copy()
 
-        # 使用当前帧的实际尺寸
+        # 使用当前帧的实际尺寸（裁剪后的尺寸）
         height, width = frame.shape[:2]
 
-        # 辅助函数：获取像素坐标（使用当前帧尺寸）
-        def get_pixel_coords(landmark):
-            if landmark:
-                return (int(landmark.x * width), int(landmark.y * height))
-            return None
+        # 如果有裁剪信息，需要调整坐标计算方式
+        if crop_info:
+            orig_width = crop_info['orig_width']
+            orig_height = crop_info['orig_height']
+            crop_x1 = crop_info['crop_x1']
+            crop_y1 = crop_info['crop_y1']
+
+            def get_pixel_coords(landmark):
+                """将归一化坐标转换为裁剪后图像的像素坐标"""
+                if landmark:
+                    orig_x = landmark.x * orig_width
+                    orig_y = landmark.y * orig_height
+                    cropped_x = orig_x - crop_x1
+                    cropped_y = orig_y - crop_y1
+                    return (int(cropped_x), int(cropped_y))
+                return None
+        else:
+            def get_pixel_coords(landmark):
+                """将归一化坐标转换为像素坐标"""
+                if landmark:
+                    return (int(landmark.x * width), int(landmark.y * height))
+                return None
 
         # 获取关键点位置
         if shooting_hand == "right":
@@ -406,14 +424,16 @@ class PoseDetector:
         elbow_landmark = pose_result.landmarks.get(elbow_idx)
         elbow_coords = get_pixel_coords(elbow_landmark)
         if elbow_coords and "elbow_angle" in angles and angles["elbow_angle"] is not None:
-            # 检查可见性
-            if elbow_landmark and elbow_landmark.visibility >= visibility_threshold:
-                text = f"Elbow: {angles['elbow_angle']:.1f}deg"
-                cv2.putText(
-                    annotated, text,
-                    (elbow_coords[0] + 10, elbow_coords[1] - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2
-                )
+            # 检查坐标是否在范围内
+            if 0 <= elbow_coords[0] < width and 0 <= elbow_coords[1] < height:
+                # 检查可见性
+                if elbow_landmark and elbow_landmark.visibility >= visibility_threshold:
+                    text = f"Elbow: {angles['elbow_angle']:.1f}deg"
+                    cv2.putText(
+                        annotated, text,
+                        (elbow_coords[0] + 10, elbow_coords[1] - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2
+                    )
 
         # 在膝盖位置显示膝盖角度（检查可见性和位置正确性）
         knee_landmark = pose_result.landmarks.get(knee_idx)
@@ -424,20 +444,22 @@ class PoseDetector:
         ankle_coords = get_pixel_coords(ankle_landmark)
 
         if knee_coords and "knee_angle" in angles and angles["knee_angle"] is not None:
-            # 检查可见性和位置正确性
-            is_valid = False
-            if knee_landmark and knee_landmark.visibility >= visibility_threshold:
-                # 验证膝盖位置是否在髋部和脚踝之间
-                if is_knee_position_valid(knee_coords, hip_coords, ankle_coords):
-                    is_valid = True
+            # 检查坐标是否在范围内
+            if 0 <= knee_coords[0] < width and 0 <= knee_coords[1] < height:
+                # 检查可见性和位置正确性
+                is_valid = False
+                if knee_landmark and knee_landmark.visibility >= visibility_threshold:
+                    # 验证膝盖位置是否在髋部和脚踝之间
+                    if is_knee_position_valid(knee_coords, hip_coords, ankle_coords):
+                        is_valid = True
 
-            if is_valid:
-                text = f"Knee: {angles['knee_angle']:.1f}deg"
-                cv2.putText(
-                    annotated, text,
-                    (knee_coords[0] + 10, knee_coords[1] + 20),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2
-                )
+                if is_valid:
+                    text = f"Knee: {angles['knee_angle']:.1f}deg"
+                    cv2.putText(
+                        annotated, text,
+                        (knee_coords[0] + 10, knee_coords[1] + 20),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2
+                    )
 
         # 在图像顶部显示所有角度
         y_offset = 30

@@ -137,7 +137,7 @@ class StorageService:
             file_path: 本地图片文件路径
             user_id: 用户 ID（可选）
             task_id: 任务 ID
-            image_name: 图片名称（如 keyframe_release.jpg）
+            image_name: 图片名称（如 keyframe_release.png）
 
         Returns:
             上传成功返回 Storage URL

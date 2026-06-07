@@ -12,7 +12,7 @@ import json
 @dataclass
 class TemplateKeyFrame:
     """模板关键帧"""
-    phase: str  # preparation, lifting, release, follow_through
+    phase: str  # sync_frame_1, sync_frame_2, max_hold_frame, release_frame (4帧版本 - 发力连贯性检测)
     frame_number: int
     timestamp: float
     image_path: str  # 相对于templates目录的路径
