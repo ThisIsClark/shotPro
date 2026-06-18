@@ -15,7 +15,7 @@ from fastapi.responses import HTMLResponse
 
 from .config import settings
 from .api.routes import upload, health, export, templates
-from .api.routes import auth, users, admin
+from .api.routes import auth, users, admin, payment
 from .services.local_auth_service import local_auth_service
 from .services.db_init_service import init_database
 
@@ -94,7 +94,7 @@ async def lifespan(app: FastAPI):
 
     # 初始化管理员账号
     print("[STARTUP] Initializing admin account...")
-    local_auth_service.init_admin_user(username="admin", password="myjob123")
+    local_auth_service.init_admin_user(username="admin", password=settings.local_admin_password)
 
     # 初始化数据库表（检查是否存在）
     print("[STARTUP] Checking database tables...")
@@ -116,9 +116,10 @@ app = FastAPI(
 )
 
 # CORS 配置
+_corigins = settings.allowed_origins.split(",") if settings.allowed_origins else ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 生产环境应限制
+    allow_origins=_corigins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -140,15 +141,20 @@ app.include_router(upload.router, prefix="/api/v1")
 app.include_router(export.router, prefix="/api/v1")
 app.include_router(templates.router)
 app.include_router(admin.router, prefix="/api/v1")  # 管理员路由
+app.include_router(payment.router, prefix="/api/v1")  # 付款路由
 
 
 # 前端页面
 @app.get("/app", response_class=HTMLResponse)
 async def serve_app():
-    """提供前端页面"""
+    """提供前端页面，注入环境配置"""
     html_path = settings.templates_dir / "index.html"
     if html_path.exists():
-        return html_path.read_text(encoding="utf-8")
+        html = html_path.read_text(encoding="utf-8")
+        # 将后端环境变量注入到前端，替换占位符
+        html = html.replace("{{SUPABASE_URL}}", settings.supabase_url or "")
+        html = html.replace("{{SUPABASE_ANON_KEY}}", settings.supabase_anon_key or "")
+        return html
     return HTMLResponse(content="<h1>Frontend not found</h1>", status_code=404)
 
 

@@ -635,28 +635,74 @@ class PhaseDetector:
                   f"knee={knee_str}°")
 
         # ===== 4. 检测出手点 (RELEASE_FRAME) =====
-        # 出手点：手腕最高位置附近，肘角伸展（>160°）的帧
-        # 表示手臂完全伸展的出手瞬间
+        # 核心思路：起球过程中，如果存在发力脱节，肘角伸展会出现"减速区"
+        # ——手臂在等腿部蹬伸，肘角变化率变慢甚至停顿。
+        # 策略1（优先）：在 MAX_HOLD_FRAME 之后，找肘角伸展减速后恢复的帧
+        # 策略2（回退）：如果整个出手过程匀速伸展（无减速），取 MAX_HOLD_FRAME 之后
+        #               肘角差异最小的帧，这样两帧姿势接近，膝盖差异更纯粹
 
         release_frame = None
-        frames_with_extended_elbow = [
-            f for f in peak_near_frames
-            if f.angles and f.angles.elbow_angle >= 160
-        ]
 
-        if frames_with_extended_elbow:
-            # 取肘角最大且在最高点附近或之后的帧
-            frames_at_or_after_peak = [
-                f for f in frames_with_extended_elbow
-                if f.frame_number >= true_peak_fn - 2  # 允许最高点前2帧
+        if max_hold_frame:
+            hold_elbow = max_hold_frame.angles.elbow_angle if max_hold_frame.angles else None
+
+            # 搜索范围：MAX_HOLD_FRAME 之后的出手过程
+            frames_after_hold = [
+                f for f in valid_frames
+                if f.frame_number > max_hold_frame.frame_number
+                and f.frame_number <= max_hold_frame.frame_number + 15
+                and f.angles is not None
             ]
-            if frames_at_or_after_peak:
-                release_frame = max(frames_at_or_after_peak, key=lambda f: f.angles.elbow_angle)
-            else:
-                release_frame = max(frames_with_extended_elbow, key=lambda f: f.angles.elbow_angle)
-        else:
-            # 如果没有肘角伸展的帧，使用真正的手腕最高点帧
+
+            if len(frames_after_hold) >= 3 and hold_elbow is not None:
+                # 计算每帧的肘角伸展速率
+                elbow_rates = []
+                for i in range(1, len(frames_after_hold)):
+                    prev_f = frames_after_hold[i - 1]
+                    curr_f = frames_after_hold[i]
+                    frame_gap = curr_f.frame_number - prev_f.frame_number
+                    if frame_gap > 0:
+                        rate = (curr_f.angles.elbow_angle - prev_f.angles.elbow_angle) / frame_gap
+                        elbow_rates.append({
+                            'frame': curr_f,
+                            'prev_frame': prev_f,
+                            'rate': rate,
+                        })
+
+                if elbow_rates:
+                    # 策略1：找肘角伸展减速区
+                    sorted_by_rate = sorted(elbow_rates, key=lambda r: r['rate'])
+                    slowest = sorted_by_rate[0]
+
+                    if slowest['rate'] < 1.5:
+                        # 有明显减速：RELEASE_FRAME 取减速结束后恢复伸展的帧
+                        slowest_idx = elbow_rates.index(slowest)
+                        for j in range(slowest_idx + 1, len(elbow_rates)):
+                            if elbow_rates[j]['rate'] > 2.0:
+                                release_frame = elbow_rates[j]['prev_frame']
+                                print(f"[PhaseDetector] 出手点（减速后恢复帧）: frame#{release_frame.frame_number}, "
+                                      f"elbow={release_frame.angles.elbow_angle:.1f}°, "
+                                      f"slowest_rate={slowest['rate']:.2f}°/frame at frame#{slowest['frame'].frame_number}")
+                                break
+
+                        # 如果减速之后没有恢复的帧，用减速后的下一帧
+                        if release_frame is None and slowest_idx + 1 < len(elbow_rates):
+                            release_frame = elbow_rates[slowest_idx + 1]['prev_frame']
+                            print(f"[PhaseDetector] 出手点（减速后最近帧）: frame#{release_frame.frame_number}, "
+                                  f"elbow={release_frame.angles.elbow_angle:.1f}°")
+
+                # 策略2：没有减速区，取 MAX_HOLD_FRAME 之后肘角差异最小的帧
+                if release_frame is None and frames_after_hold:
+                    frames_after_hold.sort(key=lambda f: abs(f.angles.elbow_angle - hold_elbow))
+                    release_frame = frames_after_hold[0]
+                    print(f"[PhaseDetector] 出手点（最小肘角差异）: frame#{release_frame.frame_number}, "
+                          f"hold_elbow={hold_elbow:.1f}°, release_elbow={release_frame.angles.elbow_angle:.1f}°, "
+                          f"elbow_diff={abs(release_frame.angles.elbow_angle - hold_elbow):.1f}°")
+
+        # 最终回退：手腕最高点
+        if release_frame is None:
             release_frame = min_wrist_y_frame
+            print(f"[PhaseDetector] 出手点（回退：手腕最高点）: frame#{min_wrist_y_frame.frame_number}")
 
         key_frames[ShootingPhase.RELEASE_FRAME] = release_frame
 
@@ -728,6 +774,7 @@ class PhaseDetector:
                 "frame_2": None,
                 "knee_angle_1": None,
                 "knee_angle_2": None,
+                "knee_angle_change": None,
                 "knee_extension_at_hold": None,
             }
         }
@@ -769,7 +816,10 @@ class PhaseDetector:
                     print(f"[PhaseDetector] Hand-foot sync: OK (knee extending during hand rise)")
 
         # ===== 问题2: 发力脱节检测 =====
-        # 检测手举到最高点时腿是否已完成蹬伸
+        # 对比 MAX_HOLD_FRAME 和 RELEASE_FRAME 的膝盖角度
+        # 由于两帧肘角相近，膝盖角度的差异纯粹反映腿部蹬伸情况
+        # 如果 MAX_HOLD_FRAME 时膝盖还弯着（<165°），说明手举到最高时腿还没蹬完 → 发力脱节
+        # 如果到了 RELEASE_FRAME 膝盖仍然弯着，问题更严重
         max_hold_frame = key_frames.get(ShootingPhase.MAX_HOLD_FRAME)
         release_frame = key_frames.get(ShootingPhase.RELEASE_FRAME)
 
@@ -784,12 +834,17 @@ class PhaseDetector:
                 result["power_disconnect"]["knee_angle_2"] = release_frame.angles.knee_angle
 
             if knee_hold is not None:
-                # 检查最高持球点时膝盖是否已伸直
-                # 膝盖伸直的角度阈值：165°（接近完全伸直）
-                # 如果膝盖角度 < 165°，说明腿还没蹬伸完 → 发力脱节
                 result["power_disconnect"]["knee_extension_at_hold"] = knee_hold
 
-                print(f"[PhaseDetector] Power disconnect check: knee at max_hold={knee_hold:.1f}°")
+                # 对比两帧的膝盖角度变化
+                knee_release = release_frame.angles.knee_angle if (release_frame and release_frame.angles) else None
+                if knee_release is not None:
+                    knee_change = knee_release - knee_hold
+                    result["power_disconnect"]["knee_angle_change"] = knee_change
+                    print(f"[PhaseDetector] Power disconnect check: knee at hold={knee_hold:.1f}°, "
+                          f"knee at release={knee_release:.1f}°, change={knee_change:.1f}°")
+                else:
+                    print(f"[PhaseDetector] Power disconnect check: knee at hold={knee_hold:.1f}°")
 
                 if knee_hold < 165:  # 膝盖未伸直
                     result["power_disconnect"]["detected"] = True

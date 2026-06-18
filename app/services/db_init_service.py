@@ -65,13 +65,27 @@ class DatabaseInitializer:
             "available": True,
             "analyses": self._check_table("analyses"),
             "audit_logs": self._check_table("audit_logs"),
-            "user_templates": self._check_table("user_templates")
+            "user_templates": self._check_table("user_templates"),
+            "user_credits": self._check_table("user_credits"),
+            "payment_checkouts": self._check_table("payment_checkouts")
         }
 
         # 如果 audit_logs 表不存在，提示用户手动创建
         if not results["audit_logs"]:
             print("[DB Init] ⚠️  audit_logs table not found!")
             print("[DB Init] Please run the SQL in supabase/audit_logs.sql via Supabase Dashboard")
+
+        # 如果 user_credits 表不存在，提示用户手动创建
+        if not results["user_credits"]:
+            print("[DB Init] ⚠️  user_credits table not found!")
+            print("[DB Init] Please run the following SQL in Supabase Dashboard:")
+            print("[DB Init]   CREATE TABLE user_credits (user_id UUID PRIMARY KEY REFERENCES auth.users(id), credits_remaining INT NOT NULL DEFAULT 2, total_granted INT NOT NULL DEFAULT 2, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW())")
+
+        # 如果 payment_checkouts 表不存在，提示用户手动创建
+        if not results["payment_checkouts"]:
+            print("[DB Init] ⚠️  payment_checkouts table not found!")
+            print("[DB Init] Please run the following SQL in Supabase Dashboard:")
+            print("[DB Init]   CREATE TABLE payment_checkouts (checkout_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, processed_at TIMESTAMPTZ DEFAULT NOW())")
 
         return results
 

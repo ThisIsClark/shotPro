@@ -3,13 +3,14 @@ Authentication API Routes
 认证 API 路由：支持 Supabase 认证和本地管理员账号
 """
 
-from typing import Optional
+from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from ..deps import get_current_user_required
+from ..deps import get_current_user_required, get_current_user_optional, get_user_id
 from ...services.supabase_client import get_supabase_client_anon, is_supabase_enabled
 from ...services.local_auth_service import local_auth_service
+from ...services.db_service import db_service
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -139,3 +140,37 @@ async def get_current_user_info(
         role=user.get("role", "user"),
         is_local=user.get("is_local", False)
     )
+
+
+class CreditsResponse(BaseModel):
+    credits_remaining: int
+    is_unlimited: bool = False
+
+
+@router.get("/credits", response_model=CreditsResponse)
+async def get_user_credits(
+    user: Optional[dict] = Depends(get_current_user_optional)
+):
+    """
+    获取用户剩余分析次数
+
+    - 本地管理员账户：不限次数
+    - 未登录用户：返回 0 次
+    - Supabase 用户：从数据库读取
+    """
+    # 本地管理员不限次数
+    if user and user.get("is_local"):
+        return CreditsResponse(credits_remaining=999, is_unlimited=True)
+
+    user_id = get_user_id(user)
+    if not user_id:
+        return CreditsResponse(credits_remaining=0, is_unlimited=False)
+
+    if not db_service.is_available():
+        return CreditsResponse(credits_remaining=999, is_unlimited=True)
+
+    remaining = await db_service.get_user_credits(user_id)
+    if remaining < 0:
+        remaining = 0
+
+    return CreditsResponse(credits_remaining=remaining, is_unlimited=False)

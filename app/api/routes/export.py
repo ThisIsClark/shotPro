@@ -2,6 +2,7 @@
 Export API Routes
 导出功能的API路由
 """
+import json
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 from pathlib import Path
@@ -12,6 +13,34 @@ from ...api.routes.upload import task_store
 from ...config import settings
 
 router = APIRouter()
+
+
+def _get_task_result(task_id: str) -> dict:
+    """
+    获取任务结果：优先从 task_store 内存获取，fallback 到磁盘 result.json。
+    返回 result dict（即分析结果数据），供导出服务使用。
+    找不到或状态不对时抛出 HTTPException。
+    """
+    # 1. 从内存获取
+    if task_id in task_store:
+        task_info = task_store[task_id]
+        if task_info.get('status') != 'completed':
+            raise HTTPException(
+                status_code=400,
+                detail=f"Task not completed. Current status: {task_info['status']}"
+            )
+        return task_info['result']
+
+    # 2. 从磁盘 result.json 获取（历史记录场景）
+    result_file = settings.results_dir / task_id / "result.json"
+    if result_file.exists():
+        try:
+            with open(result_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    raise HTTPException(status_code=404, detail="Task not found")
 
 
 @router.get("/export/{task_id}/pdf")
@@ -29,27 +58,17 @@ async def export_pdf(
     Returns:
         PDF文件
     """
-    # 检查任务是否存在
-    if task_id not in task_store:
-        raise HTTPException(status_code=404, detail="Task not found")
-    
-    task_info = task_store[task_id]
-    
-    # 检查任务是否完成
-    if task_info['status'] != 'completed':
-        raise HTTPException(
-            status_code=400,
-            detail=f"Task not completed. Current status: {task_info['status']}"
-        )
-    
+    # 获取任务结果
+    result = _get_task_result(task_id)
+
     try:
         # 创建PDF服务
         pdf_service = PDFExportService(output_dir=settings.results_dir)
-        
+
         # 生成PDF
         pdf_path = pdf_service.generate_report(
             task_id=task_id,
-            analysis_result=task_info['result'],
+            analysis_result=result,
             language=language
         )
         
@@ -78,27 +97,17 @@ async def export_keyframes_images(task_id: str):
     Returns:
         ZIP文件包含所有关键帧
     """
-    # 检查任务是否存在
-    if task_id not in task_store:
-        raise HTTPException(status_code=404, detail="Task not found")
-    
-    task_info = task_store[task_id]
-    
-    # 检查任务是否完成
-    if task_info['status'] != 'completed':
-        raise HTTPException(
-            status_code=400,
-            detail=f"Task not completed. Current status: {task_info['status']}"
-        )
-    
+    # 获取任务结果
+    result = _get_task_result(task_id)
+
     try:
         # 创建图片导出服务
         image_service = ImageExportService(output_dir=settings.results_dir)
-        
+
         # 生成关键帧ZIP
         zip_path = image_service.export_key_frames(
             task_id=task_id,
-            result=task_info['result']
+            result=result
         )
         
         if not zip_path or not zip_path.exists():
@@ -133,31 +142,21 @@ async def export_comparison_images(task_id: str, language: str = Query('zh-CN', 
     Returns:
         ZIP文件包含所有对比图片
     """
-    # 检查任务是否存在
-    if task_id not in task_store:
-        raise HTTPException(status_code=404, detail="Task not found")
-    
-    task_info = task_store[task_id]
-    
-    # 检查任务是否完成
-    if task_info['status'] != 'completed':
-        raise HTTPException(
-            status_code=400,
-            detail=f"Task not completed. Current status: {task_info['status']}"
-        )
-    
+    # 获取任务结果
+    result = _get_task_result(task_id)
+
     try:
         # 创建图片导出服务
         image_service = ImageExportService(output_dir=settings.results_dir)
-        
+
         print(f"[DEBUG export_comparison_images] task_id: {task_id}")
-        print(f"[DEBUG export_comparison_images] result keys: {list(task_info['result'].keys())}")
-        print(f"[DEBUG export_comparison_images] has template_comparison: {'template_comparison' in task_info['result']}")
-        
+        print(f"[DEBUG export_comparison_images] result keys: {list(result.keys())}")
+        print(f"[DEBUG export_comparison_images] has template_comparison: {'template_comparison' in result}")
+
         # 生成对比图片ZIP
         zip_path = image_service.export_comparison_images(
             task_id=task_id,
-            result=task_info['result'],
+            result=result,
             language=language
         )
         
@@ -196,27 +195,17 @@ async def export_all_images(task_id: str, language: str = Query('zh-CN', regex='
     Returns:
         ZIP文件包含所有图片
     """
-    # 检查任务是否存在
-    if task_id not in task_store:
-        raise HTTPException(status_code=404, detail="Task not found")
-    
-    task_info = task_store[task_id]
-    
-    # 检查任务是否完成
-    if task_info['status'] != 'completed':
-        raise HTTPException(
-            status_code=400,
-            detail=f"Task not completed. Current status: {task_info['status']}"
-        )
-    
+    # 获取任务结果
+    result = _get_task_result(task_id)
+
     try:
         # 创建图片导出服务
         image_service = ImageExportService(output_dir=settings.results_dir)
-        
+
         # 生成所有图片ZIP
         zip_path = image_service.export_all_images(
             task_id=task_id,
-            result=task_info['result'],
+            result=result,
             language=language
         )
         
@@ -252,18 +241,8 @@ async def export_share_card(task_id: str, language: str = Query('zh-CN', regex='
     Returns:
         PNG 图片文件
     """
-    # 检查任务是否存在
-    if task_id not in task_store:
-        raise HTTPException(status_code=404, detail="Task not found")
-
-    task_info = task_store[task_id]
-
-    # 检查任务是否完成
-    if task_info['status'] != 'completed':
-        raise HTTPException(
-            status_code=400,
-            detail=f"Task not completed. Current status: {task_info['status']}"
-        )
+    # 获取任务结果
+    result = _get_task_result(task_id)
 
     try:
         # 创建图片导出服务
@@ -272,7 +251,7 @@ async def export_share_card(task_id: str, language: str = Query('zh-CN', regex='
         # 生成分享卡片
         image_path = image_service.export_share_card(
             task_id=task_id,
-            result=task_info['result'],
+            result=result,
             language=language
         )
 

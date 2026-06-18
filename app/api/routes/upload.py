@@ -184,42 +184,7 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
             else:
                 print(f"[DEBUG] 模板未找到: {template_id}")
 
-        # 更新完成状态
-        if use_db:
-            asyncio.run(db_service.update_analysis(
-                task_id,
-                status="completed",
-                progress=100,
-                overall_score=None,  # 新格式不再有评分
-                rating=None,  # 新格式不再有评分
-                total_frames=result_dict.get("total_frames"),
-                fps=result_dict.get("fps"),
-                duration=result_dict.get("duration")
-            ))
-
-            # 记录审计日志
-            asyncio.run(audit_service.log(
-                action=AuditAction.ANALYSIS_COMPLETED,
-                user_id=user_id,
-                resource_id=task_id,
-                resource_type="analysis",
-                details={
-                    "coordination_issues_count": len(result_dict.get("coordination_issues", [])),
-                    "issues_detected": sum(1 for issue in result_dict.get("coordination_issues", []) if issue.get("detected")),
-                    "shooting_hand": shooting_hand,
-                    "shooting_style": shooting_style,
-                    "template_id": template_id,
-                    "video_filename": video_path.name if video_path else "unknown"
-                }
-            ))
-        else:
-            # 内存 fallback
-            task_store[task_id]["status"] = TaskStatus.COMPLETED
-            task_store[task_id]["progress"] = 100
-            task_store[task_id]["message"] = "Analysis complete"
-            task_store[task_id]["result"] = result_dict
-        
-        # 持久化结果到磁盘
+        # 持久化结果到磁盘（先写文件，再更新状态，避免前端读到空结果）
         result_dir = settings.results_dir / task_id
         result_file = result_dir / "result.json"
 
@@ -253,6 +218,41 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
         print(f"[DEBUG] 结果包含 template_comparison: {result_dict.get('template_comparison') is not None}")
         if result_dict.get('template_comparison') and 'comparisons' in result_dict['template_comparison']:
             print(f"[DEBUG] template_comparison.comparisons 数量: {len(result_dict['template_comparison']['comparisons'])}")
+
+        # 更新完成状态（文件已写入，再标记完成，确保前端能读到结果）
+        if use_db:
+            asyncio.run(db_service.update_analysis(
+                task_id,
+                status="completed",
+                progress=100,
+                overall_score=None,  # 新格式不再有评分
+                rating=None,  # 新格式不再有评分
+                total_frames=result_dict.get("total_frames"),
+                fps=result_dict.get("fps"),
+                duration=result_dict.get("duration")
+            ))
+
+            # 记录审计日志
+            asyncio.run(audit_service.log(
+                action=AuditAction.ANALYSIS_COMPLETED,
+                user_id=user_id,
+                resource_id=task_id,
+                resource_type="analysis",
+                details={
+                    "coordination_issues_count": len(result_dict.get("coordination_issues", [])),
+                    "issues_detected": sum(1 for issue in result_dict.get("coordination_issues", []) if issue.get("detected")),
+                    "shooting_hand": shooting_hand,
+                    "shooting_style": shooting_style,
+                    "template_id": template_id,
+                    "video_filename": video_path.name if video_path else "unknown"
+                }
+            ))
+        else:
+            # 内存 fallback
+            task_store[task_id]["status"] = TaskStatus.COMPLETED
+            task_store[task_id]["progress"] = 100
+            task_store[task_id]["message"] = "Analysis complete"
+            task_store[task_id]["result"] = result_dict
 
         # ===== 分析完成后删除原始视频（节省存储空间）=====
         # 删除本地视频文件
@@ -581,6 +581,18 @@ async def upload_video(
     # 获取用户 ID（可选）
     user_id = get_user_id(user)
 
+    # 检查用户分析次数（Supabase 用户需要扣减，本地管理员不限）
+    use_db = is_supabase_enabled() and db_service.is_available()
+    is_local_user = user and user.get("is_local", False)
+
+    if use_db and user_id and not is_local_user:
+        remaining = await db_service.get_user_credits(user_id)
+        if remaining <= 0:
+            raise HTTPException(
+                status_code=403,
+                detail="No credits remaining. Please purchase more analyses to continue."
+            )
+
     # 判断是否使用数据库
     use_db = is_supabase_enabled() and db_service.is_available()
 
@@ -623,6 +635,34 @@ async def upload_video(
     # 更新视频路径（数据库）
     if use_db:
         await db_service.update_analysis(task_id, result_path=str(video_path))
+
+    # 检查视频时长
+    try:
+        import cv2
+        cap = cv2.VideoCapture(str(video_path))
+        if cap.isOpened():
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            cap.release()
+            if fps > 0 and frame_count > 0:
+                duration = frame_count / fps
+                if duration > settings.max_video_duration_seconds:
+                    video_path.unlink()
+                    if use_db:
+                        await db_service.delete_analysis(task_id)
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"视频时长 {duration:.1f}s 超过限制，最长允许 {settings.max_video_duration_seconds}s"
+                    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Upload] 视频时长检查失败（忽略）: {e}")
+
+    # 扣减分析次数（通过检查后正式扣减，避免检查通过但分析未启动的浪费）
+    if use_db and user_id and not is_local_user:
+        new_remaining = await db_service.decrement_user_credits(user_id)
+        print(f"[Credits] User {user_id} credits: {new_remaining + 1} -> {new_remaining}")
 
     # 内存 fallback：初始化任务状态
     if not use_db:
@@ -739,6 +779,12 @@ async def get_task_result(task_id: str):
     if not status_info and task_id in task_store:
         status_info = task_store[task_id]
 
+    # 磁盘 fallback（历史记录场景：DB无记录且已从内存淘汰）
+    if not status_info:
+        result_file = settings.results_dir / task_id / "result.json"
+        if result_file.exists():
+            status_info = {"status": "completed"}
+
     if not status_info:
         raise HTTPException(status_code=404, detail="任务不存在")
 
@@ -817,3 +863,84 @@ async def delete_task(task_id: str):
         del task_store[task_id]
 
     return {"message": "任务已删除", "task_id": task_id}
+
+
+@router.get("/history")
+async def get_analysis_history(
+    limit: int = 20,
+    offset: int = 0,
+    user: Optional[dict] = Depends(get_current_user_optional)
+):
+    """
+    获取分析历史记录
+
+    - **limit**: 返回数量（默认20）
+    - **offset**: 偏移量（默认0）
+    """
+    use_db = is_supabase_enabled() and db_service.is_available()
+    user_id = get_user_id(user)
+
+    if use_db and user_id:
+        # 数据库模式：查询指定用户的历史
+        analyses = await db_service.get_user_analyses(
+            user_id=user_id, limit=limit, offset=offset
+        )
+        result = []
+        for a in analyses:
+            issues_count = 0
+            issues_detected = 0
+            # 尝试从磁盘读取 issues 摘要
+            task_id = a.get("id", "")
+            result_file = settings.results_dir / task_id / "result.json"
+            if result_file.exists():
+                try:
+                    import json
+                    with open(result_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    issues = data.get("coordination_issues", [])
+                    issues_count = len(issues)
+                    issues_detected = sum(1 for i in issues if i.get("detected"))
+                except:
+                    pass
+
+            result.append({
+                "task_id": task_id,
+                "video_filename": a.get("video_filename", "unknown"),
+                "status": a.get("status", "unknown"),
+                "created_at": a.get("created_at", ""),
+                "duration": a.get("duration"),
+                "issues_count": issues_count,
+                "issues_detected": issues_detected,
+            })
+        return result
+
+    # 本地模式：扫描 results_dir
+    history = []
+    if settings.results_dir.exists():
+        for task_dir in sorted(settings.results_dir.iterdir(), reverse=True):
+            if not task_dir.is_dir():
+                continue
+            result_file = task_dir / "result.json"
+            if not result_file.exists():
+                continue
+
+            try:
+                import json
+                with open(result_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                issues = data.get("coordination_issues", [])
+                history.append({
+                    "task_id": task_dir.name,
+                    "video_filename": data.get("video_filename", "unknown"),
+                    "status": "completed",
+                    "created_at": data.get("created_at", ""),
+                    "duration": data.get("duration"),
+                    "issues_count": len(issues),
+                    "issues_detected": sum(1 for i in issues if i.get("detected")),
+                })
+            except:
+                continue
+
+    # 分页
+    return history[offset:offset + limit]

@@ -15,6 +15,10 @@ class DatabaseService:
 
     TABLE_ANALYSES = "analyses"
     TABLE_USER_TEMPLATES = "user_templates"
+    TABLE_USER_CREDITS = "user_credits"
+    TABLE_PAYMENT_CHECKOUTS = "payment_checkouts"
+
+    FREE_CREDITS = 2  # 新用户免费次数
 
     def __init__(self):
         self.client = get_supabase_client()
@@ -269,6 +273,143 @@ class DatabaseService:
             return True
         except Exception as e:
             print(f"[DB] Delete user template failed: {e}")
+            return False
+
+    # ===== User Credits =====
+
+    async def get_user_credits(self, user_id: str) -> int:
+        """
+        获取用户剩余分析次数。若无记录则自动初始化。
+
+        Returns:
+            剩余次数，-1 表示查询失败
+        """
+        if not self.client:
+            return -1
+
+        try:
+            response = self.client.table(self.TABLE_USER_CREDITS).select("credits_remaining").eq("user_id", user_id).execute()
+            if response.data:
+                return response.data[0]["credits_remaining"]
+
+            # 无记录，自动初始化
+            init_response = self.client.table(self.TABLE_USER_CREDITS).insert({
+                "user_id": user_id,
+                "credits_remaining": self.FREE_CREDITS,
+                "total_granted": self.FREE_CREDITS
+            }).execute()
+
+            if init_response.data:
+                print(f"[DB] Initialized credits for user {user_id}: {self.FREE_CREDITS}")
+                return self.FREE_CREDITS
+
+            return -1
+        except Exception as e:
+            print(f"[DB] Get user credits failed: {e}")
+            return -1
+
+    async def decrement_user_credits(self, user_id: str) -> int:
+        """
+        扣减一次分析次数。
+
+        Returns:
+            扣减后的剩余次数，-1 表示失败
+        """
+        if not self.client:
+            return -1
+
+        try:
+            # 先获取当前次数
+            remaining = await self.get_user_credits(user_id)
+            if remaining <= 0:
+                return remaining
+
+            # 扣减
+            new_remaining = remaining - 1
+            self.client.table(self.TABLE_USER_CREDITS).update({
+                "credits_remaining": new_remaining,
+                "updated_at": datetime.utcnow().isoformat()
+            }).eq("user_id", user_id).execute()
+
+            print(f"[DB] Credits decremented for user {user_id}: {remaining} -> {new_remaining}")
+            return new_remaining
+        except Exception as e:
+            print(f"[DB] Decrement user credits failed: {e}")
+            return -1
+
+    async def increment_user_credits(self, user_id: str, amount: int) -> int:
+        """
+        增加用户分析次数（购买后调用）。
+
+        Args:
+            user_id: 用户 ID
+            amount: 增加的次数
+
+        Returns:
+            增加后的剩余次数，-1 表示失败
+        """
+        if not self.client:
+            return -1
+
+        try:
+            remaining = await self.get_user_credits(user_id)
+            if remaining < 0:
+                # 无记录会自动初始化，初始化后再增加
+                remaining = await self.get_user_credits(user_id)
+                if remaining < 0:
+                    return -1
+
+            new_remaining = remaining + amount
+
+            # 获取当前 total_granted
+            grant_response = self.client.table(self.TABLE_USER_CREDITS).select("total_granted").eq("user_id", user_id).execute()
+            current_granted = grant_response.data[0]["total_granted"] if grant_response.data else self.FREE_CREDITS
+
+            self.client.table(self.TABLE_USER_CREDITS).update({
+                "credits_remaining": new_remaining,
+                "total_granted": current_granted + amount,
+                "updated_at": datetime.utcnow().isoformat()
+            }).eq("user_id", user_id).execute()
+
+            print(f"[DB] Credits incremented for user {user_id}: {remaining} -> {new_remaining} (+{amount})")
+            return new_remaining
+        except Exception as e:
+            print(f"[DB] Increment user credits failed: {e}")
+            return -1
+
+    # ===== Payment Checkout Tracking (幂等) =====
+
+    async def is_checkout_processed(self, checkout_id: str) -> bool:
+        """检查 checkout 是否已处理过"""
+        if not self.client:
+            return False
+
+        try:
+            response = self.client.table(self.TABLE_PAYMENT_CHECKOUTS).select("id").eq("checkout_id", checkout_id).execute()
+            return bool(response.data)
+        except Exception as e:
+            print(f"[DB] Check checkout processed failed: {e}")
+            return False
+
+    async def mark_checkout_processed(self, checkout_id: str, user_id: str) -> bool:
+        """记录已处理的 checkout"""
+        if not self.client:
+            return False
+
+        try:
+            self.client.table(self.TABLE_PAYMENT_CHECKOUTS).insert({
+                "checkout_id": checkout_id,
+                "user_id": user_id,
+                "processed_at": datetime.utcnow().isoformat(),
+            }).execute()
+            print(f"[DB] Checkout {checkout_id} marked as processed")
+            return True
+        except Exception as e:
+            # 唯一约束冲突说明已存在，视为成功
+            if "duplicate" in str(e).lower() or "unique" in str(e).lower():
+                print(f"[DB] Checkout {checkout_id} already recorded (race condition)")
+                return True
+            print(f"[DB] Mark checkout processed failed: {e}")
             return False
 
 

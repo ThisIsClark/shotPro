@@ -11,3 +11,20 @@ temp/
 modelVideo/
 data/
 models/*.bak
+
+# Debug & test scripts (not for production)
+analyze_keyframes.py
+analyze_positions.py
+check_lines.py
+compare_skeleton_person.py
+debug_*.py
+debug_*/
+final_verification.py
+final_verification/
+precise_analysis.py
+test_*.py
+verification/
+verify_*.py
+visualize_skeleton.py
+test_jpeg_yellow.py
+templates/index.html.bak

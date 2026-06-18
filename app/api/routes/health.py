@@ -4,6 +4,7 @@ Health Check Routes
 """
 
 from fastapi import APIRouter
+from fastapi.responses import RedirectResponse
 
 from ...config import settings
 
@@ -22,9 +23,5 @@ async def health_check():
 
 @router.get("/")
 async def root():
-    """根路径"""
-    return {
-        "message": "Welcome to Basketball Shooting Form Analyzer API",
-        "docs": "/docs",
-        "version": settings.app_version
-    }
+    """根路径 - 重定向到应用页面（兼容 Supabase 邮箱验证回调）"""
+    return RedirectResponse(url="/app")

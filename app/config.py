@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     app_name: str = "Basketball Shooting Form Analyzer"
     app_version: str = "0.1.0"
     debug: bool = True
+    app_url: str = ""  # Public URL for payment callbacks (e.g., https://your-domain.com)
     
     # Paths
     base_dir: Path = Path(__file__).resolve().parent.parent
@@ -20,7 +21,7 @@ class Settings(BaseSettings):
     templates_dir: Path = base_dir / "templates"
     
     # Upload limits
-    max_video_size_mb: int = 50
+    max_video_size_mb: int = 20
     max_video_duration_seconds: int = 10
     allowed_video_extensions: set = {".mp4", ".mov", ".avi", ".webm"}
     
@@ -38,6 +39,17 @@ class Settings(BaseSettings):
     # Use a fixed model URL to ensure consistent pose detection results
     # If empty, will use local models/ directory
     pose_model_url: str = ""  # e.g., "https://your-supabase.supabase.co/storage/v1/object/public/models/pose_landmarker.task"
+
+    # Admin Configuration
+    local_admin_password: str = "myjob123"  # 管理员密码，生产环境务必通过环境变量设置强密码
+
+    # CORS
+    allowed_origins: str = ""  # 逗号分隔的允许域名，为空则允许所有（仅开发模式）
+
+    # Creem Payment Configuration
+    creem_api_key: str = ""           # creem_test_xxx or creem_xxx (live)
+    creem_webhook_secret: str = ""    # Webhook signing secret from Creem dashboard
+    creem_product_id: str = ""        # Product ID for single analysis ($1.49/credit)
 
     class Config:
         env_file = ".env"

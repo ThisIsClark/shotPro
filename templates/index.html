@@ -59,9 +59,155 @@
 
         /* Header 设计 */
         header {
-            text-align: center;
-            padding: 40px 0 50px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 28px 0 40px;
             position: relative;
+            gap: 16px;
+        }
+
+        .header-title-group {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .header-title-group h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin: 0 0 4px 0;
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 35%, #48dbfb 70%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title-group p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85rem;
+            font-weight: 400;
+            letter-spacing: 0.2px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            z-index: 100;
+            padding-top: 4px;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 6px 14px;
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.75);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+
+        .action-btn--danger {
+            color: rgba(255, 107, 107, 0.8);
+            border-color: rgba(255, 107, 107, 0.2);
+        }
+
+        .action-btn--danger:hover {
+            background: rgba(255, 107, 107, 0.15);
+            color: #ff6b6b;
+            border-color: rgba(255, 107, 107, 0.3);
+        }
+
+        .user-info {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .user-avatar-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, #48dbfb, #a855f7);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-avatar-btn:hover {
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            min-width: 200px;
+            background: rgba(30, 30, 50, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.2s ease;
+            z-index: 200;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .user-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .user-dropdown-email {
+            padding: 10px 12px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .user-dropdown-logout {
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s;
+        }
+
+        .user-dropdown-logout:hover {
+            background: rgba(255, 107, 107, 0.15);
+            color: #ff6b6b;
         }
 
         /* 导出按钮区域 */
@@ -72,32 +218,37 @@
         }
 
         .btn-export {
-            background: linear-gradient(135deg, #a855f7, #ec4899);
-            border: none;
-            padding: 12px 24px;
-            border-radius: 12px;
-            color: #fff;
-            font-size: 1rem;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.12), rgba(0, 212, 255, 0.04));
+            border: 1px solid rgba(0, 212, 255, 0.35);
+            padding: 10px 22px;
+            border-radius: 0;
+            color: #00d4ff;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 8px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.08);
+            clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+            letter-spacing: 0.5px;
         }
 
         .btn-export:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(168, 85, 247, 0.4);
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.22), rgba(0, 212, 255, 0.08));
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.2), inset 0 0 15px rgba(0, 212, 255, 0.04);
+            transform: translateY(-1px);
         }
 
         .btn-export:active {
             transform: translateY(0);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
         }
 
         .btn-export .icon {
-            font-size: 1.2rem;
+            font-size: 1rem;
+            opacity: 0.8;
         }
 
         header::before {
@@ -118,28 +269,13 @@
         }
 
         header h1 {
-            font-size: 3rem;
+            font-size: 1.6rem;
             font-weight: 800;
-            margin-bottom: 12px;
             background: linear-gradient(135deg, #ff6b6b 0%, #feca57 35%, #48dbfb 70%, #a855f7 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            letter-spacing: -1px;
-            position: relative;
-            animation: glow 3s ease-in-out infinite;
-        }
-
-        @keyframes glow {
-            0%, 100% { filter: drop-shadow(0 0 20px rgba(72, 219, 251, 0.3)); }
-            50% { filter: drop-shadow(0 0 40px rgba(255, 107, 107, 0.4)); }
-        }
-
-        header p {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 1.1rem;
-            font-weight: 500;
-            letter-spacing: 0.3px;
+            letter-spacing: -0.5px;
         }
 
         .main-content {
@@ -1483,58 +1619,6 @@
             color: rgba(255, 255, 255, 0.4);
         }
 
-        /* 图片导出模态框样式 */
-        .export-options {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            padding: 20px 0;
-        }
-
-        .export-option-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 24px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .export-option-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-4px);
-            border-color: rgba(72, 219, 251, 0.5);
-        }
-
-        .export-option-btn:active {
-            transform: translateY(-2px);
-        }
-
-        .export-option-icon {
-            font-size: 3rem;
-            line-height: 1;
-        }
-
-        .export-option-text {
-            flex: 1;
-        }
-
-        .export-option-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: white;
-            margin-bottom: 6px;
-        }
-
-        .export-option-desc {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.6);
-            line-height: 1.4;
-        }
-
         .template-item-actions {
             display: flex;
             gap: 8px;
@@ -1597,19 +1681,28 @@
             }
         }
 
-        #manageTemplatesBtn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-2px);
-        }
-
         /* 响应式设计 */
         @media (max-width: 768px) {
-            header h1 {
-                font-size: 2rem;
+            .header-title-group h1 {
+                font-size: 1.2rem;
             }
 
-            header p {
-                font-size: 1rem;
+            .header-title-group p {
+                font-size: 0.8rem;
+            }
+
+            header {
+                flex-wrap: wrap;
+            }
+
+            .header-actions {
+                flex-wrap: wrap;
+            }
+
+            .user-avatar-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 0.85rem;
             }
 
             .card {
@@ -1664,11 +1757,6 @@
                 font-size: 2.5rem;
             }
 
-            /* 小屏幕下按钮布局调整 */
-            .auth-section {
-                top: 20px;
-                right: 20px;
-            }
         }
 
         /* ===== 落地页样式（未登录用户） ===== */
@@ -1803,60 +1891,229 @@
 
         /* 功能亮点区域 */
         .landing-features {
-            padding: 80px 40px;
-            background: rgba(255, 255, 255, 0.03);
+            padding: 100px 40px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(72,219,251,0.03) 50%, rgba(255,255,255,0.02) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .landing-features::before {
+            content: '';
+            position: absolute;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(72,219,251,0.06) 0%, transparent 70%);
+            pointer-events: none;
         }
 
         .landing-features-title {
             text-align: center;
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 50px;
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 60px;
             color: #fff;
+            letter-spacing: -0.02em;
         }
 
         .landing-features-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 24px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 28px;
             max-width: 1200px;
             margin: 0 auto;
         }
 
         .landing-feature-card {
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 20px;
-            padding: 30px 24px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 24px;
+            padding: 40px 28px 36px;
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .landing-feature-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            background: linear-gradient(135deg, rgba(72,219,251,0.05) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.4s;
         }
 
         .landing-feature-card:hover {
-            transform: translateY(-8px);
-            border-color: rgba(72, 219, 251, 0.4);
-            box-shadow: 0 12px 40px rgba(72, 219, 251, 0.2);
+            transform: translateY(-6px);
+            border-color: rgba(72, 219, 251, 0.3);
+            box-shadow: 0 20px 60px rgba(72, 219, 251, 0.12), 0 0 0 1px rgba(72, 219, 251, 0.1);
+        }
+
+        .landing-feature-card:hover::after {
+            opacity: 1;
+        }
+
+        .landing-feature-glow {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(72,219,251,0.15) 0%, transparent 70%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .landing-feature-card:hover .landing-feature-glow {
+            opacity: 1;
+        }
+
+        .landing-feature-icon-ring {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, rgba(72,219,251,0.12) 0%, rgba(72,219,251,0.03) 100%);
+            border: 1px solid rgba(72,219,251,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            position: relative;
+            z-index: 1;
+            transition: all 0.4s;
+        }
+
+        .landing-feature-card:hover .landing-feature-icon-ring {
+            border-color: rgba(72,219,251,0.5);
+            background: linear-gradient(145deg, rgba(72,219,251,0.2) 0%, rgba(72,219,251,0.05) 100%);
+            box-shadow: 0 0 20px rgba(72,219,251,0.15);
         }
 
         .landing-feature-icon {
-            font-size: 2.5rem;
-            margin-bottom: 16px;
+            font-size: 1.8rem;
+            line-height: 1;
         }
 
         .landing-feature-card h3 {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: 700;
-            color: #48dbfb;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, #48dbfb, #0abde3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .landing-feature-card p {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.92rem;
+            color: rgba(255, 255, 255, 0.55);
+            line-height: 1.7;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 上传视频指南区域 */
+        .landing-guide {
+            padding: 80px 40px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,107,107,0.03) 50%, rgba(255,255,255,0.02) 100%);
+        }
+
+        .landing-guide-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .landing-guide-subtitle {
+            text-align: center;
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 48px;
+        }
+
+        .landing-guide-layout {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 48px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .landing-guide-image {
+            flex-shrink: 0;
+            width: 280px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid rgba(72, 219, 251, 0.25);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .landing-guide-image img {
+            width: 100%;
+            display: block;
+        }
+
+        .landing-guide-tips {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .guide-tip {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .guide-tip-icon {
+            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(72, 219, 251, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            border: 1px solid rgba(72, 219, 251, 0.2);
+        }
+
+        .guide-tip-text h4 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .guide-tip-text p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
             line-height: 1.5;
         }
 
-        /* 示例展示区域 */
+        @media (max-width: 768px) {
+            .landing-guide-layout {
+                flex-direction: column;
+                gap: 32px;
+            }
+            .landing-guide-image {
+                width: 240px;
+            }
+        }
+
+        /* 发力连贯性检测输出区域 */
         .landing-demo {
             padding: 80px 40px;
             max-width: 1000px;
@@ -1878,91 +2135,140 @@
             border: 1px solid rgba(255, 255, 255, 0.15);
         }
 
-        .landing-demo-frames {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            margin-bottom: 30px;
+        /* 检测行 */
+        .demo-detection-row {
+            margin-bottom: 32px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .landing-demo-frame {
-            position: relative;
+        .demo-detection-row:last-of-type {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .demo-detection-label {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .demo-detection-frames {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+
+        .demo-frame-pair {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .demo-frame {
+            flex: 1 1 0;
+            max-width: 320px;
+            min-width: 0;
             border-radius: 12px;
             overflow: hidden;
-            aspect-ratio: 4/3;
-            background: rgba(0, 0, 0, 0.3);
             border: 2px solid rgba(72, 219, 251, 0.3);
+            background: rgba(0, 0, 0, 0.3);
+            position: relative;
         }
 
-        .landing-demo-frame img {
+        .demo-frame img {
             width: 100%;
-            height: 100%;
+            aspect-ratio: 4/3;
             object-fit: cover;
+            display: block;
         }
 
-        .landing-demo-frame-label {
+        .demo-frame-label {
             position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
             background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
-            padding: 24px 12px 12px;
+            padding: 20px 10px 10px;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            text-align: center;
         }
 
-        .landing-demo-frame.release {
-            border-color: rgba(254, 202, 87, 0.5);
+        .demo-frame .angle-tag {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(72, 219, 251, 0.85);
+            color: #1a1f3a;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
         }
 
-        .landing-demo-frame.release .landing-demo-frame-label {
+        .demo-frame .angle-tag.warning {
+            background: rgba(254, 202, 87, 0.9);
+        }
+
+        .demo-frame-arrow {
+            font-size: 1.6rem;
             color: #feca57;
+            flex-shrink: 0;
         }
 
-        .landing-demo-score {
+        .demo-detection-result {
             display: flex;
             align-items: center;
-            gap: 20px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            margin-bottom: 24px;
+            gap: 12px;
+            margin-top: 8px;
         }
 
-        .landing-demo-score-number {
-            font-size: 3rem;
-            font-weight: 800;
-            color: #48dbfb;
-        }
-
-        .landing-demo-score-text {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #48dbfb;
-        }
-
-        .landing-demo-score-note {
+        .demo-result-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
             font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .landing-demo-tip {
-            background: rgba(254, 202, 87, 0.1);
-            border-left: 3px solid #feca57;
-            padding: 16px 20px;
-            border-radius: 0 12px 12px 0;
-            margin-bottom: 30px;
-        }
-
-        .landing-demo-tip-title {
             font-weight: 600;
-            color: #feca57;
-            margin-bottom: 8px;
         }
 
-        .landing-demo-tip-text {
+        .demo-result-tag.good {
+            background: rgba(46, 213, 115, 0.15);
+            color: #2ed573;
+            border: 1px solid rgba(46, 213, 115, 0.3);
+        }
+
+        .demo-result-tag.warning {
+            background: rgba(254, 202, 87, 0.15);
+            color: #feca57;
+            border: 1px solid rgba(254, 202, 87, 0.3);
+        }
+
+        .demo-result-tag.error {
+            background: rgba(255, 107, 107, 0.15);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+
+        .demo-suggestion {
+            margin-top: 8px;
+            padding: 10px 14px;
+            background: rgba(254, 202, 87, 0.08);
+            border-left: 3px solid #feca57;
+            border-radius: 0 8px 8px 0;
             color: rgba(255, 255, 255, 0.8);
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             line-height: 1.5;
         }
 
@@ -2023,20 +2329,66 @@
             color: rgba(255, 255, 255, 0.5);
         }
 
+        .landing-pricing-original {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.35);
+            text-decoration: line-through;
+            margin-top: 4px;
+        }
+
         .landing-pricing-note {
             font-size: 0.85rem;
             color: #48dbfb;
             margin-top: 8px;
         }
 
+        .landing-pricing-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            color: #1a1a2e;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-top: 10px;
+        }
+
         /* 响应式调整 */
+        /* 科普板块 */
+        .landing-knowledge {
+            padding: 60px 40px;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .landing-knowledge-text {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.75);
+            line-height: 1.8;
+            margin-bottom: 32px;
+        }
+
+        .landing-knowledge-text strong {
+            color: #feca57;
+        }
+
         @media (max-width: 900px) {
             .landing-features-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
 
-            .landing-demo-frames {
-                grid-template-columns: repeat(2, 1fr);
+            .demo-detection-frames {
+                flex-direction: column;
+            }
+
+            .demo-frame-pair {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .demo-frame {
+                max-width: 280px;
             }
 
             .landing-pricing-plans {
@@ -2076,75 +2428,24 @@
                 grid-template-columns: 1fr;
             }
 
-            .landing-demo-frames {
-                grid-template-columns: 1fr;
+            .demo-frame {
+                max-width: 240px;
+            }
+
+            .landing-demo-container {
+                padding: 24px 16px;
+            }
+
+            .landing-knowledge {
+                padding: 40px 20px;
+            }
+
+            .landing-knowledge-text {
+                font-size: 1rem;
             }
         }
 
         /* ===== 登录模态框样式 ===== */
-        .auth-section {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 100;
-        }
-
-        .auth-status {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .user-email {
-            font-size: 0.9rem;
-            color: #48dbfb;
-            font-weight: 500;
-        }
-
-        .logout-btn {
-            background: rgba(255, 107, 107, 0.15);
-            border: 1px solid rgba(255, 107, 107, 0.3);
-            color: #ff6b6b;
-            padding: 8px 16px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .logout-btn:hover {
-            background: rgba(255, 107, 107, 0.25);
-            transform: translateY(-2px);
-        }
-
-        .login-btn {
-            background: linear-gradient(135deg, #48dbfb, #a855f7);
-            border: none;
-            padding: 10px 24px;
-            border-radius: 12px;
-            color: #fff;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(72, 219, 251, 0.3);
-        }
-
-        .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(72, 219, 251, 0.4);
-        }
 
         /* 登录模态框 */
         .auth-modal {
@@ -2354,8 +2655,235 @@
             display: block;
         }
 
+        /* ===== 购买 Credits 模态框 ===== */
+
+        .payment-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+
+        .payment-modal.active {
+            display: flex;
+        }
+
+        .payment-modal-content {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(30px);
+            border-radius: 24px;
+            padding: 36px;
+            width: 90%;
+            max-width: 560px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            position: relative;
+        }
+
+        .payment-modal-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .payment-modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+
+        .payment-modal-header p {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .payment-close-btn {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .payment-close-btn:hover {
+            color: #fff;
+        }
+
+        .payment-plans {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 10px 0;
+        }
+
+        .payment-single-card {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 32px 40px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .payment-price-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .payment-original-price {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.35);
+            text-decoration: line-through;
+        }
+
+        .payment-discount-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff6b35, #ff3535);
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            vertical-align: middle;
+            margin-left: -2px;
+        }
+
+        .payment-price-amount {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .payment-price-unit {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .payment-price-desc {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 24px;
+        }
+
+        .payment-buy-btn {
+            background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%);
+            border: none;
+            padding: 14px 48px;
+            border-radius: 14px;
+            color: #000;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 700;
+            transition: all 0.25s;
+        }
+
+        .payment-buy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(72, 219, 251, 0.3);
+        }
+
+        .payment-buy-btn.loading {
+            opacity: 0.6;
+            cursor: wait;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .payment-footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .payment-success-notice {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .payment-success-notice.show {
+            display: block;
+        }
+
+        .payment-success-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        .payment-success-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #48dbfb;
+            margin-bottom: 4px;
+        }
+
+        .payment-success-sub {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 600px) {
+            .payment-modal-content {
+                padding: 24px;
+                border-radius: 20px;
+            }
+        }
+
         /* 历史记录按钮 */
-        .history-btn {
+        .action-btn.history-btn {
+            display: inline-flex;
+        }
+
+        /* 历史记录视图 */
+        .history-view {
+            display: none;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .history-header h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.3px;
+        }
+
+        .history-header h2::before {
+            content: '';
+            width: 4px;
+            height: 28px;
+            background: linear-gradient(180deg, #ff6b6b, #feca57, #48dbfb);
+            border-radius: 3px;
+            box-shadow: 0 0 12px rgba(72, 219, 251, 0.4);
+        }
+
+        .history-back-btn {
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
             padding: 8px 16px;
@@ -2363,20 +2891,171 @@
             color: #fff;
             cursor: pointer;
             font-size: 0.85rem;
-            font-weight: 600;
+            font-weight: 500;
             transition: all 0.3s;
-            display: none;
         }
 
-        .history-btn:hover {
-            background: rgba(72, 219, 251, 0.2);
-            transform: translateY(-2px);
+        .history-back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
 
-        .history-btn.show {
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(72, 219, 251, 0.3);
+            transform: translateX(4px);
+        }
+
+        .history-item-info {
+            flex: 1;
+        }
+
+        .history-item-title {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+
+        .history-item-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .history-item-badge {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .history-item-badge.completed {
+            background: rgba(0, 255, 135, 0.15);
+            color: #00ff87;
+        }
+
+        .history-item-badge.failed {
+            background: rgba(255, 59, 92, 0.15);
+            color: #ff3b5c;
+        }
+
+        .history-item-issues {
             display: flex;
             align-items: center;
             gap: 6px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .history-item-issues .detected {
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+
+        .history-item-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .history-item-view {
+            background: rgba(72, 219, 251, 0.15);
+            border: 1px solid rgba(72, 219, 251, 0.3);
+            padding: 6px 14px;
+            border-radius: 8px;
+            color: #48dbfb;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .history-item-view:hover {
+            background: rgba(72, 219, 251, 0.25);
+        }
+
+        .history-item-delete {
+            background: rgba(255, 59, 92, 0.1);
+            border: 1px solid rgba(255, 59, 92, 0.2);
+            padding: 6px 10px;
+            border-radius: 8px;
+            color: #ff3b5c;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+
+        .history-item-delete:hover {
+            background: rgba(255, 59, 92, 0.2);
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 80px 20px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .history-empty .icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .history-loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .history-loading .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #48dbfb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .result-back-to-history {
+            display: none;
+            background: rgba(72, 219, 251, 0.1);
+            border: 1px solid rgba(72, 219, 251, 0.2);
+            padding: 8px 16px;
+            border-radius: 10px;
+            color: #48dbfb;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin-bottom: 16px;
+        }
+
+        .result-back-to-history:hover {
+            background: rgba(72, 219, 251, 0.2);
         }
 
         /* 登录提示弹窗样式 */
@@ -2604,91 +3283,163 @@
 
         <section class="landing-hero">
             <div class="landing-hero-content">
-                <h1 data-i18n="landing.title">AI-Powered Basketball Shooting Form Analysis</h1>
-                <p data-i18n="landing.subtitle">Get professional-level shooting form analysis with BEEF scoring, key frame annotation, and NBA player template comparison. Improve your shooting technique today!</p>
+                <h1 data-i18n="landing.title">两分随便投，一到三分线外就 Air Ball？不是力量不够，是发力不够连贯。</h1>
+                <p data-i18n="landing.subtitle">AI 分析你的手腿协调性，检测手脚同步问题 & 发力脱节，给出精准改进建议</p>
                 <button class="landing-cta-btn" onclick="openAuthModal()">
-                    <span>🎯</span>
-                    <span data-i18n="landing.cta">Start Free Trial</span>
+                    <span>🎬</span>
+                    <span data-i18n="landing.cta">上传视频，免费检测一次</span>
                 </button>
                 <div class="landing-benefits">
-                    <div data-i18n="landing.benefit1">Free trial: 3 analyses</div>
-                    <div data-i18n="landing.benefit2">No credit card required</div>
-                    <div data-i18n="landing.benefit3">Start instantly</div>
+                    <div data-i18n="landing.benefit1">30秒出结果</div>
+                    <div data-i18n="landing.benefit2">无需信用卡</div>
+                    <div data-i18n="landing.benefit3">检测你最不知道的问题</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-guide">
+            <h2 class="landing-guide-title" data-i18n="landing.guideTitle">如何拍摄分析视频</h2>
+            <p class="landing-guide-subtitle" data-i18n="landing.guideSubtitle">拍得好，才能分析得准</p>
+            <div class="landing-guide-layout">
+                <div class="landing-guide-image">
+                    <img src="/static/upload_guide.png" alt="Video shooting guide" onerror="this.parentElement.style.display='none'">
+                </div>
+                <div class="landing-guide-tips">
+                    <div class="guide-tip">
+                        <div class="guide-tip-icon">👤</div>
+                        <div class="guide-tip-text">
+                            <h4 data-i18n="landing.guideTip1Title">侧身拍摄</h4>
+                            <p data-i18n="landing.guideTip1Desc">手机放在投篮手一侧，拍摄侧面全身动作，看清手臂和腿部角度</p>
+                        </div>
+                    </div>
+                    <div class="guide-tip">
+                        <div class="guide-tip-icon">📏</div>
+                        <div class="guide-tip-text">
+                            <h4 data-i18n="landing.guideTip2Title">人物占画面 60% 以上</h4>
+                            <p data-i18n="landing.guideTip2Desc">不要站太远，让投篮者占据画面大部分，保证关节检测精度</p>
+                        </div>
+                    </div>
+                    <div class="guide-tip">
+                        <div class="guide-tip-icon">🎬</div>
+                        <div class="guide-tip-text">
+                            <h4 data-i18n="landing.guideTip3Title">完整的投篮过程</h4>
+                            <p data-i18n="landing.guideTip3Desc">从准备姿势拍到随球动作结束，至少包含完整的出手过程</p>
+                        </div>
+                    </div>
+                    <div class="guide-tip">
+                        <div class="guide-tip-icon">💡</div>
+                        <div class="guide-tip-text">
+                            <h4 data-i18n="landing.guideTip4Title">光线充足，背景简洁</h4>
+                            <p data-i18n="landing.guideTip4Desc">避免逆光和杂乱背景，确保身体轮廓清晰可辨</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
         <section class="landing-features">
-            <h2 class="landing-features-title" data-i18n="landing.featuresTitle">Core Features</h2>
+            <h2 class="landing-features-title" data-i18n="landing.featuresTitle">你的问题可能在这里</h2>
             <div class="landing-features-grid">
                 <div class="landing-feature-card">
-                    <div class="landing-feature-icon">🎯</div>
-                    <h3 data-i18n="landing.feature1Title">Pose Detection</h3>
-                    <p data-i18n="landing.feature1Desc">33 key body points tracked using advanced AI vision technology</p>
+                    <div class="landing-feature-glow"></div>
+                    <div class="landing-feature-icon-ring">
+                        <div class="landing-feature-icon">🦵</div>
+                    </div>
+                    <h3 data-i18n="landing.feature1Title">手快脚慢？</h3>
+                    <p data-i18n="landing.feature1Desc">手开始举球时脚还在下蹲蓄力——力量断层，出手没力。我们精确检测沉球点的膝盖角度变化，告诉你时机是否对。</p>
                 </div>
                 <div class="landing-feature-card">
-                    <div class="landing-feature-icon">📊</div>
-                    <h3 data-i18n="landing.feature2Title">BEEF Scoring</h3>
-                    <p data-i18n="landing.feature2Desc">Balance, Eyes, Elbow, Follow-through - the NBA standard evaluation</p>
+                    <div class="landing-feature-glow"></div>
+                    <div class="landing-feature-icon-ring">
+                        <div class="landing-feature-icon">💪</div>
+                    </div>
+                    <h3 data-i18n="landing.feature2Title">手等脚蹬？</h3>
+                    <p data-i18n="landing.feature2Desc">手举到最高点时腿还没蹬直——力量传递中断，全靠手臂。我们检测最高持球点的膝盖伸展度，看力链是否贯通。</p>
                 </div>
                 <div class="landing-feature-card">
-                    <div class="landing-feature-icon">🏆</div>
-                    <h3 data-i18n="landing.feature3Title">Template Comparison</h3>
-                    <p data-i18n="landing.feature3Desc">Compare your form with NBA player shooting templates</p>
-                </div>
-                <div class="landing-feature-card">
-                    <div class="landing-feature-icon">📄</div>
-                    <h3 data-i18n="landing.feature4Title">Professional Reports</h3>
-                    <p data-i18n="landing.feature4Desc">Export PDF reports with detailed improvement suggestions</p>
+                    <div class="landing-feature-glow"></div>
+                    <div class="landing-feature-icon-ring">
+                        <div class="landing-feature-icon">🔗</div>
+                    </div>
+                    <h3 data-i18n="landing.feature3Title">力链贯通 = 远投轻松</h3>
+                    <p data-i18n="landing.feature3Desc">投篮的力量链从脚→膝→髋→肩→肘→腕，像鞭子一样传递。NBA 球星的关键就是：蓄力完成 → 同步发力 → 顺畅出手，整个链路一气呵成。</p>
                 </div>
             </div>
         </section>
 
         <section class="landing-demo">
-            <h2 class="landing-demo-title" data-i18n="landing.demoTitle">Analysis Example</h2>
+            <h2 class="landing-demo-title" data-i18n="landing.demoTitle">发力连贯性检测示例</h2>
             <div class="landing-demo-container">
-                <div class="landing-demo-frames">
-                    <div class="landing-demo-frame">
-                        <img src="/static/demo_sync_frame_1.jpg" alt="Dip Point" onerror="this.src='https://placehold.co/300x225/1a1f3a/48dbfb?text=Dip+Point'">
-                        <div class="landing-demo-frame-label" data-i18n="phases.sync_frame_1">Dip Point</div>
+                <div class="demo-detection-row">
+                    <div class="demo-detection-label" data-i18n="landing.syncLabel">🦵 手脚同步性检测</div>
+                    <div class="demo-detection-frames">
+                        <div class="demo-frame-pair">
+                            <div class="demo-frame">
+                                <img src="/static/demo_sync_frame_1.jpg" alt="Dip Point" onerror="this.src='https://placehold.co/280x210/1a1f3a/48dbfb?text=Dip+Point'">
+                                <div class="demo-frame-label" data-i18n="landing.demoSyncFrame1">沉球点</div>
+                                <span class="angle-tag" data-i18n="landing.demoSyncAngle1">膝 162°</span>
+                            </div>
+                            <span class="demo-frame-arrow">→</span>
+                            <div class="demo-frame">
+                                <img src="/static/demo_sync_frame_2.jpg" alt="Arm Rise" onerror="this.src='https://placehold.co/280x210/1a1f3a/48dbfb?text=Arm+Rise'">
+                                <div class="demo-frame-label" data-i18n="landing.demoSyncFrame2">手上升后</div>
+                                <span class="angle-tag" data-i18n="landing.demoSyncAngle2">膝 162°</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="landing-demo-frame release">
-                        <img src="/static/demo_release_frame.jpg" alt="Release Point" onerror="this.src='https://placehold.co/300x225/1a1f3a/feca57?text=Release+Point'">
-                        <div class="landing-demo-frame-label">⭐ <span data-i18n="phases.release_frame">Release Point</span></div>
+                    <div class="demo-detection-result">
+                        <span class="demo-result-tag good">✓ <span data-i18n="landing.demoSyncResult">良好</span></span>
+                        <span style="color: rgba(255,255,255,0.6); font-size: 0.85rem;" data-i18n="landing.demoSyncNote">膝盖角度变化正常，手脚时机协调</span>
                     </div>
                 </div>
-                <div class="landing-demo-score">
-                    <div class="landing-demo-score-number">85</div>
-                    <div>
-                        <div class="landing-demo-score-text" data-i18n="ratings.good">Good</div>
-                        <div class="landing-demo-score-note" data-i18n="landing.scoreNote">*For reference only</div>
+                <div class="demo-detection-row">
+                    <div class="demo-detection-label" data-i18n="landing.disconnectLabel">💪 发力脱节检测</div>
+                    <div class="demo-detection-frames">
+                        <div class="demo-frame-pair">
+                            <div class="demo-frame">
+                                <img src="/static/demo_highest_frame.jpg" alt="Highest Hold" onerror="this.src='https://placehold.co/280x210/1a1f3a/feca57?text=Highest+Hold'">
+                                <div class="demo-frame-label" data-i18n="landing.demoDisconnFrame1">最高持球点</div>
+                                <span class="angle-tag warning" data-i18n="landing.demoDisconnAngle1">膝 146°</span>
+                            </div>
+                            <span class="demo-frame-arrow">→</span>
+                            <div class="demo-frame">
+                                <img src="/static/demo_release_frame.jpg" alt="Release" onerror="this.src='https://placehold.co/280x210/1a1f3a/feca57?text=Release'">
+                                <div class="demo-frame-label" data-i18n="landing.demoDisconnFrame2">出手点</div>
+                                <span class="angle-tag" data-i18n="landing.demoDisconnAngle2">膝 172°</span>
+                            </div>
+                        </div>
                     </div>
+                    <div class="demo-detection-result">
+                        <span class="demo-result-tag warning">⚠ <span data-i18n="landing.demoDisconnResult">中等问题</span></span>
+                    </div>
+                    <div class="demo-suggestion" data-i18n="landing.demoDisconnTip">建议：放慢举球速度，等腿蹬伸完成再出手，确保力量从下到上顺畅传递</div>
                 </div>
-                <div class="landing-demo-tip">
-                    <div class="landing-demo-tip-title" data-i18n="landing.tipTitle">💡 Improvement Suggestion Example</div>
-                    <div class="landing-demo-tip-text" data-i18n="landing.tipText">Keep your elbow bent at about 90 degrees during the release phase to ensure smooth power transfer from your legs through your arm to the ball...</div>
-                </div>
-                <div style="text-align: center;">
+                <div style="text-align: center; margin-top: 32px;">
                     <button class="landing-cta-btn" onclick="openAuthModal()">
-                        <span>🎯</span>
-                        <span data-i18n="landing.ctaDemo">Try It Now - Free</span>
+                        <span>🎬</span>
+                        <span data-i18n="landing.ctaDemo">上传视频，免费检测一次</span>
                     </button>
                 </div>
             </div>
         </section>
 
+        <section class="landing-knowledge">
+            <p class="landing-knowledge-text" data-i18n="landing.knowledgeText">投篮不是只靠手臂。力量从<strong>脚→膝→髋→肩→肘→腕</strong>传递，就像甩鞭子——手比鞭身快，力量就散了。你的问题不是力量不够，而是力量没连上。</p>
+            <button class="landing-cta-btn" onclick="openAuthModal()">
+                <span>🔗</span>
+                <span data-i18n="landing.knowledgeCta">检测我的发力连贯性</span>
+            </button>
+        </section>
+
         <section class="landing-pricing">
-            <h2 class="landing-pricing-title" data-i18n="landing.pricingTitle">After free trial, choose your plan:</h2>
+            <h2 class="landing-pricing-title" data-i18n="landing.pricingTitle">Pricing</h2>
             <div class="landing-pricing-plans">
-                <div class="landing-pricing-card">
-                    <div class="landing-pricing-name" data-i18n="landing.monthly">Monthly</div>
-                    <div class="landing-pricing-price">$29<span>/month</span></div>
-                    <div class="landing-pricing-note" data-i18n="landing.unlimited">Unlimited analyses</div>
-                </div>
                 <div class="landing-pricing-card featured">
-                    <div class="landing-pricing-name" data-i18n="landing.yearly">Yearly</div>
-                    <div class="landing-pricing-price">$199<span>/year</span></div>
-                    <div class="landing-pricing-note" data-i18n="landing.save">Save $149</div>
+                    <div class="landing-pricing-name" data-i18n="landing.perAnalysis">Per Analysis</div>
+                    <div class="landing-pricing-price">$1.49<span data-i18n="landing.perTime">/time</span></div>
+                    <div class="landing-pricing-original">$2.99</div>
+                    <div class="landing-pricing-note" data-i18n="landing.v1Discount">V1.0 Launch — 50% Off</div>
+                    <div class="landing-pricing-badge" data-i18n="landing.halfOff">50% OFF</div>
                 </div>
             </div>
         </section>
@@ -2715,7 +3466,7 @@
                 <p id="authModalDesc">Login to save your analysis history</p>
                 <div class="auth-free-trial-badge" id="authFreeTrialBadge" style="display: block;">
                     <span>🎉</span>
-                    <span data-i18n="auth.freeTrial">New users get 3 free analyses!</span>
+                    <span data-i18n="auth.freeTrial">New users get 2 free analyses!</span>
                 </div>
             </div>
             <div class="auth-error" id="authError"></div>
@@ -2738,6 +3489,37 @@
         </div>
     </div>
 
+    <!-- 购买 Credits 模态框 -->
+    <div class="payment-modal" id="paymentModal">
+        <div class="payment-modal-content">
+            <button class="payment-close-btn" onclick="closePaymentModal()">&times;</button>
+            <div class="payment-modal-header">
+                <h2 data-i18n="payment.title">Buy Analysis Credit</h2>
+                <p data-i18n="payment.subtitle">One analysis per purchase</p>
+            </div>
+            <div class="payment-success-notice" id="paymentSuccessNotice">
+                <div class="payment-success-icon">&#10003;</div>
+                <div class="payment-success-text" data-i18n="payment.successTitle">Payment Successful!</div>
+                <div class="payment-success-sub" data-i18n="payment.successSub">Your credit has been added</div>
+            </div>
+            <div class="payment-plans" id="paymentPlans">
+                <div class="payment-single-card">
+                    <div class="payment-price-row">
+                        <span class="payment-original-price">$2.99</span>
+                        <span class="payment-price-amount">$1.49</span>
+                        <span class="payment-price-unit" data-i18n="payment.perTime">/time</span>
+                    </div>
+                    <div class="payment-price-row" style="margin-bottom: 12px;">
+                        <span class="payment-discount-badge" data-i18n="payment.discount">50% OFF</span>
+                    </div>
+                    <div class="payment-price-desc" data-i18n="payment.desc">1 shot analysis credit</div>
+                    <button class="payment-buy-btn" id="paymentBuyBtn" onclick="handlePurchase(this)">Buy Now</button>
+                </div>
+            </div>
+            <div class="payment-footer" data-i18n="payment.footer">Secured by Creem</div>
+        </div>
+    </div>
+
     <!-- 登录提示弹窗 -->
     <div class="login-prompt-modal" id="loginPromptModal">
         <div class="login-prompt-content">
@@ -2753,26 +3535,35 @@
 
     <div class="container">
         <header>
-            <!-- 登录状态区域 -->
-            <div class="auth-section">
-                <div class="auth-status" id="authStatus">
-                    <!-- 未登录时显示登录按钮 -->
-                    <button class="login-btn" id="loginBtn" onclick="openAuthModal()" style="display: none;">
-                        Login
+            <div class="header-title-group">
+                <h1 data-i18n="title">🏀 Basketball Shooting Form Analyzer</h1>
+                <p data-i18n="subtitle">Upload your shooting video to get professional form analysis and improvement suggestions</p>
+            </div>
+            <div class="header-actions" id="authStatus">
+                <!-- 历史记录按钮 -->
+                <button class="action-btn history-btn" id="historyBtn" onclick="showHistory()">
+                    📊 <span data-i18n="history.title">History</span>
+                </button>
+                <!-- 未登录时显示登录按钮 -->
+                <button class="login-btn" id="loginBtn" onclick="openAuthModal()" style="display: none;">
+                    Login
+                </button>
+                <!-- 已登录时显示用户头像和下拉菜单 -->
+                <div class="user-info" id="userInfo" style="display: none;">
+                    <button class="user-avatar-btn" id="userAvatarBtn" onclick="toggleUserMenu()">
+                        <span id="userAvatar">U</span>
                     </button>
-                    <!-- 已登录时显示用户信息和登出按钮 -->
-                    <div class="user-info" id="userInfo" style="display: none;">
-                        <span class="user-email" id="userEmail"></span>
-                        <button class="logout-btn" onclick="handleLogout()">Logout</button>
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="user-dropdown-email" id="userEmail"></div>
+                        <button class="user-dropdown-logout" onclick="openPaymentModal()" style="color: #48dbfb;">
+                            <span>💎</span> <span data-i18n="payment.buyCredits">Buy Credits</span>
+                        </button>
+                        <button class="user-dropdown-logout" onclick="handleLogout()">
+                            <span>🚪</span> Logout
+                        </button>
                     </div>
-                    <!-- 历史记录按钮（登录后显示） -->
-                    <button class="history-btn" id="historyBtn" onclick="showHistory()" style="display: none;">
-                        📊 History
-                    </button>
                 </div>
             </div>
-            <h1 data-i18n="title">🏀 Basketball Shooting Form Analyzer</h1>
-            <p data-i18n="subtitle">Upload your shooting video to get professional form analysis and improvement suggestions</p>
         </header>
 
         <div class="main-content">
@@ -2784,7 +3575,7 @@
                     <div class="upload-area" id="uploadArea">
                         <div class="upload-icon">📹</div>
                         <p data-i18n="upload.clickOrDrag">Click or drag video here</p>
-                        <p class="hint" data-i18n="upload.hint">Supports MP4, MOV, AVI, WebM<br>Max 50MB</p>
+                        <p class="hint" data-i18n="upload.hint">Supports MP4, MOV, AVI, WebM<br>Max 10MB</p>
                     </div>
                     <input type="file" id="fileInput" accept="video/*">
 
@@ -2796,42 +3587,14 @@
                         </div>
                     </div>
 
-                    <div class="option-group">
-                        <label data-i18n="upload.analysisType">Analysis Type</label>
-                        <div class="radio-group">
-                            <label class="radio-option">
-                                <input type="radio" name="analysis_type" value="analyze" checked id="typeAnalyze">
-                                <span data-i18n="upload.typeAnalyze">Analyze Shooting</span>
-                            </label>
-                            <label class="radio-option" id="typeTemplateOption" style="display: none;">
-                                <input type="radio" name="analysis_type" value="create_template" id="typeTemplate">
-                                <span data-i18n="upload.typeTemplate">Create Template</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- 模板名称输入（创建模板时显示） -->
-                    <div class="option-group" id="templateNameGroup" style="display: none;">
-                        <label data-i18n="upload.templateName">Template Name</label>
-                        <input type="text" id="templateNameInput" placeholder="e.g., Curry Shooting, My Best Shot"
-                               data-i18n-placeholder="upload.templateNamePlaceholder"
-                               style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-size: 1rem;">
-                        <input type="text" id="templateDescInput" placeholder="Description (optional)"
-                               data-i18n-placeholder="upload.templateDescPlaceholder"
-                               style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-size: 0.95rem; margin-top: 8px;">
-                    </div>
-
                     <!-- 模板选择（分析投篮时显示） -->
-                    <div class="option-group" id="templateSelectGroup">
+                    <div class="option-group" id="templateSelectGroup" style="display: none;">
                         <label data-i18n="upload.compareTemplate">Compare Template (optional)</label>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <select id="templateSelect" 
+                            <select id="templateSelect"
                                     style="flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; font-size: 1rem;">
                                 <option value="" data-i18n="upload.noTemplate">No Template</option>
                             </select>
-                            <button id="manageTemplatesBtn" type="button" class="admin-only-btn" style="display: none; padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: white; font-size: 0.9rem; cursor: pointer; white-space: nowrap; transition: all 0.3s;">
-                                <span data-i18n="upload.manageTemplates">📋 Manage</span>
-                            </button>
                         </div>
                     </div>
 
@@ -2846,30 +3609,6 @@
                                 <input type="radio" name="shooting_hand" value="left">
                                 <span data-i18n="upload.leftHand">Left</span>
                             </label>
-                        </div>
-                    </div>
-
-                    <div class="option-group" id="shootingStyleGroup">
-                        <label data-i18n="upload.shootingStyle">Shooting Style</label>
-                        <div class="radio-group" style="flex-direction: column; gap: 10px;">
-                            <label class="radio-option">
-                                <input type="radio" name="shooting_style" value="one_motion" checked>
-                                <span data-i18n="upload.oneMotion">One Motion (Fluid)</span>
-                            </label>
-                            <label class="radio-option">
-                                <input type="radio" name="shooting_style" value="two_motion">
-                                <span data-i18n="upload.twoMotion">Two Motion (Traditional)</span>
-                            </label>
-                        </div>
-                        <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem;">
-                            <div style="margin-bottom: 5px;">
-                                <strong style="color: #48dbfb;" data-i18n="upload.oneMotionLabel">One Motion:</strong>
-                                <span data-i18n="upload.oneMotionDesc">Quick and fluid, seamless release (e.g., Curry)</span>
-                            </div>
-                            <div>
-                                <strong style="color: #feca57;" data-i18n="upload.twoMotionLabel">Two Motion:</strong>
-                                <span data-i18n="upload.twoMotionDesc">Pause at set point, stable release (e.g., Kobe)</span>
-                            </div>
                         </div>
                     </div>
 
@@ -2902,8 +3641,8 @@
                                 <div class="stat-value" id="analyzedCount">0</div>
                                 <div class="stat-label" data-i18n="welcome.analyzed">Analyses Done</div>
                             </div>
-                            <div class="stat-card free-trial">
-                                <div class="stat-value" id="freeTrialCount">3</div>
+                            <div class="stat-card free-trial" onclick="openPaymentModal()" style="cursor: pointer;" title="Buy more credits">
+                                <div class="stat-value" id="freeTrialCount">2</div>
                                 <div class="stat-label" data-i18n="welcome.freeRemaining">Free Trials Left</div>
                             </div>
                         </div>
@@ -2920,15 +3659,15 @@
                 </div>
 
                 <div class="results-container" id="resultsContainer">
+                    <!-- 返回历史按钮（从历史查看时显示） -->
+                    <button class="result-back-to-history" id="backToHistoryBtn" onclick="backToHistory()">
+                        ← <span data-i18n="history.back">Back to History</span>
+                    </button>
+
                     <!-- 导出按钮 -->
                     <div class="export-section">
-                        <button class="btn-export" id="exportPdfBtn" onclick="exportPDF()">
-                            <span class="icon">📄</span>
-                            <span data-i18n="export.pdf">Export PDF Report</span>
-                            <span class="login-required-hint" id="pdfLoginHint" style="display: none;">🔒</span>
-                        </button>
-                        <button class="btn-export btn-export-image" id="exportImagesBtn" onclick="showExportImagesModal()">
-                            <span class="icon">🖼️</span>
+                        <button class="btn-export btn-export-image" id="exportImagesBtn" onclick="exportShareCard()">
+                            <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
                             <span data-i18n="export.images">Export Images</span>
                             <span class="login-required-hint" id="imagesLoginHint" style="display: none;">🔒</span>
                         </button>
@@ -3021,6 +3760,20 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 历史记录视图 -->
+                <div class="history-view" id="historyView">
+                    <div class="history-header">
+                        <h2 data-i18n="history.title">Analysis History</h2>
+                        <button class="history-back-btn" onclick="hideHistory()" data-i18n="history.backToUpload">Back</button>
+                    </div>
+                    <div id="historyContent">
+                        <div class="history-loading">
+                            <div class="spinner"></div>
+                            <p data-i18n="history.loading">Loading...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -3050,30 +3803,16 @@
         <button class="lightbox-nav next" id="lightboxNext">›</button>
     </div>
 
-    <!-- 模板管理对话框 -->
-    <div class="template-modal" id="templateModal">
-        <div class="template-modal-content">
-            <div class="template-modal-header">
-                <h2 data-i18n="template.manageTitle">Template Management</h2>
-                <button class="template-modal-close" id="templateModalClose">✕</button>
-            </div>
-            <div class="template-modal-body" id="templateModalBody">
-                <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">
-                    <div class="spinner" style="margin: 0 auto 16px;"></div>
-                    <div data-i18n="template.loading">Loading...</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // ==================== Supabase 配置 ====================
-        const SUPABASE_URL = 'https://cfsabjichjyzjraarrjh.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmc2FiamljaGp5empyYWFycmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5Mjg4OTcsImV4cCI6MjA5NDUwNDg5N30.4x7sU66DLNezLJNVwXGBTQv0X2G5QmsKGKcGhf-d2EU';
+        // ==================== Supabase 配置（由后端注入） ====================
+        const SUPABASE_URL = '{{SUPABASE_URL}}';
+        const SUPABASE_ANON_KEY = '{{SUPABASE_ANON_KEY}}';
 
         let supabaseClient = null;
         let currentUser = null;
         let isAuthModeLogin = true; // true = 登录, false = 注册
+        let creditsRemaining = 0;
+        let creditsUnlimited = false;
 
         // 初始化 Supabase 客户端
         function initSupabase() {
@@ -3081,10 +3820,24 @@
                 try {
                     supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                     console.log('[Supabase] Client initialized');
+
+                    // 监听认证状态变化（邮箱验证回调等）
+                    supabaseClient.auth.onAuthStateChange((event, session) => {
+                        if (event === 'SIGNED_IN' && session && session.user) {
+                            const email = session.user.email;
+                            console.log('[Supabase] Auth state changed:', event, email);
+                            currentUser = session.user;
+                            showLoggedInState(email, false);
+                        } else if (event === 'SIGNED_OUT') {
+                            currentUser = null;
+                            showLoginButton();
+                        }
+                    });
+
                     checkAuthState();
                 } catch (e) {
                     console.error('[Supabase] Init failed:', e);
-                    showLoginButton(); // 显示登录按钮但可能功能受限
+                    showLoginButton();
                 }
             } else {
                 console.log('[Supabase] Not configured, running in guest mode');
@@ -3094,7 +3847,24 @@
 
         // 检查认证状态
         async function checkAuthState() {
-            // 先检查本地用户登录状态（localStorage）
+            // 优先检查 Supabase session
+            if (supabaseClient) {
+                try {
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (session && session.user) {
+                        // Supabase 有有效 session，清除旧的 localUser
+                        localStorage.removeItem('localUser');
+                        currentUser = session.user;
+                        showLoggedInState(session.user.email, false);
+                        console.log('[Auth] Restored Supabase session:', session.user.email);
+                        return;
+                    }
+                } catch (e) {
+                    console.error('[Supabase] Check auth failed:', e);
+                }
+            }
+
+            // Supabase 无 session，再检查本地用户
             const localUser = localStorage.getItem('localUser');
             if (localUser) {
                 try {
@@ -3108,26 +3878,9 @@
                 }
             }
 
-            // 检查 Supabase session
-            if (!supabaseClient) {
-                currentUser = null;
-                showLoginButton();
-                return;
-            }
-
-            try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session && session.user) {
-                    currentUser = session.user;
-                    showLoggedInState(currentUser.email, false);  // Supabase 用户不是管理员
-                } else {
-                    currentUser = null;
-                    showLoginButton();
-                }
-            } catch (e) {
-                console.error('[Supabase] Check auth failed:', e);
-                showLoginButton();
-            }
+            // 均未登录
+            currentUser = null;
+            showLoginButton();
         }
 
         // 显示已登录状态
@@ -3141,26 +3894,19 @@
             document.getElementById('loginBtn').style.display = 'none';
             document.getElementById('userInfo').style.display = 'flex';
             document.getElementById('userEmail').textContent = email;
-            document.getElementById('historyBtn').classList.add('show');
-
-            // 管理员专属功能显示控制
-            const typeTemplateOption = document.getElementById('typeTemplateOption');
-            const manageTemplatesBtn = document.getElementById('manageTemplatesBtn');
-
-            if (isAdmin) {
-                // 管理员：显示创建模板和管理模板按钮
-                if (typeTemplateOption) typeTemplateOption.style.display = 'flex';
-                if (manageTemplatesBtn) manageTemplatesBtn.style.display = 'block';
-            } else {
-                // 普通用户：隐藏这些功能
-                if (typeTemplateOption) typeTemplateOption.style.display = 'none';
-                if (manageTemplatesBtn) manageTemplatesBtn.style.display = 'none';
-            }
+            // 设置头像首字母
+            const initial = email.charAt(0).toUpperCase();
+            document.getElementById('userAvatar').textContent = initial;
 
             currentUser = { email, isAdmin };
 
             // 隐藏导出按钮的登录提示
             updateExportButtonsLoginHint();
+
+            // 先显示加载状态，再获取真实次数
+            const countEl = document.getElementById('freeTrialCount');
+            if (countEl) countEl.textContent = '--';
+            fetchCredits();
 
             // 移除分析完成后的登录引导（如果存在）
             const guidance = document.querySelector('.login-guidance');
@@ -3177,17 +3923,47 @@
 
             document.getElementById('loginBtn').style.display = 'none';  // 落地页有自己的登录按钮
             document.getElementById('userInfo').style.display = 'none';
-            document.getElementById('historyBtn').classList.remove('show');
             currentUser = null;
-
-            // 隐藏管理员专属功能
-            const typeTemplateOption = document.getElementById('typeTemplateOption');
-            const manageTemplatesBtn = document.getElementById('manageTemplatesBtn');
-            if (typeTemplateOption) typeTemplateOption.style.display = 'none';
-            if (manageTemplatesBtn) manageTemplatesBtn.style.display = 'none';
 
             // 显示导出按钮的登录提示
             updateExportButtonsLoginHint();
+        }
+
+        // 切换用户下拉菜单
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('active');
+        }
+
+        // 点击外部关闭下拉菜单
+        document.addEventListener('click', function(e) {
+            const userDropdown = document.getElementById('userDropdown');
+            const userAvatarBtn = document.getElementById('userAvatarBtn');
+            if (userDropdown && !userDropdown.contains(e.target) && !userAvatarBtn.contains(e.target)) {
+                userDropdown.classList.remove('active');
+            }
+        });
+
+        // 获取用户剩余分析次数
+        async function fetchCredits() {
+            try {
+                const headers = await getAuthHeaders();
+                const response = await fetch('/api/v1/auth/credits', { headers });
+                if (response.ok) {
+                    const data = await response.json();
+                    creditsRemaining = data.credits_remaining;
+                    creditsUnlimited = data.is_unlimited;
+                    // 更新 UI
+                    const countEl = document.getElementById('freeTrialCount');
+                    if (countEl) {
+                        countEl.textContent = creditsUnlimited ? '∞' : creditsRemaining;
+                    }
+                    return data;
+                }
+            } catch (e) {
+                console.error('[Credits] Fetch failed:', e);
+            }
+            return null;
         }
 
         // 打开登录/注册模态框
@@ -3202,6 +3978,97 @@
             document.getElementById('authModal').classList.remove('active');
             document.body.style.overflow = '';
         }
+
+        // ===== 购买 Credits 模态框 =====
+
+        async function openPaymentModal() {
+            if (!currentUser) {
+                openAuthModal();
+                return;
+            }
+            document.getElementById('paymentModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        async function handlePurchase(btnEl) {
+            if (btnEl.classList.contains('loading')) return;
+
+            btnEl.classList.add('loading');
+            const originalText = btnEl.textContent;
+            btnEl.textContent = t('payment.buying');
+
+            try {
+                const headers = await getAuthHeaders();
+                const response = await fetch('/api/v1/payment/checkout', {
+                    method: 'POST',
+                    headers: { ...headers, 'Content-Type': 'application/json' },
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    alert(data.detail || 'Failed to create checkout');
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.checkout_url) {
+                    window.location.href = data.checkout_url;
+                } else {
+                    alert('No checkout URL received');
+                }
+            } catch (e) {
+                console.error('Purchase failed:', e);
+                alert('Purchase failed. Please try again.');
+            } finally {
+                btnEl.classList.remove('loading');
+                btnEl.textContent = originalText;
+            }
+        }
+
+        // 检查支付成功回调
+        function checkPaymentSuccess() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('payment') === 'success') {
+                // 清除 URL 参数
+                window.history.replaceState({}, '', '/app');
+                // 显示成功通知
+                showPaymentSuccess();
+                // 刷新 credits
+                fetchCredits();
+            }
+        }
+
+        function showPaymentSuccess() {
+            const notice = document.getElementById('paymentSuccessNotice');
+            const plans = document.getElementById('paymentPlans');
+            if (notice) {
+                notice.classList.add('show');
+            }
+            // 隐藏购买方案，只显示成功通知
+            if (plans) {
+                plans.style.display = 'none';
+            }
+            // 打开 payment modal
+            openPaymentModal();
+            // 5秒后关闭
+            setTimeout(() => {
+                closePaymentModal();
+                // 恢复购买方案显示
+                if (plans) plans.style.display = '';
+                if (notice) notice.classList.remove('show');
+            }, 5000);
+        }
+
+        // 支付弹窗：点遮罩关闭
+        document.getElementById('paymentModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closePaymentModal();
+        });
 
         // 重置表单
         function resetAuthForm() {
@@ -3473,13 +4340,183 @@
             }
         }
 
-        // 显示历史记录（暂未实现，可后续添加）
-        function showHistory() {
-            alert('History feature is under development...');
+        // ==================== 历史记录功能 ====================
+
+        let isViewingFromHistory = false; // 标记是否从历史查看结果
+
+        // 显示历史记录
+        async function showHistory() {
+            const emptyState = document.getElementById('emptyState');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const historyView = document.getElementById('historyView');
+            const historyContent = document.getElementById('historyContent');
+
+            // 切换视图
+            emptyState.style.display = 'none';
+            resultsContainer.style.display = 'none';
+            historyView.style.display = 'block';
+
+            // 显示加载状态
+            historyContent.innerHTML = `
+                <div class="history-loading">
+                    <div class="spinner"></div>
+                    <p data-i18n="history.loading">${currentLang === 'zh-CN' ? '加载中...' : 'Loading...'}</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/v1/videos/history?limit=20');
+                if (!response.ok) throw new Error('Failed to fetch history');
+                const history = await response.json();
+                renderHistoryList(history);
+            } catch (err) {
+                historyContent.innerHTML = `
+                    <div class="history-empty">
+                        <div class="icon">⚠️</div>
+                        <p>${currentLang === 'zh-CN' ? '加载失败，请重试' : 'Failed to load, please retry'}</p>
+                    </div>
+                `;
+            }
         }
+
+        // 渲染历史列表
+        function renderHistoryList(history) {
+            const historyContent = document.getElementById('historyContent');
+            const t = i18n[currentLang]?.history || i18n['en-US'].history;
+
+            if (!history || history.length === 0) {
+                historyContent.innerHTML = `
+                    <div class="history-empty">
+                        <div class="icon">📊</div>
+                        <p>${t.empty}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="history-list">';
+            history.forEach(item => {
+                const statusBadge = item.status === 'completed'
+                    ? `<span class="history-item-badge completed">${currentLang === 'zh-CN' ? '已完成' : 'Completed'}</span>`
+                    : `<span class="history-item-badge failed">${currentLang === 'zh-CN' ? '失败' : 'Failed'}</span>`;
+
+                const dateStr = item.created_at
+                    ? new Date(item.created_at).toLocaleString(currentLang === 'zh-CN' ? 'zh-CN' : 'en-US')
+                    : '';
+
+                const durationStr = item.duration
+                    ? `${item.duration.toFixed(1)}s`
+                    : '';
+
+                const issuesStr = item.issues_count > 0
+                    ? `<span class="history-item-issues"><span class="detected">${item.issues_detected}</span>/${item.issues_count} ${currentLang === 'zh-CN' ? '个问题' : 'issues'}</span>`
+                    : `<span class="history-item-issues">${currentLang === 'zh-CN' ? '无问题' : 'No issues'}</span>`;
+
+                html += `
+                    <div class="history-item" onclick="viewHistoryDetail('${item.task_id}')">
+                        <div class="history-item-info">
+                            <div class="history-item-title">${item.video_filename || 'unknown'}</div>
+                            <div class="history-item-meta">
+                                ${statusBadge}
+                                ${dateStr}
+                                ${durationStr}
+                                ${issuesStr}
+                            </div>
+                        </div>
+                        <div class="history-item-actions" onclick="event.stopPropagation()">
+                            <button class="history-item-view" onclick="viewHistoryDetail('${item.task_id}')">${t.viewDetail}</button>
+                            <button class="history-item-delete" onclick="deleteHistoryItem('${item.task_id}')">${t.delete}</button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            historyContent.innerHTML = html;
+        }
+
+        // 隐藏历史记录
+        function hideHistory() {
+            const emptyState = document.getElementById('emptyState');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const historyView = document.getElementById('historyView');
+
+            historyView.style.display = 'none';
+            isViewingFromHistory = false;
+
+            // 如果有上次分析结果，显示结果；否则显示空状态
+            if (resultsContainer.style.display === 'block' || currentTaskId) {
+                resultsContainer.style.display = 'block';
+            } else {
+                emptyState.style.display = 'block';
+            }
+        }
+
+        // 查看历史记录详情
+        async function viewHistoryDetail(taskId) {
+            const emptyState = document.getElementById('emptyState');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const historyView = document.getElementById('historyView');
+            const backBtn = document.getElementById('backToHistoryBtn');
+
+            try {
+                const response = await fetch(`/api/v1/videos/tasks/${taskId}/result`);
+                if (!response.ok) throw new Error('Failed to fetch result');
+                const result = await response.json();
+
+                // 切换视图：隐藏历史，显示结果
+                historyView.style.display = 'none';
+                emptyState.style.display = 'none';
+                resultsContainer.style.display = 'block';
+                backBtn.style.display = 'inline-flex';
+                isViewingFromHistory = true;
+
+                // 设置当前任务 ID（供导出功能使用）
+                currentTaskId = taskId;
+
+                // 复用现有的结果展示函数
+                displayResults(result);
+
+                // 滚动到结果区域
+                resultsContainer.scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                alert(currentLang === 'zh-CN' ? '加载分析结果失败' : 'Failed to load analysis result');
+            }
+        }
+
+        // 返回历史列表
+        function backToHistory() {
+            document.getElementById('backToHistoryBtn').style.display = 'none';
+            isViewingFromHistory = false;
+            showHistory();
+        }
+
+        // 删除历史记录
+        async function deleteHistoryItem(taskId) {
+            const t = i18n[currentLang]?.history || i18n['en-US'].history;
+            if (!confirm(t.deleteConfirm)) return;
+
+            try {
+                await fetch(`/api/v1/videos/tasks/${taskId}`, { method: 'DELETE' });
+                // 刷新列表
+                showHistory();
+            } catch (err) {
+                alert(currentLang === 'zh-CN' ? '删除失败' : 'Delete failed');
+            }
+        }
+
 
         // 页面加载时初始化
         initSupabase();
+
+        // 处理 Supabase 邮箱验证回调（URL hash 中带 access_token）
+        (function handleAuthCallback() {
+            const hash = window.location.hash;
+            if (hash && hash.includes('access_token')) {
+                // Supabase client 会自动从 hash 中解析 session
+                // 清除 hash 避免 token 残留在地址栏
+                history.replaceState(null, '', window.location.pathname);
+            }
+        })();
 
         // ==================== 国际化支持 ====================
         const i18n = {
@@ -3489,7 +4526,7 @@
                 upload: {
                     title: '上传视频',
                     clickOrDrag: '点击或拖拽视频到这里',
-                    hint: '支持 MP4, MOV, AVI, WebM<br>最大 50MB',
+                    hint: '支持 MP4, MOV, AVI, WebM<br>最大 10MB',
                     analysisType: '分析类型',
                     typeAnalyze: '分析投篮',
                     typeTemplate: '创建模板',
@@ -3546,10 +4583,16 @@
                     suggestions: '改进建议',
                     coordination: '发力连贯性检测',
                     handFootSync: '手脚同步性',
+                    handFootSyncPrinciple: '检测手开始上升时脚是否还在继续下蹲。对比沉球点和手上升后的膝盖角度变化。',
                     powerDisconnect: '发力脱节',
+                    powerDisconnectPrinciple: '检测手举到最高点时腿是否已完成蹬伸。检查最高持球点的膝盖角度是否接近伸直(>165°)。',
                     detecting: '检测中...',
                     clickToZoom: '点击放大 🔍',
-                    downloadVideo: '点击下载'
+                    downloadVideo: '点击下载',
+                    kneeAngle: '膝盖角度',
+                    frame: '帧',
+                    keyframeNotGenerated: '关键帧未生成',
+                    insufficientVideo: '视频时长不足以检测手上升后状态'
                 },
                 coordination: {
                     good: '✓ 良好',
@@ -3573,35 +4616,58 @@
                     fair: '一般',
                     needs_improvement: '需改进'
                 },
+                history: {
+                    title: '分析历史',
+                    empty: '暂无分析记录',
+                    back: '返回历史',
+                    backToUpload: '返回',
+                    viewDetail: '查看详情',
+                    delete: '删除',
+                    deleteConfirm: '确定删除这条记录？',
+                    loading: '加载中...'
+                },
                 progress: {
                     preparing: '准备中...',
                     uploading: '上传视频...',
                     analyzing: '正在分析视频...',
-                    processing: '处理中...'
+                    processing: '处理中...',
+                    extractingInfo: '正在提取视频信息...',
+                    detectingPose: '正在进行姿态检测...',
+                    evaluating: '正在评估投篮姿势...',
+                    generatingKeyframes: '正在生成关键帧...',
+                    generatingVideo: '正在生成标注视频...',
+                    finishing: '正在完成分析...',
+                    complete: '分析完成'
                 },
                 errors: {
                     uploadFailed: '上传失败',
                     analysisFailed: '分析失败',
                     invalidFormat: '请上传支持的视频格式 (MP4, MOV, AVI, WebM)',
-                    fileTooLarge: '文件大小超过 50MB 限制',
+                    fileTooLarge: '文件大小超过 20MB 限制',
+                    videoTooLong: '视频时长超过 10 秒限制，请上传 10 秒以内的短视频',
+                    noCredits: '免费分析次数已用完，请购买更多分析次数',
                     unknownError: '未知错误'
                 },
                 export: {
                     pdf: '导出PDF报告',
                     exporting: '正在生成PDF...',
                     success: 'PDF导出成功！',
-                    failed: 'PDF导出失败',
+                    failed: '导出失败',
                     images: '导出图片',
                     keyframes: '关键帧图片',
-                    keyframesDesc: '导出所有关键帧图片（准备、上升、出手、跟随）',
+                    keyframesDesc: '导出各阶段关键帧卡片',
                     comparisons: '对比图片',
-                    comparisonsDesc: '导出并排对比图片（你的投篮 vs 模板）',
+                    comparisonsDesc: '导出对比分析图片',
                     allImages: '所有图片',
                     allImagesDesc: '导出关键帧和对比图片',
-                    shareCardSuccess: '📱 分享卡片导出成功！',
+                    shareCardSuccess: '分享卡片导出成功',
                     shareCardFailed: '分享卡片导出失败',
-                    shareCard: '📱 分享卡片',
-                    shareCardDesc: '导出一张精美的长图，包含所有阶段对比和改进建议，适合发朋友圈/社交媒体'
+                    shareCard: '分享卡片',
+                    shareCardDesc: '导出技术分析长图，含关键帧与数据分析，适合社交媒体分享',
+                    recommended: '推荐',
+                    technicalAnalysis: '导出',
+                    yourForm: '你的动作',
+                    reference: '参考模板'
                 },
                 demo: {
                     label: '演示示例 - 体验分析效果',
@@ -3618,39 +4684,82 @@
                     contact: '联系我们'
                 },
                 landing: {
-                    title: 'AI 篮球投篮姿势分析',
-                    subtitle: '专业级投篮姿势分析，BEEF 评分系统、关键帧标注、NBA 球员模板对比，助你提升投篮技术！',
-                    cta: '开始免费试用',
-                    ctaDemo: '立即体验 - 免费',
-                    benefit1: '免费试用 3 次',
-                    benefit2: '无需信用卡',
-                    benefit3: '即刻开始',
-                    featuresTitle: '核心功能',
-                    feature1Title: '姿势检测',
-                    feature1Desc: 'AI 视觉技术追踪 33 个身体关键点',
-                    feature2Title: 'BEEF 评分',
-                    feature2Desc: 'Balance, Eyes, Elbow, Follow-through - NBA 标准评估体系',
-                    feature3Title: '模板对比',
-                    feature3Desc: '与 NBA 球员投篮模板进行对比分析',
-                    feature4Title: '专业报告',
-                    feature4Desc: '导出 PDF 报告，详细改进建议',
-                    demoTitle: '分析结果示例',
-                    scoreNote: '*仅供参考',
-                    tipTitle: '💡 改进建议示例',
-                    tipText: '出手时肘部应保持约90度弯曲，确保力量从腿部顺畅传递到手臂再到篮球...',
-                    pricingTitle: '免费试用后，选择您的订阅方案：',
-                    monthly: '月度会员',
-                    yearly: '年度会员',
-                    unlimited: '无限次分析',
-                    save: '省 $149'
+                    title: '两分随便投，一到三分线外就 Air Ball？不是力量不够，是发力不够连贯。',
+                    subtitle: 'AI 分析你的手腿协调性，检测手脚同步问题 & 发力脱节，给出精准改进建议',
+                    cta: '上传视频，免费分析 2 次',
+                    ctaDemo: '上传视频，免费分析 2 次',
+                    benefit1: '30秒出结果',
+                    benefit2: '2 次免费试用',
+                    benefit3: '检测你最不知道的问题',
+                    featuresTitle: '你的问题可能在这里',
+                    feature1Title: '手快脚慢？',
+                    feature1Desc: '手开始举球时脚还在下蹲蓄力——力量断层，出手没力。我们精确检测沉球点的膝盖角度变化，告诉你时机是否对。',
+                    feature2Title: '手等脚蹬？',
+                    feature2Desc: '手举到最高点时腿还没蹬直——力量传递中断，全靠手臂。我们检测最高持球点的膝盖伸展度，看力链是否贯通。',
+                    feature3Title: '力链贯通 = 远投轻松',
+                    feature3Desc: '投篮的力量链从脚→膝→髋→肩→肘→腕，像鞭子一样传递。NBA 球星的关键就是：蓄力完成 → 同步发力 → 顺畅出手，整个链路一气呵成。',
+                    frame1Label: '沉球点',
+                    frame1Angle: '膝 115°',
+                    frame2Label: '手上升',
+                    frame2Angle: '膝 110°',
+                    frame3Label: '最高持球',
+                    frame3Angle: '膝 140°',
+                    frame4Label: '出手点',
+                    frame4Angle: '膝 170°',
+                    demoTitle: '发力连贯性检测示例',
+                    syncLabel: '🦵 手脚同步性检测',
+                    disconnectLabel: '💪 发力脱节检测',
+                    demoSyncFrame1: '沉球点',
+                    demoSyncAngle1: '膝 162°',
+                    demoSyncFrame2: '手上升后',
+                    demoSyncAngle2: '膝 162°',
+                    demoSyncResult: '良好',
+                    demoSyncNote: '膝盖角度变化正常，手脚时机协调',
+                    demoDisconnFrame1: '最高持球点',
+                    demoDisconnAngle1: '膝 146°',
+                    demoDisconnFrame2: '出手点',
+                    demoDisconnAngle2: '膝 172°',
+                    demoDisconnResult: '中等问题',
+                    demoDisconnTip: '建议：放慢举球速度，等腿蹬伸完成再出手，确保力量从下到上顺畅传递',
+                    knowledgeText: '投篮不是只靠手臂。力量从<strong>脚→膝→髋→肩→肘→腕</strong>传递，就像甩鞭子——手比鞭身快，力量就散了。你的问题不是力量不够，而是力量没连上。',
+                    knowledgeCta: '检测我的发力连贯性',
+                    guideTitle: '如何拍摄分析视频',
+                    guideSubtitle: '拍得好，才能分析得准',
+                    guideTip1Title: '侧身拍摄',
+                    guideTip1Desc: '手机放在投篮手一侧，拍摄侧面全身动作，看清手臂和腿部角度',
+                    guideTip2Title: '人物占画面 60% 以上',
+                    guideTip2Desc: '不要站太远，让投篮者占据画面大部分，保证关节检测精度',
+                    guideTip3Title: '完整的投篮过程',
+                    guideTip3Desc: '从准备姿势拍到随球动作结束，至少包含完整的出手过程',
+                    guideTip4Title: '光线充足，背景简洁',
+                    guideTip4Desc: '避免逆光和杂乱背景，确保身体轮廓清晰可辨',
+                    pricingTitle: '价格',
+                    perAnalysis: '按次分析',
+                    perTime: '/次',
+                    v1Discount: 'V1.0 上线 — 五折优惠',
+                    halfOff: '五折优惠'
                 },
                 auth: {
-                    freeTrial: '新用户可获得 3 次免费分析！'
+                    freeTrial: '新用户可获得 2 次免费分析！'
+                },
+                payment: {
+                    title: '购买分析次数',
+                    subtitle: '选择适合你的方案',
+                    buyCredits: '购买次数',
+                    buy: '购买',
+                    buying: '处理中...',
+                    popular: '最划算',
+                    credits: '次',
+                    perCredit: '/次',
+                    successTitle: '支付成功！',
+                    successSub: '分析次数已到账',
+                    footer: '由 Creem 安全支付',
+                    noProducts: '暂无可购买的方案'
                 },
                 welcome: {
                     title: '准备开始分析',
                     analyzed: '已完成分析',
-                    freeRemaining: '剩余免费次数',
+                    freeRemaining: '剩余次数',
                     guideText: '上传您的投篮视频，获取专业的姿势分析报告',
                     uploadBtn: '上传视频'
                 }
@@ -3661,7 +4770,7 @@
                 upload: {
                     title: 'Upload Video',
                     clickOrDrag: 'Click or drag video here',
-                    hint: 'Supports MP4, MOV, AVI, WebM<br>Max 50MB',
+                    hint: 'Supports MP4, MOV, AVI, WebM<br>Max 10MB',
                     analysisType: 'Analysis Type',
                     typeAnalyze: 'Analyze Shooting',
                     typeTemplate: 'Create Template',
@@ -3718,10 +4827,16 @@
                     suggestions: 'Improvement Suggestions',
                     coordination: 'Power Coordination Analysis',
                     handFootSync: 'Hand-Foot Sync',
+                    handFootSyncPrinciple: 'Detect if feet are still squatting when hands start rising. Compare knee angle changes between dip point and after arm rise.',
                     powerDisconnect: 'Power Disconnect',
+                    powerDisconnectPrinciple: 'Detect if legs have finished pushing when arms reach the highest hold. Check if knee angle at max hold is near full extension (>165°).',
                     detecting: 'Detecting...',
                     clickToZoom: 'Click to zoom 🔍',
-                    downloadVideo: 'Click to download'
+                    downloadVideo: 'Click to download',
+                    kneeAngle: 'Knee Angle',
+                    frame: 'Frame',
+                    keyframeNotGenerated: 'Keyframe not generated',
+                    insufficientVideo: 'Video too short to detect post-rise state'
                 },
                 coordination: {
                     good: '✓ Good',
@@ -3745,35 +4860,58 @@
                     fair: 'Fair',
                     needs_improvement: 'Needs Improvement'
                 },
+                history: {
+                    title: 'Analysis History',
+                    empty: 'No analysis records',
+                    back: 'Back to History',
+                    backToUpload: 'Back',
+                    viewDetail: 'View Details',
+                    delete: 'Delete',
+                    deleteConfirm: 'Delete this record?',
+                    loading: 'Loading...'
+                },
                 progress: {
                     preparing: 'Preparing...',
                     uploading: 'Uploading video...',
                     analyzing: 'Analyzing video...',
-                    processing: 'Processing...'
+                    processing: 'Processing...',
+                    extractingInfo: 'Extracting video info...',
+                    detectingPose: 'Detecting pose landmarks...',
+                    evaluating: 'Evaluating shooting form...',
+                    generatingKeyframes: 'Generating key frames...',
+                    generatingVideo: 'Generating annotated video...',
+                    finishing: 'Finishing analysis...',
+                    complete: 'Analysis complete'
                 },
                 errors: {
                     uploadFailed: 'Upload failed',
                     analysisFailed: 'Analysis failed',
                     invalidFormat: 'Please upload supported video format (MP4, MOV, AVI, WebM)',
-                    fileTooLarge: 'File size exceeds 50MB limit',
+                    fileTooLarge: 'File size exceeds 20MB limit',
+                    videoTooLong: 'Video duration exceeds 10 seconds. Please upload a video under 10 seconds.',
+                    noCredits: 'No free analyses remaining. Please purchase more to continue.',
                     unknownError: 'Unknown error'
                 },
                 export: {
                     pdf: 'Export PDF Report',
-                    exporting: 'Generating PDF...',
-                    success: 'PDF exported successfully!',
-                    failed: 'PDF export failed',
+                    exporting: 'Generating...',
+                    success: 'Exported successfully!',
+                    failed: 'Export failed',
                     images: 'Export Images',
                     keyframes: 'Keyframes',
-                    keyframesDesc: 'Export all keyframe images (preparation, lifting, release, follow through)',
+                    keyframesDesc: 'Export styled keyframe cards for each phase',
                     comparisons: 'Comparison Images',
-                    comparisonsDesc: 'Export side-by-side comparison images (your shot vs template)',
+                    comparisonsDesc: 'Export side-by-side comparison analysis',
                     allImages: 'All Images',
                     allImagesDesc: 'Export both keyframes and comparison images',
-                    shareCardSuccess: '📱 Share card exported successfully!',
+                    shareCardSuccess: 'Share card exported successfully!',
                     shareCardFailed: 'Share card export failed',
-                    shareCard: '📱 Share Card',
-                    shareCardDesc: 'Export a beautiful long image with all phase comparisons and tips, perfect for social media'
+                    shareCard: 'Share Card',
+                    shareCardDesc: 'Export a technical analysis card with keyframes and data, perfect for sharing',
+                    recommended: 'RECOMMENDED',
+                    technicalAnalysis: 'Export',
+                    yourForm: 'Your Form',
+                    reference: 'Reference'
                 },
                 demo: {
                     label: 'Demo - Experience Analysis Results',
@@ -3790,39 +4928,82 @@
                     contact: 'Contact Us'
                 },
                 landing: {
-                    title: 'AI-Powered Basketball Shooting Form Analysis',
-                    subtitle: 'Professional shooting form analysis with BEEF scoring, key frame annotation, and NBA player template comparison. Improve your shooting technique today!',
-                    cta: 'Start Free Trial',
-                    ctaDemo: 'Try It Now - Free',
-                    benefit1: 'Free trial: 3 analyses',
-                    benefit2: 'No credit card required',
-                    benefit3: 'Start instantly',
-                    featuresTitle: 'Core Features',
-                    feature1Title: 'Pose Detection',
-                    feature1Desc: '33 key body points tracked using advanced AI vision',
-                    feature2Title: 'BEEF Scoring',
-                    feature2Desc: 'Balance, Eyes, Elbow, Follow-through - the NBA standard',
-                    feature3Title: 'Template Comparison',
-                    feature3Desc: 'Compare your form with NBA player shooting templates',
-                    feature4Title: 'Professional Reports',
-                    feature4Desc: 'Export PDF reports with detailed improvement suggestions',
-                    demoTitle: 'Analysis Example',
-                    scoreNote: '*For reference only',
-                    tipTitle: '💡 Improvement Suggestion Example',
-                    tipText: 'Keep your elbow bent at about 90 degrees during release to ensure smooth power transfer from legs through arm to the ball...',
-                    pricingTitle: 'After free trial, choose your plan:',
-                    monthly: 'Monthly',
-                    yearly: 'Yearly',
-                    unlimited: 'Unlimited analyses',
-                    save: 'Save $149'
+                    title: 'Easy from 2-point range, but air balls from 3? It\'s not strength — it\'s coordination.',
+                    subtitle: 'AI analyzes your hand-leg coordination, detects sync issues & power disconnection, and gives precise improvement advice',
+                    cta: 'Upload Video, 2 Free Trials',
+                    ctaDemo: 'Upload Video, 2 Free Trials',
+                    benefit1: 'Results in 30 seconds',
+                    benefit2: '2 free trials',
+                    benefit3: 'Detect the problem you didn\'t know you had',
+                    featuresTitle: 'Your problem might be here',
+                    feature1Title: 'Arms faster than legs?',
+                    feature1Desc: 'Your arms start raising the ball while your legs are still bending — power gap, weak shot. We precisely detect knee angle changes at the dip point to tell you if your timing is right.',
+                    feature2Title: 'Arms waiting for leg push?',
+                    feature2Desc: 'Your arms reach the highest hold point but your legs aren\'t fully extended yet — power chain broken, all arms. We detect knee extension at the highest hold to see if the power chain is connected.',
+                    feature3Title: 'Power chain connected = easy deep shots',
+                    feature3Desc: 'Shooting power chain goes foot→knee→hip→shoulder→elbow→wrist, like a whip. The key for NBA players: load complete → sync power → smooth release, the whole chain flows as one.',
+                    frame1Label: 'Dip Point',
+                    frame1Angle: 'Knee 115°',
+                    frame2Label: 'Arm Rise',
+                    frame2Angle: 'Knee 110°',
+                    frame3Label: 'Highest Hold',
+                    frame3Angle: 'Knee 140°',
+                    frame4Label: 'Release',
+                    frame4Angle: 'Knee 170°',
+                    demoTitle: 'Power Coherence Detection Example',
+                    syncLabel: '🦵 Hand-Foot Sync Detection',
+                    disconnectLabel: '💪 Power Disconnection Detection',
+                    demoSyncFrame1: 'Dip Point',
+                    demoSyncAngle1: 'Knee 162°',
+                    demoSyncFrame2: 'After Arm Rise',
+                    demoSyncAngle2: 'Knee 162°',
+                    demoSyncResult: 'Good',
+                    demoSyncNote: 'Knee angle change normal, hand-foot timing coordinated',
+                    demoDisconnFrame1: 'Highest Hold',
+                    demoDisconnAngle1: 'Knee 146°',
+                    demoDisconnFrame2: 'Release Point',
+                    demoDisconnAngle2: 'Knee 172°',
+                    demoDisconnResult: 'Moderate Issue',
+                    demoDisconnTip: 'Tip: Slow down your arm raise, wait for full leg extension before releasing, ensure power transfers smoothly from bottom to top',
+                    knowledgeText: 'Shooting isn\'t just about arms. Power transfers from <strong>feet→knees→hips→shoulders→elbows→wrists</strong>, like cracking a whip — if your hands move faster than the whip body, the power dissipates. Your problem isn\'t lack of strength, it\'s that power isn\'t connected.',
+                    knowledgeCta: 'Detect My Power Coherence',
+                    guideTitle: 'How to Film Your Shot',
+                    guideSubtitle: 'Better footage means better analysis',
+                    guideTip1Title: 'Shoot from the Side',
+                    guideTip1Desc: 'Place your phone on the shooting arm side, capture full body motion from the side to see arm and leg angles clearly',
+                    guideTip2Title: 'Subject Takes 60%+ of Frame',
+                    guideTip2Desc: 'Don\'t stand too far away — fill most of the frame with the shooter for accurate joint detection',
+                    guideTip3Title: 'Complete Shooting Motion',
+                    guideTip3Desc: 'Film from ready stance through follow-through, capturing at least the full release process',
+                    guideTip4Title: 'Good Lighting, Clean Background',
+                    guideTip4Desc: 'Avoid backlighting and cluttered backgrounds to ensure clear body silhouette detection',
+                    pricingTitle: 'Pricing',
+                    perAnalysis: 'Per Analysis',
+                    perTime: '/time',
+                    v1Discount: 'V1.0 Launch — 50% Off',
+                    halfOff: '50% OFF'
                 },
                 auth: {
-                    freeTrial: 'New users get 3 free analyses!'
+                    freeTrial: 'New users get 2 free analyses!'
+                },
+                payment: {
+                    title: 'Buy Analysis Credits',
+                    subtitle: 'Choose a plan that fits your needs',
+                    buyCredits: 'Buy Credits',
+                    buy: 'Buy',
+                    buying: 'Processing...',
+                    popular: 'Best Value',
+                    credits: 'credits',
+                    perCredit: '/credit',
+                    successTitle: 'Payment Successful!',
+                    successSub: 'Your credits have been added',
+                    footer: 'Secured by Creem. Cancel anytime.',
+                    noProducts: 'No plans available yet'
                 },
                 welcome: {
                     title: 'Ready to Analyze',
                     analyzed: 'Analyses Done',
-                    freeRemaining: 'Free Trials Left',
+                    freeRemaining: 'Credits Left',
                     guideText: 'Upload your shooting video to get professional form analysis',
                     uploadBtn: 'Upload Video'
                 }
@@ -3873,6 +5054,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             updateLanguage();
             loadTemplates();
+            checkPaymentSuccess();
         });
 
         // ==================== 原有代码 ====================
@@ -3937,228 +5119,6 @@
             });
         }
 
-        // 分析类型切换
-        document.getElementById('typeAnalyze').addEventListener('change', () => {
-            document.getElementById('templateNameGroup').style.display = 'none';
-            document.getElementById('templateSelectGroup').style.display = 'block';
-            document.getElementById('shootingStyleGroup').style.display = 'block';
-        });
-
-        document.getElementById('typeTemplate').addEventListener('change', () => {
-            // 检查是否已登录
-            const loginMessage = currentLang === 'zh-CN'
-                ? '登录后可创建投篮模板，保存您的最佳姿势'
-                : 'Login to create shooting templates and save your best form';
-            if (!requireLogin(loginMessage)) {
-                // 如果未登录，重新选择"分析投篮"
-                document.getElementById('typeAnalyze').checked = true;
-                return;
-            }
-
-            document.getElementById('templateNameGroup').style.display = 'block';
-            document.getElementById('templateSelectGroup').style.display = 'none';
-            document.getElementById('shootingStyleGroup').style.display = 'none';
-        });
-
-        // 模板管理对话框
-        const templateModal = document.getElementById('templateModal');
-        const templateModalClose = document.getElementById('templateModalClose');
-        const templateModalBody = document.getElementById('templateModalBody');
-        const manageTemplatesBtn = document.getElementById('manageTemplatesBtn');
-
-        // 打开模板管理对话框
-        manageTemplatesBtn.addEventListener('click', async () => {
-            templateModal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            await loadTemplateManagement();
-        });
-
-        // 关闭模板管理对话框
-        templateModalClose.addEventListener('click', () => {
-            templateModal.classList.remove('active');
-            document.body.style.overflow = '';
-        });
-
-        // 点击背景关闭
-        templateModal.addEventListener('click', (e) => {
-            if (e.target === templateModal) {
-                templateModal.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-        });
-
-        // 加载模板管理界面
-        async function loadTemplateManagement() {
-            templateModalBody.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">
-                    <div class="spinner" style="margin: 0 auto 16px;"></div>
-                    <div>${t('template.loading')}</div>
-                </div>
-            `;
-
-            try {
-                const response = await fetch('/api/v1/templates/list');
-                if (!response.ok) throw new Error('Failed to load templates');
-                
-                const data = await response.json();
-                const templates = data.templates || [];
-
-                if (templates.length === 0) {
-                    templateModalBody.innerHTML = `
-                        <div class="template-empty">
-                            <div class="template-empty-icon">📦</div>
-                            <div style="font-size: 1.2rem; margin-bottom: 8px;">${t('template.noTemplates')}</div>
-                            <div style="font-size: 0.9rem;">${t('template.noTemplatesDesc')}</div>
-                        </div>
-                    `;
-                } else {
-                    templateModalBody.innerHTML = templates.map(template => {
-                        const createdDate = template.created_at ? new Date(template.created_at).toLocaleDateString() : '';
-                        const keyFrameCount = template.key_frame_count || 0;
-                        
-                        return `
-                            <div class="template-item">
-                                <div class="template-item-info">
-                                    <div class="template-item-name">${template.name}</div>
-                                    ${template.description ? `<div class="template-item-desc">${template.description}</div>` : ''}
-                                    <div class="template-item-meta">
-                                        ${createdDate} · ${keyFrameCount}${t('template.keyFrameCount')}
-                                    </div>
-                                </div>
-                                <div class="template-item-actions">
-                                    <button class="template-view-btn" onclick="viewTemplate('${template.id}')">
-                                        👁️ ${currentLang === 'zh-CN' ? '查看' : 'View'}
-                                    </button>
-                                    <button class="template-delete-btn" onclick="deleteTemplate('${template.id}', '${template.name.replace(/'/g, "\\'")}')">
-                                        🗑️ ${currentLang === 'zh-CN' ? '删除' : 'Delete'}
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-            } catch (error) {
-                console.error('加载模板列表失败:', error);
-                templateModalBody.innerHTML = `
-                    <div class="template-empty">
-                        <div class="template-empty-icon">⚠️</div>
-                        <div style="font-size: 1.2rem; color: #ff6b6b;">${currentLang === 'zh-CN' ? '加载失败' : 'Load Failed'}</div>
-                    </div>
-                `;
-            }
-        }
-
-        // 删除模板
-        async function deleteTemplate(templateId, templateName) {
-            const confirmMsg = `${t('template.deleteConfirm')} "${templateName}"？`;
-            
-            if (!confirm(confirmMsg)) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/v1/templates/${templateId}`, {
-                    method: 'DELETE'
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to delete template');
-                }
-
-                // 删除成功
-                alert(`✓ ${t('template.deleteSuccess')}`);
-                
-                // 重新加载模板管理界面
-                await loadTemplateManagement();
-                
-                // 重新加载模板选择列表
-                await loadTemplates();
-                
-            } catch (error) {
-                console.error('删除模板失败:', error);
-                alert(`✗ ${t('template.deleteFailed')}`);
-            }
-        }
-
-        // 查看模板关键帧
-        async function viewTemplate(templateId) {
-            try {
-                const response = await fetch(`/api/v1/templates/${templateId}`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch template');
-                }
-                
-                const template = await response.json();
-                
-                // 关闭模板管理弹窗
-                templateModal.style.display = 'none';
-                
-                // 显示结果区域
-                emptyState.style.display = 'none';
-                resultsContainer.style.display = 'block';
-                
-                // 隐藏不需要的部分
-                const videoSection = document.querySelector('.video-section');
-                const coordinationSection = document.querySelector('.coordination-results-section');
-                if (videoSection) videoSection.style.display = 'none';
-                if (coordinationSection) coordinationSection.style.display = 'none';
-
-                // 显示模板关键帧
-                const keyFramesSection = document.querySelector('.key-frames-section');
-                const keyFrames = document.getElementById('keyFrames');
-                
-                keyFramesSection.style.display = 'block';
-                
-                // 生成模板关键帧HTML
-                keyFrameImages = template.key_frames.map(kf => ({
-                    image_url: kf.image_url,
-                    phase: kf.phase
-                }));
-                
-                keyFrames.innerHTML = `
-                    <div style="grid-column: 1 / -1; width: 100%; margin-bottom: 20px;">
-                        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: rgba(72, 219, 251, 0.15); border-radius: 8px; border: 1px solid rgba(72, 219, 251, 0.4); font-size: 0.9rem;">
-                            <span style="color: #48dbfb;">📑 ${currentLang === 'zh-CN' ? '模板' : 'Template'}</span>
-                            <span style="font-weight: 600; color: #fff;">${template.name}</span>
-                        </div>
-                    </div>
-                ` + template.key_frames.map((kf, index) => {
-                    const phaseNames = {
-                        'zh-CN': {
-                            'preparation': '准备阶段',
-                            'lifting': '上升阶段',
-                            'release': '出手阶段',
-                            'follow_through': '跟随阶段'
-                        },
-                        'en-US': {
-                            'preparation': 'Preparation',
-                            'lifting': 'Lifting',
-                            'release': 'Release',
-                            'follow_through': 'Follow Through'
-                        }
-                    };
-                    const phaseName = phaseNames[currentLang][kf.phase] || kf.phase;
-                    
-                    return `
-                        <div class="key-frame" onclick="openLightbox(${index})">
-                            <img src="${kf.image_url}?t=${Date.now()}" alt="${phaseName}">
-                            <div class="key-frame-label">
-                                <span class="phase-name">${phaseName}</span>
-                                <span class="expand-hint">${t('results.clickToZoom')}</span>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-                
-            } catch (error) {
-                console.error('查看模板失败:', error);
-                alert(currentLang === 'zh-CN' ? '查看模板失败' : 'Failed to view template');
-            }
-        }
-
-        // 将函数暴露到全局，以便 onclick 可以调用
-        window.deleteTemplate = deleteTemplate;
-        window.viewTemplate = viewTemplate;
 
         // Upload area events
         uploadArea.addEventListener('click', () => fileInput.click());
@@ -4198,12 +5158,8 @@
             uploadArea.style.display = 'block';
             analyzeBtn.disabled = true;
             fileInput.value = '';
-            document.getElementById('templateNameInput').value = '';
-            document.getElementById('templateDescInput').value = '';
-            document.getElementById('typeAnalyze').checked = true;
-            document.getElementById('templateNameGroup').style.display = 'none';
-            document.getElementById('templateSelectGroup').style.display = 'block';
-            document.getElementById('shootingStyleGroup').style.display = 'block';
+            // templateSelectGroup hidden in v1
+            // document.getElementById('templateSelectGroup').style.display = 'block';
         }
 
         function handleFile(file) {
@@ -4214,8 +5170,8 @@
                 return;
             }
 
-            // Validate file size (50MB)
-            if (file.size > 50 * 1024 * 1024) {
+            // Validate file size (20MB)
+            if (file.size > 20 * 1024 * 1024) {
                 alert(t('errors.fileTooLarge'));
                 return;
             }
@@ -4223,29 +5179,37 @@
             selectedFile = file;
             fileName.textContent = file.name;
             
-            // Show preview
+            // Show preview & validate duration
             const url = URL.createObjectURL(file);
             videoPreview.src = url;
             previewContainer.style.display = 'block';
             uploadArea.style.display = 'none';
-            analyzeBtn.disabled = false;
+            analyzeBtn.disabled = true; // 先禁用，等 duration 检查通过
+
+            videoPreview.onloadedmetadata = () => {
+                if (videoPreview.duration > 10) {
+                    alert(t('errors.videoTooLong'));
+                    resetUpload();
+                    return;
+                }
+                analyzeBtn.disabled = false;
+            };
         }
 
         // Analyze button
         analyzeBtn.addEventListener('click', async () => {
             if (!selectedFile) return;
 
-            const analysisType = document.querySelector('input[name="analysis_type"]:checked').value;
-            const shootingHand = document.querySelector('input[name="shooting_hand"]:checked').value;
-            
-            // 验证模板名称（如果是创建模板）
-            if (analysisType === 'create_template') {
-                const templateName = document.getElementById('templateNameInput').value.trim();
-                if (!templateName) {
-                    alert('Please enter template name');
+            // 检查分析次数
+            if (currentUser && !creditsUnlimited) {
+                await fetchCredits();
+                if (creditsRemaining <= 0) {
+                    openPaymentModal();
                     return;
                 }
             }
+
+            const shootingHand = document.querySelector('input[name="shooting_hand"]:checked').value;
 
             // Prepare form data
             const formData = new FormData();
@@ -4253,80 +5217,45 @@
 
             // Show progress
             analyzeBtn.disabled = true;
-            const loadingText = analysisType === 'create_template' ? t('upload.creatingTemplate') : t('upload.uploading');
-            analyzeBtn.innerHTML = '<span class="spinner"></span> ' + loadingText;
+            analyzeBtn.innerHTML = '<span class="spinner"></span> ' + t('upload.uploading');
             progressContainer.style.display = 'block';
             progressFill.style.width = '0%';
             progressText.textContent = t('progress.uploading');
 
             try {
                 let uploadResponse;
-                
-                if (analysisType === 'create_template') {
-                    // 创建模板
-                    const templateName = document.getElementById('templateNameInput').value.trim();
-                    const templateDesc = document.getElementById('templateDescInput').value.trim();
-                    
-                    formData.append('name', templateName);
-                    formData.append('description', templateDesc);
-                    formData.append('shooting_hand', shootingHand);
-                    
-                    uploadResponse = await fetch('/api/v1/templates/create', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (!uploadResponse.ok) {
-                        const error = await uploadResponse.json();
-                        throw new Error(error.detail || '创建模板失败');
-                    }
-                    
-                    const result = await uploadResponse.json();
-                    
-                    // 创建成功，重新加载模板列表
-                    await loadTemplates();
-                    
-                    // 隐藏进度条
-                    progressContainer.style.display = 'none';
-                    analyzeBtn.disabled = false;
-                    analyzeBtn.innerHTML = t('upload.analyze');
-                    
-                    // 显示模板关键帧
-                    displayTemplateKeyFrames(result.template);
-                    
-                    // 显示成功消息（不重置表单，让用户能看到结果）
-                    return;
-                    
-                } else {
-                    // 正常分析
-                    const shootingStyle = document.querySelector('input[name="shooting_style"]:checked').value;
-                    const templateId = document.getElementById('templateSelect').value;
 
-                    let url = `/api/v1/videos/upload?shooting_hand=${shootingHand}&shooting_style=${shootingStyle}&generate_video=false&generate_skeleton_video=false`;
-                    if (templateId) {
-                        url += `&template_id=${templateId}`;
-                    }
+                // 正常分析
+                const templateId = document.getElementById('templateSelect').value;
 
-                    // 获取认证 header（如果已登录）
-                    const authHeaders = await getAuthHeaders();
-
-                    uploadResponse = await fetch(url, {
-                        method: 'POST',
-                        body: formData,
-                        headers: authHeaders
-                    });
-                    
-                    if (!uploadResponse.ok) {
-                        const error = await uploadResponse.json();
-                        throw new Error(error.detail || '上传失败');
-                    }
-
-                    const uploadResult = await uploadResponse.json();
-                    currentTaskId = uploadResult.task_id;
-
-                    analyzeBtn.innerHTML = t('upload.analyzing');
-                    progressText.textContent = t('progress.analyzing');
+                let url = `/api/v1/videos/upload?shooting_hand=${shootingHand}&shooting_style=one_motion&generate_video=false&generate_skeleton_video=false`;
+                if (templateId) {
+                    url += `&template_id=${templateId}`;
                 }
+
+                // 获取认证 header（如果已登录）
+                const authHeaders = await getAuthHeaders();
+
+                uploadResponse = await fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: authHeaders
+                });
+
+                if (!uploadResponse.ok) {
+                    const error = await uploadResponse.json();
+                    throw new Error(error.detail || '上传失败');
+                }
+
+                const uploadResult = await uploadResponse.json();
+                currentTaskId = uploadResult.task_id;
+
+                // 新分析开始，隐藏返回历史按钮
+                isViewingFromHistory = false;
+                document.getElementById('backToHistoryBtn').style.display = 'none';
+
+                analyzeBtn.innerHTML = t('upload.analyzing');
+                progressText.textContent = t('progress.analyzing');
 
                 // Poll for status
                 pollInterval = setInterval(checkStatus, 1000);
@@ -4345,7 +5274,19 @@
                 const status = await response.json();
 
                 progressFill.style.width = status.progress + '%';
-                progressText.textContent = status.message;
+                // 如果后端没返回 message，根据 progress 百分比生成进度说明
+                if (status.message) {
+                    progressText.textContent = status.message;
+                } else {
+                    const p = status.progress || 0;
+                    if (p <= 5) progressText.textContent = t('progress.extractingInfo');
+                    else if (p <= 50) progressText.textContent = t('progress.detectingPose');
+                    else if (p <= 55) progressText.textContent = t('progress.evaluating');
+                    else if (p <= 65) progressText.textContent = t('progress.generatingKeyframes');
+                    else if (p <= 82) progressText.textContent = t('progress.generatingVideo');
+                    else if (p < 100) progressText.textContent = t('progress.finishing');
+                    else progressText.textContent = t('progress.complete');
+                }
 
                 if (status.status === 'completed') {
                     clearInterval(pollInterval);
@@ -4368,6 +5309,8 @@
                         }
                     }
                     resetUploadState();
+                    // 分析完成后刷新剩余次数
+                    fetchCredits();
                 } else if (status.status === 'failed') {
                     clearInterval(pollInterval);
                     alert(t('errors.analysisFailed') + ': ' + (status.error || t('errors.unknownError')));
@@ -4510,10 +5453,10 @@
                     videoResult.innerHTML = `
                         <h2 class="section-title">
                             <span class="section-title-icon">🎥</span>
-                            完整标注视频
+                            ${t('results.annotatedVideo')}
                         </h2>
                         <p style="color: #ff6b6b; text-align: center; padding: 40px;">
-                            视频加载失败，请<a href="${result.annotated_video_url}" download style="color: #48dbfb; text-decoration: underline;">点击下载</a>后使用播放器观看
+                            ${currentLang === 'zh-CN' ? '视频加载失败，请' : 'Video load failed, please '}<a href="${result.annotated_video_url}" download style="color: #48dbfb; text-decoration: underline;">${currentLang === 'zh-CN' ? '点击下载' : 'click to download'}</a>${currentLang === 'zh-CN' ? '后使用播放器观看' : ' and use a player to watch'}
                         </p>
                     `;
                 };
@@ -4548,7 +5491,7 @@
                             ${t('results.skeletonVideo')}
                         </h2>
                         <p style="color: #ff6b6b; text-align: center; padding: 40px;">
-                            视频加载失败，请<a href="${result.skeleton_video_url}" download style="color: #48dbfb; text-decoration: underline;">点击下载</a>后使用播放器观看
+                            ${currentLang === 'zh-CN' ? '视频加载失败，请' : 'Video load failed, please '}<a href="${result.skeleton_video_url}" download style="color: #48dbfb; text-decoration: underline;">${currentLang === 'zh-CN' ? '点击下载' : 'click to download'}</a>${currentLang === 'zh-CN' ? '后使用播放器观看' : ' and use a player to watch'}
                         </p>
                     `;
                 };
@@ -4601,14 +5544,14 @@
                 if (issue.detected) {
                     statusEl.className = 'coordination-status status-' + issue.severity;
                     const severityText = {
-                        'minor': t('coordination.minorIssue') || '轻微问题',
-                        'moderate': t('coordination.moderateIssue') || '中等问题',
-                        'severe': t('coordination.severeIssue') || '严重问题'
+                        'minor': t('coordination.minorIssue') || 'Minor Issue',
+                        'moderate': t('coordination.moderateIssue') || 'Moderate Issue',
+                        'severe': t('coordination.severeIssue') || 'Severe Issue'
                     };
                     statusEl.innerHTML = `<span class="status-text">${severityText[issue.severity] || '有问题'}</span>`;
                 } else {
                     statusEl.className = 'coordination-status status-good';
-                    statusEl.innerHTML = `<span class="status-text">${t('coordination.good') || '✓ 良好'}</span>`;
+                    statusEl.innerHTML = `<span class="status-text">${t('coordination.good') || '✓ Good'}</span>`;
                 }
 
                 // 总是显示关键帧（不管是否有问题）
@@ -4632,15 +5575,16 @@
 
                     // 生成帧标签
                     const frame1Label = issue.issue_type === 'hand_foot_sync'
-                        ? (t('phases.sync_frame_1') || '沉球点')
-                        : (t('phases.max_hold_frame') || '最高持球点');
+                        ? (t('phases.sync_frame_1') || 'Dip Point')
+                        : (t('phases.max_hold_frame') || 'Highest Hold');
                     const frame2Label = issue.issue_type === 'hand_foot_sync'
-                        ? (t('phases.sync_frame_2') || '手上升后')
-                        : (t('phases.release_frame') || '出手点');
+                        ? (t('phases.sync_frame_2') || 'After Arm Rise')
+                        : (t('phases.release_frame') || 'Release Point');
 
                     // 生成帧HTML - 显示关键帧用于检测什么
-                    const angle1Text = `膝盖角度: ${issue.knee_angle_1?.toFixed(1) || 'N/A'}°`;
-                    const angle2Text = `膝盖角度: ${issue.knee_angle_2?.toFixed(1) || 'N/A'}°`;
+                    const kneeAngleLabel = t('results.kneeAngle') || 'Knee Angle';
+                    const angle1Text = `${kneeAngleLabel}: ${issue.knee_angle_1?.toFixed(1) || 'N/A'}°`;
+                    const angle2Text = `${kneeAngleLabel}: ${issue.knee_angle_2?.toFixed(1) || 'N/A'}°`;
                     const bothFramesAvailable = frame1Url && frame2Url;
                     let framesHtml = '';
                     if (frame1Url) {
@@ -4656,12 +5600,14 @@
                         `;
                     } else if (issue.frame_1) {
                         // 没有图片但有帧数据，显示占位
+                        const frameLabel = t('results.frame') || 'Frame';
+                        const keyframeNotGenerated = t('results.keyframeNotGenerated') || 'Keyframe not generated';
                         framesHtml += `
                             <div class="coordination-frame coordination-frame-placeholder">
                                 <div class="placeholder-content">
                                     <span class="placeholder-icon">📷</span>
-                                    <span class="placeholder-text">帧 #${issue.frame_1.frame_number}</span>
-                                    <span class="placeholder-note">关键帧未生成</span>
+                                    <span class="placeholder-text">${frameLabel} #${issue.frame_1.frame_number}</span>
+                                    <span class="placeholder-note">${keyframeNotGenerated}</span>
                                 </div>
                                 <div class="coordination-frame-label">${frame1Label}</div>
                                 <div class="coordination-frame-angle">${angle1Text}</div>
@@ -4681,25 +5627,28 @@
                             </div>
                         `;
                     } else if (issue.frame_2) {
+                        const frameLabel = t('results.frame') || 'Frame';
+                        const keyframeNotGenerated = t('results.keyframeNotGenerated') || 'Keyframe not generated';
                         framesHtml += `
                             <div class="coordination-frame coordination-frame-placeholder">
                                 <div class="placeholder-content">
                                     <span class="placeholder-icon">📷</span>
-                                    <span class="placeholder-text">帧 #${issue.frame_2.frame_number}</span>
-                                    <span class="placeholder-note">关键帧未生成</span>
+                                    <span class="placeholder-text">${frameLabel} #${issue.frame_2.frame_number}</span>
+                                    <span class="placeholder-note">${keyframeNotGenerated}</span>
                                 </div>
                                 <div class="coordination-frame-label">${frame2Label}</div>
-                                <div class="coordination-frame-angle">膝盖角度: ${issue.knee_angle_2?.toFixed(1) || 'N/A'}°</div>
+                                <div class="coordination-frame-angle">${kneeAngleLabel}: ${issue.knee_angle_2?.toFixed(1) || 'N/A'}°</div>
                             </div>
                         `;
                     } else if (issue.issue_type === 'hand_foot_sync') {
                         // 手脚同步检测缺少帧2的情况
+                        const insufficientVideo = t('results.insufficientVideo') || 'Video too short to detect post-rise state';
                         framesHtml += `
                             <div class="coordination-frame coordination-frame-missing">
                                 <div class="missing-content">
                                     <span class="missing-icon">⚠️</span>
                                     <span class="missing-text">缺少检测帧</span>
-                                    <span class="missing-note">视频时长不足以检测手上升后状态</span>
+                                    <span class="missing-note">${insufficientVideo}</span>
                                 </div>
                             </div>
                         `;
@@ -4711,9 +5660,11 @@
                 // 如果有问题，显示详细信息和建议
                 if (issue.detected && infoEl) {
                     infoEl.style.display = 'block';
+                    const desc = currentLang === 'zh-CN' ? issue.description : (issue.description_en || issue.description);
+                    const sug = currentLang === 'zh-CN' ? issue.suggestion : (issue.suggestion_en || issue.suggestion);
                     infoEl.innerHTML = `
-                        <div class="info-description">${issue.description}</div>
-                        <div class="info-suggestion">${issue.suggestion}</div>
+                        <div class="info-description">${desc}</div>
+                        <div class="info-suggestion">${sug}</div>
                     `;
                 } else if (infoEl) {
                     infoEl.style.display = 'none';
@@ -4941,11 +5892,35 @@
         }
 
         function nextImage() {
+            if (compareMode) {
+                // 在对比模式下，切换到另一帧
+                compareCurrentSide = compareCurrentSide === 1 ? 2 : 1;
+                const current = compareCurrentSide === 1 ? compareData.frame1 : compareData.frame2;
+                lightboxImage.classList.add('compare-fade');
+                setTimeout(() => {
+                    lightboxImage.src = current.url + '?t=' + Date.now();
+                    lightboxImage.classList.remove('compare-fade');
+                }, 200);
+                updateCompareUI();
+                return;
+            }
             currentImageIndex = (currentImageIndex + 1) % keyFrameImages.length;
             openLightbox(currentImageIndex);
         }
 
         function prevImage() {
+            if (compareMode) {
+                // 在对比模式下，切换到另一帧
+                compareCurrentSide = compareCurrentSide === 1 ? 2 : 1;
+                const current = compareCurrentSide === 1 ? compareData.frame1 : compareData.frame2;
+                lightboxImage.classList.add('compare-fade');
+                setTimeout(() => {
+                    lightboxImage.src = current.url + '?t=' + Date.now();
+                    lightboxImage.classList.remove('compare-fade');
+                }, 200);
+                updateCompareUI();
+                return;
+            }
             currentImageIndex = (currentImageIndex - 1 + keyFrameImages.length) % keyFrameImages.length;
             openLightbox(currentImageIndex);
         }
@@ -4973,10 +5948,8 @@
 
             if (e.key === 'Escape') closeLightbox();
             if (e.key === ' ') { e.preventDefault(); toggleCompare(); }
-            if (!compareMode) {
-                if (e.key === 'ArrowRight') nextImage();
-                if (e.key === 'ArrowLeft') prevImage();
-            }
+            if (e.key === 'ArrowRight') nextImage();
+            if (e.key === 'ArrowLeft') prevImage();
         });
 
         // 导出PDF功能
@@ -5031,31 +6004,6 @@
             }
         }
 
-        // 显示图片导出模态框
-        function showExportImagesModal() {
-            // 检查是否已登录
-            const loginMessage = currentLang === 'zh-CN'
-                ? '登录后可导出分析图片，保存您的分析结果'
-                : 'Login to export analysis images and save your results';
-            if (!requireLogin(loginMessage)) return;
-
-            const modal = document.getElementById('exportImagesModal');
-            if (modal) {
-                modal.classList.add('active');
-                document.body.style.overflow = 'hidden';
-            }
-        }
-
-        // 隐藏图片导出模态框
-        function hideExportImagesModal() {
-            const modal = document.getElementById('exportImagesModal');
-            if (modal) {
-                modal.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-        }
-
-
         // 导出分享卡片（单张长图）
         async function exportShareCard() {
             if (!currentTaskId) {
@@ -5083,7 +6031,6 @@
                 document.body.removeChild(a);
 
                 // 隐藏模态框
-                hideExportImagesModal();
                 alert(t('export.shareCardSuccess'));
 
             } catch (error) {
@@ -5117,7 +6064,6 @@
                 document.body.removeChild(a);
 
                 // 隐藏模态框
-                hideExportImagesModal();
                 alert(t('export.success'));
 
             } catch (error) {
@@ -5152,7 +6098,6 @@
                 document.body.removeChild(a);
 
                 // 隐藏模态框
-                hideExportImagesModal();
                 alert(t('export.success'));
 
             } catch (error) {
@@ -5187,7 +6132,6 @@
                 document.body.removeChild(a);
 
                 // 隐藏模态框
-                hideExportImagesModal();
                 alert(t('export.success'));
 
             } catch (error) {
@@ -5196,47 +6140,9 @@
             }
         }
 
-        // 图片导出模态框
-        const exportImagesModalHTML = `
-            <div id="exportImagesModal" class="template-modal">
-                <div class="template-modal-content">
-                    <div class="template-modal-header">
-                        <h2>🖼️ <span data-i18n="export.images">Export Images</span></h2>
-                        <button class="template-modal-close" onclick="hideExportImagesModal()">×</button>
-                    </div>
-                    <div class="template-modal-body">
-                        <div class="export-options">
-                            <button class="export-option-btn" onclick="exportShareCard()" style="grid-column: span 2; background: linear-gradient(135deg, rgba(72, 219, 251, 0.15), rgba(168, 85, 247, 0.15)); border-color: rgba(72, 219, 251, 0.4);">
-                                <div class="export-option-icon">🎨</div>
-                                <div class="export-option-text">
-                                    <div class="export-option-title" style="font-size: 1.2rem; color: #48dbfb;">📱 分享卡片（推荐）</div>
-                                    <div class="export-option-desc">导出一张精美的长图，包含所有阶段对比和改进建议，适合发朋友圈/社交媒体</div>
-                                </div>
-                            </button>
-                            <button class="export-option-btn" onclick="exportKeyframes()">
-                                <div class="export-option-icon">🎬</div>
-                                <div class="export-option-text">
-                                    <div class="export-option-title" data-i18n="export.keyframes">关键帧图片</div>
-                                    <div class="export-option-desc" data-i18n="export.keyframesDesc">导出所有关键帧图片（准备、上升、出手、跟随）</div>
-                                </div>
-                            </button>
-                            <button class="export-option-btn" onclick="exportComparisons()">
-                                <div class="export-option-icon">📊</div>
-                                <div class="export-option-text">
-                                    <div class="export-option-title" data-i18n="export.comparisons">对比图片</div>
-                                    <div class="export-option-desc" data-i18n="export.comparisonsDesc">导出并排对比图片（你的投篮 vs 模板）</div>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
         // 在页面加载后添加模态框
         document.addEventListener('DOMContentLoaded', function() {
             const body = document.body;
-            body.insertAdjacentHTML('beforeend', exportImagesModalHTML);
 
             // 添加法律文档模态框
             body.insertAdjacentHTML('beforeend', privacyModalHTML);
@@ -5339,7 +6245,7 @@
                         <h3>6. Service Limitations</h3>
                         <p>We may limit:</p>
                         <ul>
-                            <li>Video file size (maximum 50MB)</li>
+                            <li>Video file size (maximum 10MB)</li>
                             <li>Video duration (maximum 10 seconds)</li>
                             <li>Number of analyses per user per day</li>
                         </ul>
