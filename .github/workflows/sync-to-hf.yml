@@ -30,6 +30,20 @@ jobs:
           # 添加 HF Spaces 作为 remote
           git remote add hf https://${{ secrets.HF_USERNAME }}:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ secrets.HF_USERNAME }}/shotPro
 
+          # HF Spaces 不允许直接 push 二进制文件，需要用 LFS
+          # 安装 git-lfs 并转换已有二进制文件
+          apt-get update && apt-get install -y git-lfs
+          git lfs install
+          git lfs track "*.png"
+          git lfs track "*.jpg"
+          git lfs track "*.jpeg"
+          git lfs track "*.gif"
+          git add .gitattributes
+          git commit -m "chore: setup LFS for binary files" --allow-empty
+
+          # 将已有的二进制文件迁移到 LFS
+          git lfs migrate import --include="*.png,*.jpg,*.jpeg,*.gif" --yes
+
           # 推送到 HF (main -> main)
           # --force 确保完全同步，覆盖 HF 上的内容
           git push hf main --force
