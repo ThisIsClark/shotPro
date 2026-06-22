@@ -27,14 +27,14 @@ jobs:
 
       - name: Push to Hugging Face
         run: |
+          # 安装 git-filter-repo 来彻底从历史中清除二进制文件
+          pip install git-filter-repo
+
+          # 从 git 历史中彻底删除所有二进制文件（HF 不允许二进制文件，LFS 也不行，必须用 XET）
+          git filter-repo --invert-paths --path static/upload_guide.png --path debug_red_vs_green.png --force
+
           # 添加 HF Spaces 作为 remote
           git remote add hf https://${{ secrets.HF_USERNAME }}:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ secrets.HF_USERNAME }}/shotPro
-
-          # HF Spaces 不允许直接 push 二进制文件，需要用 XET
-          # 这里直接删除二进制文件，前端有 onerror 回退不影响页面
-          git rm -f --cached static/upload_guide.png 2>/dev/null || true
-          git rm -f --cached debug_red_vs_green.png 2>/dev/null || true
-          git commit -m "chore: remove binary files for HF Spaces" --allow-empty
 
           # 推送到 HF (main -> main)
           # --force 确保完全同步，覆盖 HF 上的内容
