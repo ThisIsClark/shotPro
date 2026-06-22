@@ -42,6 +42,7 @@ class Settings(BaseSettings):
 
     # Admin Configuration
     local_admin_password: str = "myjob123"  # 管理员密码，生产环境务必通过环境变量设置强密码
+    jwt_secret: str = "change-me-in-production"  # JWT 签名密钥，生产环境务必通过环境变量设置
 
     # CORS
     allowed_origins: str = ""  # 逗号分隔的允许域名，为空则允许所有（仅开发模式）
@@ -49,7 +50,13 @@ class Settings(BaseSettings):
     # Creem Payment Configuration
     creem_api_key: str = ""           # creem_test_xxx or creem_xxx (live)
     creem_webhook_secret: str = ""    # Webhook signing secret from Creem dashboard
+
+    # One-time product (legacy, kept for compatibility)
     creem_product_id: str = ""        # Product ID for single analysis ($1.49/credit)
+
+    # Subscription products
+    creem_monthly_product_id: str = ""  # Product ID for Early Adopter Monthly ($4.99/month)
+    creem_yearly_product_id: str = ""   # Product ID for Early Adopter Yearly ($39.99/year)
 
     class Config:
         env_file = ".env"

@@ -1,6 +1,6 @@
 """
 API Dependencies Module
-API 依赖注入：认证、用户获取
+API 依赖注入：认证、用户获取（支持 Supabase Token + 本地 JWT）
 """
 
 from typing import Optional
@@ -8,11 +8,17 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from ..services.auth_service import auth_service
+from ..services.jwt_service import jwt_service
 from ..services.supabase_client import is_supabase_enabled
 
 
 # HTTP Bearer 认证方案
 security = HTTPBearer(auto_error=False)
+
+
+async def _verify_local_token(token: str) -> Optional[dict]:
+    """验证本地 JWT，返回用户信息或 None"""
+    return jwt_service.verify_token(token)
 
 
 async def get_current_user_optional(
@@ -21,17 +27,21 @@ async def get_current_user_optional(
     """
     获取当前用户（可选，未登录返回 None）
 
-    用于支持匿名用户上传，同时可选绑定已登录用户
+    优先尝试 Supabase Token，失败后尝试本地 JWT
     """
-    if not is_supabase_enabled():
-        return None
-
     if not credentials:
         return None
 
     token = credentials.credentials
-    user_info = await auth_service.verify_access_token(token)
 
+    # 1. 尝试 Supabase Token
+    if is_supabase_enabled():
+        user_info = await auth_service.verify_access_token(token)
+        if user_info:
+            return user_info
+
+    # 2. 尝试本地 JWT
+    user_info = await _verify_local_token(token)
     return user_info
 
 
@@ -41,14 +51,8 @@ async def get_current_user_required(
     """
     获取当前用户（必须认证）
 
-    用于需要用户身份的接口，如历史记录、用户设置等
+    优先尝试 Supabase Token，失败后尝试本地 JWT
     """
-    if not is_supabase_enabled():
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Authentication service is not configured"
-        )
-
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -57,16 +61,23 @@ async def get_current_user_required(
         )
 
     token = credentials.credentials
-    user_info = await auth_service.verify_access_token(token)
 
-    if not user_info:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+    # 1. 尝试 Supabase Token
+    if is_supabase_enabled():
+        user_info = await auth_service.verify_access_token(token)
+        if user_info:
+            return user_info
 
-    return user_info
+    # 2. 尝试本地 JWT
+    user_info = await _verify_local_token(token)
+    if user_info:
+        return user_info
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired token",
+        headers={"WWW-Authenticate": "Bearer"}
+    )
 
 
 # 用户 ID 提取辅助函数

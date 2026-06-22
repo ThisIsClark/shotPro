@@ -67,7 +67,8 @@ class DatabaseInitializer:
             "audit_logs": self._check_table("audit_logs"),
             "user_templates": self._check_table("user_templates"),
             "user_credits": self._check_table("user_credits"),
-            "payment_checkouts": self._check_table("payment_checkouts")
+            "payment_checkouts": self._check_table("payment_checkouts"),
+            "user_subscriptions": self._check_table("user_subscriptions")
         }
 
         # 如果 audit_logs 表不存在，提示用户手动创建
@@ -86,6 +87,11 @@ class DatabaseInitializer:
             print("[DB Init] ⚠️  payment_checkouts table not found!")
             print("[DB Init] Please run the following SQL in Supabase Dashboard:")
             print("[DB Init]   CREATE TABLE payment_checkouts (checkout_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, processed_at TIMESTAMPTZ DEFAULT NOW())")
+
+        # 如果 user_subscriptions 表不存在，提示用户手动创建
+        if not results["user_subscriptions"]:
+            print("[DB Init] ⚠️  user_subscriptions table not found!")
+            print("[DB Init] Please run the SQL from supabase/user_subscriptions.sql via Supabase Dashboard")
 
         return results
 

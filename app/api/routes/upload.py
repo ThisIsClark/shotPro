@@ -581,17 +581,20 @@ async def upload_video(
     # 获取用户 ID（可选）
     user_id = get_user_id(user)
 
-    # 检查用户分析次数（Supabase 用户需要扣减，本地管理员不限）
+    # 检查用户分析次数（订阅用户不限，本地管理员不限）
     use_db = is_supabase_enabled() and db_service.is_available()
     is_local_user = user and user.get("is_local", False)
+    is_subscribed = False
 
     if use_db and user_id and not is_local_user:
-        remaining = await db_service.get_user_credits(user_id)
-        if remaining <= 0:
-            raise HTTPException(
-                status_code=403,
-                detail="No credits remaining. Please purchase more analyses to continue."
-            )
+        is_subscribed = await db_service.is_user_subscribed(user_id)
+        if not is_subscribed:
+            remaining = await db_service.get_user_credits(user_id)
+            if remaining <= 0:
+                raise HTTPException(
+                    status_code=403,
+                    detail="No credits remaining. Please subscribe or purchase more analyses to continue."
+                )
 
     # 判断是否使用数据库
     use_db = is_supabase_enabled() and db_service.is_available()
@@ -659,8 +662,8 @@ async def upload_video(
     except Exception as e:
         print(f"[Upload] 视频时长检查失败（忽略）: {e}")
 
-    # 扣减分析次数（通过检查后正式扣减，避免检查通过但分析未启动的浪费）
-    if use_db and user_id and not is_local_user:
+    # 扣减分析次数（订阅用户不扣减，本地管理员不扣减）
+    if use_db and user_id and not is_local_user and not is_subscribed:
         new_remaining = await db_service.decrement_user_credits(user_id)
         print(f"[Credits] User {user_id} credits: {new_remaining + 1} -> {new_remaining}")
 

@@ -2290,8 +2290,9 @@
             display: flex;
             justify-content: center;
             gap: 30px;
-            max-width: 600px;
+            max-width: 800px;
             margin: 0 auto;
+            flex-wrap: wrap;
         }
 
         .landing-pricing-card {
@@ -2300,15 +2301,22 @@
             padding: 24px 36px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             transition: all 0.3s;
+            min-width: 200px;
         }
 
         .landing-pricing-card:hover {
             border-color: rgba(72, 219, 251, 0.3);
+            transform: translateY(-4px);
         }
 
         .landing-pricing-card.featured {
             border-color: rgba(168, 85, 247, 0.4);
             background: rgba(168, 85, 247, 0.1);
+        }
+
+        .landing-pricing-card.yearly {
+            border-color: rgba(99, 102, 241, 0.4);
+            background: rgba(99, 102, 241, 0.1);
         }
 
         .landing-pricing-name {
@@ -2331,9 +2339,10 @@
 
         .landing-pricing-original {
             font-size: 1rem;
+            font-weight: 500;
             color: rgba(255, 255, 255, 0.35);
             text-decoration: line-through;
-            margin-top: 4px;
+            margin-right: 6px;
         }
 
         .landing-pricing-note {
@@ -2344,13 +2353,26 @@
 
         .landing-pricing-badge {
             display: inline-block;
-            background: linear-gradient(135deg, #ff6b6b, #feca57);
-            color: #1a1a2e;
-            font-size: 0.75rem;
+            color: #fff;
+            font-size: 0.7rem;
             font-weight: 700;
             padding: 3px 10px;
             border-radius: 20px;
             margin-top: 10px;
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+        }
+
+        .landing-pricing-card.yearly .landing-pricing-badge {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+        }
+
+        .landing-pricing-regular-note {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 20px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         /* 响应式调整 */
@@ -2655,6 +2677,82 @@
             display: block;
         }
 
+        /* ===== 支付成功 Toast 通知 ===== */
+        .payment-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: linear-gradient(135deg, rgba(52, 211, 153, 0.95), rgba(16, 185, 129, 0.95));
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 16px 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 10000;
+            box-shadow: 0 8px 32px rgba(52, 211, 153, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2);
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .payment-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .payment-toast-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .payment-toast-text {
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .payment-toast-sub {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.8rem;
+            margin-top: 2px;
+        }
+
+        /* ===== Pro 状态栏 ===== */
+        .pro-status-bar {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: linear-gradient(90deg, rgba(52, 211, 153, 0.12), rgba(168, 85, 247, 0.12));
+            border-bottom: 1px solid rgba(52, 211, 153, 0.2);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #34d399;
+        }
+
+        .pro-status-bar.active {
+            display: flex;
+        }
+
+        .pro-status-bar .pro-badge {
+            background: linear-gradient(135deg, #34d399, #a855f7);
+            color: #fff;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .pro-status-bar .pro-info {
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+        }
+
         /* ===== 购买 Credits 模态框 ===== */
 
         .payment-modal {
@@ -2747,9 +2845,10 @@
         }
 
         .payment-original-price {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             color: rgba(255, 255, 255, 0.35);
             text-decoration: line-through;
+            margin-right: 4px;
         }
 
         .payment-discount-badge {
@@ -3221,6 +3320,22 @@
             color: rgba(254, 202, 87, 0.8);
         }
 
+        .stat-card.free-trial.pro-active {
+            background: linear-gradient(135deg, rgba(52, 211, 153, 0.2), rgba(168, 85, 247, 0.15));
+            border-color: rgba(52, 211, 153, 0.5);
+            box-shadow: 0 0 20px rgba(52, 211, 153, 0.2);
+        }
+
+        .stat-card.free-trial.pro-active .stat-value {
+            color: #34d399;
+            font-size: 1.8rem;
+            text-shadow: 0 0 20px rgba(52, 211, 153, 0.5);
+        }
+
+        .stat-card.free-trial.pro-active .stat-label {
+            color: rgba(52, 211, 153, 0.8);
+        }
+
         .quick-start-guide {
             text-align: center;
         }
@@ -3269,6 +3384,15 @@
     </style>
 </head>
 <body>
+    <!-- 支付成功 Toast 通知 -->
+    <div class="payment-toast" id="paymentToast">
+        <span class="payment-toast-icon">🎉</span>
+        <div>
+            <div class="payment-toast-text" id="paymentToastText">Subscription Activated!</div>
+            <div class="payment-toast-sub" id="paymentToastSub">You now have unlimited analyses</div>
+        </div>
+    </div>
+
     <!-- 落地页（未登录用户） -->
     <div class="landing-page" id="landingPage">
         <header class="landing-header">
@@ -3434,14 +3558,25 @@
         <section class="landing-pricing">
             <h2 class="landing-pricing-title" data-i18n="landing.pricingTitle">Pricing</h2>
             <div class="landing-pricing-plans">
+                <div class="landing-pricing-card">
+                    <div class="landing-pricing-name">Free</div>
+                    <div class="landing-pricing-price">$0</div>
+                    <div class="landing-pricing-note" data-i18n="landing.freeNote">3 free analyses on signup</div>
+                </div>
                 <div class="landing-pricing-card featured">
-                    <div class="landing-pricing-name" data-i18n="landing.perAnalysis">Per Analysis</div>
-                    <div class="landing-pricing-price">$1.49<span data-i18n="landing.perTime">/time</span></div>
-                    <div class="landing-pricing-original">$2.99</div>
-                    <div class="landing-pricing-note" data-i18n="landing.v1Discount">V1.0 Launch — 50% Off</div>
-                    <div class="landing-pricing-badge" data-i18n="landing.halfOff">50% OFF</div>
+                    <div class="landing-pricing-name" data-i18n="landing.earlyAdopterMonthly">Early Adopter Monthly</div>
+                    <div class="landing-pricing-price"><span class="landing-pricing-original">$7.99</span>$4.99<span>/month</span></div>
+                    <div class="landing-pricing-note" data-i18n="landing.lockPriceNote">Lock in this price forever</div>
+                    <div class="landing-pricing-badge" data-i18n="landing.earlyAdopterBadge">EARLY ADOPTER</div>
+                </div>
+                <div class="landing-pricing-card yearly">
+                    <div class="landing-pricing-name" data-i18n="landing.earlyAdopterYearly">Early Adopter Yearly</div>
+                    <div class="landing-pricing-price"><span class="landing-pricing-original">$95.88</span>$39.99<span>/year</span></div>
+                    <div class="landing-pricing-note" data-i18n="landing.yearlyNote">~$3.33/month, lock forever</div>
+                    <div class="landing-pricing-badge" data-i18n="landing.bestValueBadge">BEST VALUE</div>
                 </div>
             </div>
+            <div class="landing-pricing-regular-note" data-i18n="landing.regularPriceNote">Regular price will be $7.99/month when we add scoring, coaching tips, and progress tracking.</div>
         </section>
 
         <!-- Footer for landing page -->
@@ -3466,7 +3601,7 @@
                 <p id="authModalDesc">Login to save your analysis history</p>
                 <div class="auth-free-trial-badge" id="authFreeTrialBadge" style="display: block;">
                     <span>🎉</span>
-                    <span data-i18n="auth.freeTrial">New users get 2 free analyses!</span>
+                    <span data-i18n="auth.freeTrial">New users get 3 free analyses!</span>
                 </div>
             </div>
             <div class="auth-error" id="authError"></div>
@@ -3489,34 +3624,59 @@
         </div>
     </div>
 
-    <!-- 购买 Credits 模态框 -->
+    <!-- Subscribe / Pricing Modal -->
     <div class="payment-modal" id="paymentModal">
         <div class="payment-modal-content">
             <button class="payment-close-btn" onclick="closePaymentModal()">&times;</button>
             <div class="payment-modal-header">
-                <h2 data-i18n="payment.title">Buy Analysis Credit</h2>
-                <p data-i18n="payment.subtitle">One analysis per purchase</p>
+                <h2 data-i18n="pricing.title">Choose Your Plan</h2>
+                <p data-i18n="pricing.subtitle">Unlimited analyses with Early Adopter pricing</p>
             </div>
             <div class="payment-success-notice" id="paymentSuccessNotice">
                 <div class="payment-success-icon">&#10003;</div>
-                <div class="payment-success-text" data-i18n="payment.successTitle">Payment Successful!</div>
-                <div class="payment-success-sub" data-i18n="payment.successSub">Your credit has been added</div>
+                <div class="payment-success-text" data-i18n="pricing.successTitle">Subscription Activated!</div>
+                <div class="payment-success-sub" data-i18n="pricing.successSub">You now have unlimited analyses</div>
+            </div>
+            <!-- Early Adopter Banner -->
+            <div id="earlyAdopterBanner" style="background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(99,102,241,0.15));border:1px solid rgba(168,85,247,0.3);border-radius:12px;padding:12px 16px;margin-bottom:16px;">
+                <div style="font-size:0.75rem;font-weight:700;color:#a855f7;margin-bottom:3px;" data-i18n="pricing.earlyAdopter">V1.0 EARLY ADOPTER PRICING</div>
+                <div style="font-size:0.78rem;color:rgba(255,255,255,0.6);line-height:1.5;" data-i18n="pricing.earlyAdopterDesc">Subscribe now and lock in $4.99/month forever. Regular price will be $7.99/month.</div>
             </div>
             <div class="payment-plans" id="paymentPlans">
-                <div class="payment-single-card">
-                    <div class="payment-price-row">
-                        <span class="payment-original-price">$2.99</span>
-                        <span class="payment-price-amount">$1.49</span>
-                        <span class="payment-price-unit" data-i18n="payment.perTime">/time</span>
+                <!-- Monthly Plan -->
+                <div id="planMonthly" onclick="selectPlan('monthly')" style="background:rgba(168,85,247,0.1);border:2px solid #a855f7;border-radius:12px;padding:20px;cursor:pointer;transition:all 0.2s;margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <div style="font-size:0.85rem;color:rgba(255,255,255,0.5);" data-i18n="pricing.monthly">Monthly</div>
+                            <div style="font-size:1.8rem;font-weight:700;color:#fff;"><span class="payment-original-price">$7.99</span>$4.99<span style="font-size:0.8rem;color:rgba(255,255,255,0.4);">/month</span></div>
+                            <div style="font-size:0.75rem;color:#a855f7;margin-top:4px;" data-i18n="pricing.lockForever">Lock in forever</div>
+                        </div>
+                        <div id="monthlyCheck" style="display:flex;width:22px;height:22px;border-radius:50%;background:#a855f7;align-items:center;justify-content:center;color:#fff;font-size:12px;">✓</div>
                     </div>
-                    <div class="payment-price-row" style="margin-bottom: 12px;">
-                        <span class="payment-discount-badge" data-i18n="payment.discount">50% OFF</span>
-                    </div>
-                    <div class="payment-price-desc" data-i18n="payment.desc">1 shot analysis credit</div>
-                    <button class="payment-buy-btn" id="paymentBuyBtn" onclick="handlePurchase(this)">Buy Now</button>
                 </div>
+                <!-- Yearly Plan -->
+                <div id="planYearly" onclick="selectPlan('yearly')" style="background:rgba(255,255,255,0.04);border:2px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;cursor:pointer;transition:all 0.2s;margin-bottom:16px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <div style="font-size:0.85rem;color:rgba(255,255,255,0.5);" data-i18n="pricing.yearly">Yearly</div>
+                            <div style="font-size:1.8rem;font-weight:700;color:#fff;"><span class="payment-original-price">$95.88</span>$39.99<span style="font-size:0.8rem;color:rgba(255,255,255,0.4);">/year</span></div>
+                            <div style="font-size:0.75rem;color:#6366f1;margin-top:4px;" data-i18n="pricing.yearlySave">~$3.33/mo · Best value</div>
+                        </div>
+                        <div id="yearlyCheck" style="display:flex;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.1);align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:12px;">✓</div>
+                    </div>
+                </div>
+                <!-- Subscribe Button -->
+                <button class="payment-buy-btn" id="subscribeBtn" onclick="handleSubscribe(this)" style="width:100%;">
+                    <span data-i18n="pricing.subscribeNow">Subscribe Now</span>
+                </button>
             </div>
-            <div class="payment-footer" data-i18n="payment.footer">Secured by Creem</div>
+            <!-- Already subscribed message -->
+            <div id="alreadySubscribed" style="display:none;text-align:center;padding:20px;color:rgba(255,255,255,0.6);">
+                <div style="font-size:1.2rem;margin-bottom:8px;">✓</div>
+                <div data-i18n="pricing.alreadySubscribed">You already have an active subscription</div>
+                <button onclick="closePaymentModal()" style="margin-top:12px;padding:8px 20px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:rgba(255,255,255,0.6);cursor:pointer;" data-i18n="pricing.close">Close</button>
+            </div>
+            <div class="payment-footer" data-i18n="pricing.footer">Secured by Creem · Cancel anytime</div>
         </div>
     </div>
 
@@ -3534,6 +3694,12 @@
     </div>
 
     <div class="container">
+        <!-- Pro 状态栏 -->
+        <div class="pro-status-bar" id="proStatusBar">
+            <span class="pro-badge">PRO</span>
+            <span id="proStatusText">Unlimited analyses</span>
+            <span class="pro-info" id="proStatusInfo"></span>
+        </div>
         <header>
             <div class="header-title-group">
                 <h1 data-i18n="title">🏀 Basketball Shooting Form Analyzer</h1>
@@ -3553,10 +3719,16 @@
                     <button class="user-avatar-btn" id="userAvatarBtn" onclick="toggleUserMenu()">
                         <span id="userAvatar">U</span>
                     </button>
+                    <span id="userProBadge" style="display:none; background:linear-gradient(135deg,#34d399,#a855f7); color:#fff; padding:2px 8px; border-radius:10px; font-size:0.65rem; font-weight:700; letter-spacing:0.5px; flex-shrink:0; box-shadow:0 0 12px rgba(52,211,153,0.4);">PRO</span>
                     <div class="user-dropdown" id="userDropdown">
                         <div class="user-dropdown-email" id="userEmail"></div>
-                        <button class="user-dropdown-logout" onclick="openPaymentModal()" style="color: #48dbfb;">
-                            <span>💎</span> <span data-i18n="payment.buyCredits">Buy Credits</span>
+                        <!-- Pro 会员信息（已订阅时显示） -->
+                        <div id="dropdownProInfo" style="display:none; padding:10px 12px; background:rgba(52,211,153,0.1); border-radius:8px; margin-bottom:4px; align-items:center; gap:8px;">
+                            <span style="background:linear-gradient(135deg,#34d399,#a855f7);color:#fff;padding:2px 8px;border-radius:12px;font-size:0.7rem;font-weight:700;">PRO</span>
+                            <span id="dropdownProLabel" style="font-size:0.85rem;color:#34d399;font-weight:600;"></span>
+                        </div>
+                        <button class="user-dropdown-logout" id="dropdownSubscribeBtn" onclick="openPaymentModal()" style="color: #a855f7;">
+                            <span>⭐</span> <span data-i18n="pricing.subscribe">Subscribe</span>
                         </button>
                         <button class="user-dropdown-logout" onclick="handleLogout()">
                             <span>🚪</span> Logout
@@ -3641,9 +3813,9 @@
                                 <div class="stat-value" id="analyzedCount">0</div>
                                 <div class="stat-label" data-i18n="welcome.analyzed">Analyses Done</div>
                             </div>
-                            <div class="stat-card free-trial" onclick="openPaymentModal()" style="cursor: pointer;" title="Buy more credits">
-                                <div class="stat-value" id="freeTrialCount">2</div>
-                                <div class="stat-label" data-i18n="welcome.freeRemaining">Free Trials Left</div>
+                            <div class="stat-card free-trial" onclick="openPaymentModal()" style="cursor: pointer;" title="Subscribe for unlimited">
+                                <div class="stat-value" id="freeTrialCount">3</div>
+                                <div class="stat-label" id="freeTrialLabel" data-i18n="welcome.freeRemaining">Free Trials Left</div>
                             </div>
                         </div>
 
@@ -3813,6 +3985,9 @@
         let isAuthModeLogin = true; // true = 登录, false = 注册
         let creditsRemaining = 0;
         let creditsUnlimited = false;
+        let subscriptionPlan = null;
+        let subscriptionStatus = null;
+        let selectedPlan = 'monthly';
 
         // 初始化 Supabase 客户端
         function initSupabase() {
@@ -3953,17 +4128,159 @@
                     const data = await response.json();
                     creditsRemaining = data.credits_remaining;
                     creditsUnlimited = data.is_unlimited;
+                    subscriptionPlan = data.subscription_plan;
+                    subscriptionStatus = data.subscription_status;
+
                     // 更新 UI
                     const countEl = document.getElementById('freeTrialCount');
+                    const labelEl = document.getElementById('freeTrialLabel');
+                    const cardEl = countEl?.closest('.stat-card');
                     if (countEl) {
-                        countEl.textContent = creditsUnlimited ? '∞' : creditsRemaining;
+                        if (creditsUnlimited) {
+                            // 订阅用户：显示 Pro + 到期时间
+                            const periodEnd = data.current_period_end;
+                            let displayText = 'Pro';
+                            let labelText = '';
+                            let periodText = '';
+                            if (periodEnd) {
+                                try {
+                                    const endDate = new Date(periodEnd);
+                                    const yearStr = endDate.getFullYear();
+                                    const month = endDate.getMonth() + 1;
+                                    const day = endDate.getDate();
+                                    if (currentLang === 'zh-CN') {
+                                        const statusLabel = subscriptionStatus === 'scheduled_cancel' ? '后取消' : '到期';
+                                        labelText = `${yearStr}年${month}月${day}日 ${statusLabel}`;
+                                    } else {
+                                        const statusLabel = subscriptionStatus === 'scheduled_cancel' ? 'cancels' : 'expires';
+                                        labelText = `${month}/${day}/${yearStr} ${statusLabel}`;
+                                    }
+                                } catch(e) {
+                                    labelText = t('welcome.unlimited');
+                                }
+                            } else {
+                                labelText = t('welcome.unlimited');
+                            }
+                            countEl.textContent = displayText;
+                            if (labelEl) labelEl.textContent = labelText;
+                            if (cardEl) cardEl.classList.add('pro-active');
+                        } else if (subscriptionStatus === 'expired') {
+                            // 过期用户：显示已过期
+                            countEl.textContent = t('welcome.expired') || 'Expired';
+                            if (labelEl) labelEl.textContent = t('welcome.renewHint') || 'Tap to renew';
+                            if (cardEl) cardEl.classList.remove('pro-active');
+                        } else {
+                            // 免费用户：显示剩余次数
+                            countEl.textContent = creditsRemaining;
+                            if (labelEl) labelEl.textContent = t('welcome.freeRemaining');
+                            if (cardEl) cardEl.classList.remove('pro-active');
+                        }
                     }
+
+                    // 更新 Pro 状态栏
+                    updateProStatusBar(data);
+
+                    // 更新用户下拉菜单中的订阅状态
+                    updateUserDropdownSubscription();
+
+                    // 如果有订阅，隐藏支付弹窗中的订阅按钮，显示已订阅
+                    const alreadySubscribedEl = document.getElementById('alreadySubscribed');
+                    const paymentPlansEl = document.getElementById('paymentPlans');
+                    if (subscriptionPlan && subscriptionStatus !== 'expired') {
+                        if (alreadySubscribedEl) alreadySubscribedEl.style.display = 'block';
+                        if (paymentPlansEl) paymentPlansEl.style.display = 'none';
+                    } else {
+                        if (alreadySubscribedEl) alreadySubscribedEl.style.display = 'none';
+                        if (paymentPlansEl) paymentPlansEl.style.display = '';
+                    }
+
                     return data;
                 }
             } catch (e) {
                 console.error('[Credits] Fetch failed:', e);
             }
             return null;
+        }
+
+        // 更新 Pro 状态栏
+        function updateProStatusBar(data) {
+            const bar = document.getElementById('proStatusBar');
+            const textEl = document.getElementById('proStatusText');
+            const infoEl = document.getElementById('proStatusInfo');
+            if (!bar) return;
+
+            if (creditsUnlimited && subscriptionStatus !== 'expired') {
+                bar.classList.add('active');
+                if (textEl) {
+                    const lang = currentLang;
+                    if (lang === 'zh-CN') {
+                        textEl.textContent = '无限次分析';
+                    } else {
+                        textEl.textContent = 'Unlimited analyses';
+                    }
+                }
+                if (infoEl) {
+                    const periodEnd = data?.current_period_end;
+                    if (periodEnd) {
+                        try {
+                            const endDate = new Date(periodEnd);
+                            const month = endDate.getMonth() + 1;
+                            const day = endDate.getDate();
+                            if (currentLang === 'zh-CN') {
+                                const statusLabel = subscriptionStatus === 'scheduled_cancel' ? '后取消' : '到期';
+                                const yearStr = endDate.getFullYear();
+                                infoEl.textContent = `· ${yearStr}年${month}月${day}日 ${statusLabel}`;
+                            } else {
+                                const statusLabel = subscriptionStatus === 'scheduled_cancel' ? 'cancels' : 'expires';
+                                const yearStr = endDate.getFullYear();
+                                infoEl.textContent = `· ${month}/${day}/${yearStr} ${statusLabel}`;
+                            }
+                        } catch(e) {
+                            infoEl.textContent = '';
+                        }
+                    } else {
+                        // 没有到期时间时也显示一条有意义的信息
+                        if (currentLang === 'zh-CN') {
+                            infoEl.textContent = '· 订阅生效中';
+                        } else {
+                            infoEl.textContent = '· Subscription active';
+                        }
+                    }
+                }
+            } else {
+                bar.classList.remove('active');
+            }
+        }
+
+        // 更新用户下拉菜单中的订阅状态
+        function updateUserDropdownSubscription() {
+            const subscribeBtn = document.getElementById('dropdownSubscribeBtn');
+            const proInfo = document.getElementById('dropdownProInfo');
+            const proBadge = document.getElementById('userProBadge');
+
+            // 头像旁 PRO 徽章：已订阅时显示
+            if (proBadge) {
+                if (creditsUnlimited && subscriptionStatus !== 'expired') {
+                    proBadge.style.display = 'inline-block';
+                } else {
+                    proBadge.style.display = 'none';
+                }
+            }
+
+            if (!subscribeBtn || !proInfo) return;
+
+            if (creditsUnlimited && subscriptionStatus !== 'expired') {
+                // 已订阅：隐藏 Subscribe 按钮，显示 Pro 信息
+                subscribeBtn.style.display = 'none';
+                proInfo.style.display = 'flex';
+                const planName = subscriptionPlan?.includes('yearly') ? 'Yearly' : 'Monthly';
+                const proLabel = document.getElementById('dropdownProLabel');
+                if (proLabel) proLabel.textContent = `Pro · ${planName}`;
+            } else {
+                // 未订阅：显示 Subscribe 按钮，隐藏 Pro 信息
+                subscribeBtn.style.display = 'flex';
+                proInfo.style.display = 'none';
+            }
         }
 
         // 打开登录/注册模态框
@@ -3979,13 +4296,35 @@
             document.body.style.overflow = '';
         }
 
-        // ===== 购买 Credits 模态框 =====
+        // ===== Pricing/Subscribe Modal =====
+
+        function selectPlan(plan) {
+            selectedPlan = plan;
+            const monthlyEl = document.getElementById('planMonthly');
+            const yearlyEl = document.getElementById('planYearly');
+            const monthlyCheck = document.getElementById('monthlyCheck');
+            const yearlyCheck = document.getElementById('yearlyCheck');
+
+            if (plan === 'monthly') {
+                if (monthlyEl) { monthlyEl.style.borderColor = '#a855f7'; monthlyEl.style.background = 'rgba(168,85,247,0.1)'; }
+                if (yearlyEl) { yearlyEl.style.borderColor = 'rgba(255,255,255,0.1)'; yearlyEl.style.background = 'rgba(255,255,255,0.04)'; }
+                if (monthlyCheck) { monthlyCheck.style.background = '#a855f7'; monthlyCheck.style.color = '#fff'; }
+                if (yearlyCheck) { yearlyCheck.style.background = 'rgba(255,255,255,0.1)'; yearlyCheck.style.color = 'rgba(255,255,255,0.3)'; }
+            } else {
+                if (yearlyEl) { yearlyEl.style.borderColor = '#6366f1'; yearlyEl.style.background = 'rgba(99,102,241,0.1)'; }
+                if (monthlyEl) { monthlyEl.style.borderColor = 'rgba(255,255,255,0.1)'; monthlyEl.style.background = 'rgba(255,255,255,0.04)'; }
+                if (yearlyCheck) { yearlyCheck.style.background = '#6366f1'; yearlyCheck.style.color = '#fff'; }
+                if (monthlyCheck) { monthlyCheck.style.background = 'rgba(255,255,255,0.1)'; monthlyCheck.style.color = 'rgba(255,255,255,0.3)'; }
+            }
+        }
 
         async function openPaymentModal() {
             if (!currentUser) {
                 openAuthModal();
                 return;
             }
+            // Refresh credits/subscription status
+            await fetchCredits();
             document.getElementById('paymentModal').classList.add('active');
             document.body.style.overflow = 'hidden';
         }
@@ -3995,23 +4334,24 @@
             document.body.style.overflow = '';
         }
 
-        async function handlePurchase(btnEl) {
+        async function handleSubscribe(btnEl) {
             if (btnEl.classList.contains('loading')) return;
 
             btnEl.classList.add('loading');
-            const originalText = btnEl.textContent;
-            btnEl.textContent = t('payment.buying');
+            const originalText = btnEl.innerHTML;
+            btnEl.textContent = t('pricing.processing');
 
             try {
                 const headers = await getAuthHeaders();
-                const response = await fetch('/api/v1/payment/checkout', {
+                const response = await fetch('/api/v1/payment/subscribe', {
                     method: 'POST',
                     headers: { ...headers, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ billing_period: selectedPlan }),
                 });
 
                 if (!response.ok) {
                     const data = await response.json();
-                    alert(data.detail || 'Failed to create checkout');
+                    alert(data.detail || 'Failed to create subscription');
                     return;
                 }
 
@@ -4023,11 +4363,11 @@
                     alert('No checkout URL received');
                 }
             } catch (e) {
-                console.error('Purchase failed:', e);
-                alert('Purchase failed. Please try again.');
+                console.error('Subscribe failed:', e);
+                alert('Subscription failed. Please try again.');
             } finally {
                 btnEl.classList.remove('loading');
-                btnEl.textContent = originalText;
+                btnEl.innerHTML = originalText;
             }
         }
 
@@ -4037,31 +4377,20 @@
             if (params.get('payment') === 'success') {
                 // 清除 URL 参数
                 window.history.replaceState({}, '', '/app');
-                // 显示成功通知
-                showPaymentSuccess();
-                // 刷新 credits
+                // 显示独立 toast 通知（不依赖 modal 和登录状态）
+                showPaymentToast();
+                // 刷新 credits（如果已登录会自动更新 UI）
                 fetchCredits();
             }
         }
 
-        function showPaymentSuccess() {
-            const notice = document.getElementById('paymentSuccessNotice');
-            const plans = document.getElementById('paymentPlans');
-            if (notice) {
-                notice.classList.add('show');
-            }
-            // 隐藏购买方案，只显示成功通知
-            if (plans) {
-                plans.style.display = 'none';
-            }
-            // 打开 payment modal
-            openPaymentModal();
-            // 5秒后关闭
+        function showPaymentToast() {
+            const toast = document.getElementById('paymentToast');
+            if (!toast) return;
+            toast.classList.add('show');
+            // 5秒后自动关闭
             setTimeout(() => {
-                closePaymentModal();
-                // 恢复购买方案显示
-                if (plans) plans.style.display = '';
-                if (notice) notice.classList.remove('show');
+                toast.classList.remove('show');
             }, 5000);
         }
 
@@ -4689,7 +5018,7 @@
                     cta: '上传视频，免费分析 2 次',
                     ctaDemo: '上传视频，免费分析 2 次',
                     benefit1: '30秒出结果',
-                    benefit2: '2 次免费试用',
+                    benefit2: '3 次免费试用',
                     benefit3: '检测你最不知道的问题',
                     featuresTitle: '你的问题可能在这里',
                     feature1Title: '手快脚慢？',
@@ -4733,26 +5062,52 @@
                     guideTip3Desc: '从准备姿势拍到随球动作结束，至少包含完整的出手过程',
                     guideTip4Title: '光线充足，背景简洁',
                     guideTip4Desc: '避免逆光和杂乱背景，确保身体轮廓清晰可辨',
-                    pricingTitle: '价格',
-                    perAnalysis: '按次分析',
-                    perTime: '/次',
-                    v1Discount: 'V1.0 上线 — 五折优惠',
-                    halfOff: '五折优惠'
+                    pricingTitle: '定价',
+                    freeNote: '注册送 3 次免费分析',
+                    earlyAdopterMonthly: '早期用户月付',
+                    earlyAdopterYearly: '早期用户年付',
+                    lockPriceNote: '锁定此价格，永久不变',
+                    yearlyNote: '约 $3.33/月，锁定价格',
+                    earlyAdopterBadge: '早期用户',
+                    bestValueBadge: '最划算',
+                    regularPriceNote: '后续加评分体系、改善建议、进步曲线后，新用户价格将调整为 $7.99/月。'
                 },
                 auth: {
-                    freeTrial: '新用户可获得 2 次免费分析！'
+                    freeTrial: '新用户可获得 3 次免费分析！'
+                },
+                date: {
+                    month: '月',
+                    day: '日'
+                },
+                pricing: {
+                    title: '选择方案',
+                    subtitle: '无限次分析，早期用户定价',
+                    earlyAdopter: 'V1.0 早期用户定价',
+                    earlyAdopterDesc: '现在订阅即锁定 $4.99/月永久不变。后续新用户价格将调整为 $7.99/月。',
+                    monthly: '月付',
+                    yearly: '年付',
+                    lockForever: '锁定价格，永久不变',
+                    yearlySave: '约 $3.33/月 · 最划算',
+                    unlimitedAnalyses: '无限次分析',
+                    powerTransferReport: '发力脱节检测报告',
+                    lockedPrice: '锁定价格 — 永不涨价',
+                    subscribeNow: '立即订阅',
+                    processing: '处理中...',
+                    alreadySubscribed: '您已有活跃订阅',
+                    close: '关闭',
+                    subscribe: '订阅',
+                    successTitle: '订阅已激活！',
+                    successSub: '您现在可以无限次分析',
+                    footer: '由 Creem 安全支付 · 随时可取消'
                 },
                 payment: {
-                    title: '购买分析次数',
-                    subtitle: '选择适合你的方案',
-                    buyCredits: '购买次数',
-                    buy: '购买',
+                    buyCredits: '订阅',
                     buying: '处理中...',
                     popular: '最划算',
                     credits: '次',
                     perCredit: '/次',
                     successTitle: '支付成功！',
-                    successSub: '分析次数已到账',
+                    successSub: '订阅已激活',
                     footer: '由 Creem 安全支付',
                     noProducts: '暂无可购买的方案'
                 },
@@ -4760,6 +5115,11 @@
                     title: '准备开始分析',
                     analyzed: '已完成分析',
                     freeRemaining: '剩余次数',
+                    unlimited: '无限次',
+                    expires: '到期',
+                    cancelAt: '后取消',
+                    expired: '已过期',
+                    renewHint: '点击续费',
                     guideText: '上传您的投篮视频，获取专业的姿势分析报告',
                     uploadBtn: '上传视频'
                 }
@@ -4930,10 +5290,10 @@
                 landing: {
                     title: 'Easy from 2-point range, but air balls from 3? It\'s not strength — it\'s coordination.',
                     subtitle: 'AI analyzes your hand-leg coordination, detects sync issues & power disconnection, and gives precise improvement advice',
-                    cta: 'Upload Video, 2 Free Trials',
-                    ctaDemo: 'Upload Video, 2 Free Trials',
+                    cta: 'Upload Video, 3 Free Trials',
+                    ctaDemo: 'Upload Video, 3 Free Trials',
                     benefit1: 'Results in 30 seconds',
-                    benefit2: '2 free trials',
+                    benefit2: '3 free trials',
                     benefit3: 'Detect the problem you didn\'t know you had',
                     featuresTitle: 'Your problem might be here',
                     feature1Title: 'Arms faster than legs?',
@@ -4978,25 +5338,51 @@
                     guideTip4Title: 'Good Lighting, Clean Background',
                     guideTip4Desc: 'Avoid backlighting and cluttered backgrounds to ensure clear body silhouette detection',
                     pricingTitle: 'Pricing',
-                    perAnalysis: 'Per Analysis',
-                    perTime: '/time',
-                    v1Discount: 'V1.0 Launch — 50% Off',
-                    halfOff: '50% OFF'
+                    freeNote: '3 free analyses on signup',
+                    earlyAdopterMonthly: 'Early Adopter Monthly',
+                    earlyAdopterYearly: 'Early Adopter Yearly',
+                    lockPriceNote: 'Lock in this price forever',
+                    yearlyNote: '~$3.33/month, lock forever',
+                    earlyAdopterBadge: 'EARLY ADOPTER',
+                    bestValueBadge: 'BEST VALUE',
+                    regularPriceNote: 'Regular price will be $7.99/month when we add scoring, coaching tips, and progress tracking.'
                 },
                 auth: {
-                    freeTrial: 'New users get 2 free analyses!'
+                    freeTrial: 'New users get 3 free analyses!'
+                },
+                date: {
+                    month: '/',
+                    day: ''
+                },
+                pricing: {
+                    title: 'Choose Your Plan',
+                    subtitle: 'Unlimited analyses with Early Adopter pricing',
+                    earlyAdopter: 'V1.0 EARLY ADOPTER PRICING',
+                    earlyAdopterDesc: 'Subscribe now and lock in $4.99/month forever. Regular price will be $7.99/month when we add scoring, coaching tips, and progress tracking.',
+                    monthly: 'Monthly',
+                    yearly: 'Yearly',
+                    lockForever: 'Lock in forever',
+                    yearlySave: '~$3.33/mo · Best value',
+                    unlimitedAnalyses: 'Unlimited analyses',
+                    powerTransferReport: 'Power transfer disconnect report',
+                    lockedPrice: 'Locked price — never increases',
+                    subscribeNow: 'Subscribe Now',
+                    processing: 'Processing...',
+                    alreadySubscribed: 'You already have an active subscription',
+                    close: 'Close',
+                    subscribe: 'Subscribe',
+                    successTitle: 'Subscription Activated!',
+                    successSub: 'You now have unlimited analyses',
+                    footer: 'Secured by Creem · Cancel anytime'
                 },
                 payment: {
-                    title: 'Buy Analysis Credits',
-                    subtitle: 'Choose a plan that fits your needs',
-                    buyCredits: 'Buy Credits',
-                    buy: 'Buy',
+                    buyCredits: 'Subscribe',
                     buying: 'Processing...',
                     popular: 'Best Value',
                     credits: 'credits',
                     perCredit: '/credit',
                     successTitle: 'Payment Successful!',
-                    successSub: 'Your credits have been added',
+                    successSub: 'Your subscription is now active',
                     footer: 'Secured by Creem. Cancel anytime.',
                     noProducts: 'No plans available yet'
                 },
@@ -5004,6 +5390,11 @@
                     title: 'Ready to Analyze',
                     analyzed: 'Analyses Done',
                     freeRemaining: 'Credits Left',
+                    unlimited: 'Unlimited',
+                    expires: 'expires',
+                    cancelAt: 'then cancel',
+                    expired: 'Expired',
+                    renewHint: 'Tap to renew',
                     guideText: 'Upload your shooting video to get professional form analysis',
                     uploadBtn: 'Upload Video'
                 }
@@ -5203,7 +5594,7 @@
             // 检查分析次数
             if (currentUser && !creditsUnlimited) {
                 await fetchCredits();
-                if (creditsRemaining <= 0) {
+                if (!creditsUnlimited && creditsRemaining <= 0) {
                     openPaymentModal();
                     return;
                 }

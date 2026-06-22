@@ -142,6 +142,8 @@ app.include_router(export.router, prefix="/api/v1")
 app.include_router(templates.router)
 app.include_router(admin.router, prefix="/api/v1")  # 管理员路由
 app.include_router(payment.router, prefix="/api/v1")  # 付款路由
+# Webhook 兼容路由：Creem 后台默认调 /api/payment/webhook，需要同时支持 /api/v1/payment/webhook
+app.include_router(payment.router, prefix="/api")  # 付款路由兼容（webhook 用）
 
 
 # 前端页面
@@ -165,6 +167,15 @@ async def serve_video_test():
     if html_path.exists():
         return html_path.read_text(encoding="utf-8")
     return HTMLResponse(content="<h1>Video test page not found</h1>", status_code=404)
+
+
+@app.get("/admin", response_class=HTMLResponse)
+async def serve_admin():
+    """管理后台页面"""
+    html_path = settings.templates_dir / "admin.html"
+    if html_path.exists():
+        return html_path.read_text(encoding="utf-8")
+    return HTMLResponse(content="<h1>Admin page not found</h1>", status_code=404)
 
 
 if __name__ == "__main__":

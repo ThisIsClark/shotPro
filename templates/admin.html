@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Shot Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { overflow-x: hidden; min-height: 100%; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0f1117;
+            color: #e1e4ea;
+            min-height: 100vh;
+        }
+
+        /* ===== Login Page ===== */
+        .login-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #0f1117;
+            background-image:
+                radial-gradient(at 50% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(168, 85, 247, 0.1) 0px, transparent 50%);
+        }
+        .login-box {
+            background: #1a1d27;
+            border: 1px solid #2a2d3a;
+            border-radius: 16px;
+            padding: 48px 40px;
+            width: 400px;
+            max-width: 90vw;
+        }
+        .login-box h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .login-box p { color: #8b8fa3; font-size: 0.875rem; margin-bottom: 32px; }
+        .login-box label { display: block; font-size: 0.8rem; font-weight: 500; color: #8b8fa3; margin-bottom: 6px; }
+        .login-box input {
+            width: 100%;
+            padding: 10px 14px;
+            background: #12141c;
+            border: 1px solid #2a2d3a;
+            border-radius: 8px;
+            color: #e1e4ea;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .login-box input:focus { border-color: #6366f1; }
+        .login-error { color: #ef4444; font-size: 0.8rem; margin-bottom: 16px; display: none; }
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-login:hover { opacity: 0.9; }
+        .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ===== Admin Layout ===== */
+        .admin-layout { display: none; min-height: 100vh; }
+        .admin-layout.active { display: flex; }
+
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            background: #14161e;
+            border-right: 1px solid #1e2030;
+            padding: 24px 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .sidebar-brand {
+            padding: 0 24px 24px;
+            border-bottom: 1px solid #1e2030;
+            margin-bottom: 16px;
+        }
+        .sidebar-brand h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sidebar-brand span { font-size: 0.75rem; color: #5a5e72; }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 24px;
+            color: #8b8fa3;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            border-left: 3px solid transparent;
+        }
+        .nav-item:hover { color: #c4c7d4; background: #1a1d27; }
+        .nav-item.active {
+            color: #e1e4ea;
+            background: #1a1d27;
+            border-left-color: #6366f1;
+        }
+        .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 24px;
+            border-top: 1px solid #1e2030;
+        }
+        .btn-logout {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #8b8fa3;
+            font-size: 0.8rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+        .btn-logout:hover { color: #ef4444; }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 240px;
+            flex: 1;
+            padding: 32px;
+            min-height: 100vh;
+        }
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 1.4rem; font-weight: 700; }
+        .page-header p { color: #5a5e72; font-size: 0.85rem; margin-top: 4px; }
+
+        /* Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .stat-card {
+            background: #1a1d27;
+            border: 1px solid #2a2d3a;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .stat-card .label { font-size: 0.75rem; color: #5a5e72; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .value { font-size: 1.8rem; font-weight: 700; margin-top: 8px; }
+        .stat-card .sub { font-size: 0.75rem; color: #5a5e72; margin-top: 4px; }
+        .stat-card.accent-indigo .value { color: #818cf8; }
+        .stat-card.accent-green .value { color: #34d399; }
+        .stat-card.accent-amber .value { color: #fbbf24; }
+        .stat-card.accent-rose .value { color: #fb7185; }
+        .stat-card.accent-gray .value { color: #9ca3af; }
+
+        /* Table */
+        .data-table-wrap {
+            background: #1a1d27;
+            border: 1px solid #2a2d3a;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .table-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid #2a2d3a;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .table-toolbar h3 { font-size: 0.9rem; font-weight: 600; }
+        .table-toolbar .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input {
+            padding: 6px 10px;
+            background: #12141c;
+            border: 1px solid #2a2d3a;
+            border-radius: 6px;
+            color: #e1e4ea;
+            font-size: 0.8rem;
+            outline: none;
+        }
+        .filter-select:focus, .filter-input:focus { border-color: #6366f1; }
+        .filter-input { width: 180px; }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #5a5e72;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #2a2d3a;
+            background: #14161e;
+        }
+        td {
+            padding: 12px 16px;
+            font-size: 0.82rem;
+            border-bottom: 1px solid #1e2030;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        tr:hover td { background: #1e2030; }
+
+        /* Status badges */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .badge-green { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+        .badge-red { background: rgba(251, 113, 133, 0.15); color: #fb7185; }
+        .badge-yellow { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+        .badge-blue { background: rgba(129, 140, 248, 0.15); color: #818cf8; }
+        .badge-gray { background: rgba(107, 114, 128, 0.15); color: #9ca3af; }
+
+        /* Buttons */
+        .btn-sm {
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid #2a2d3a;
+            background: #1e2030;
+            color: #c4c7d4;
+            transition: all 0.15s;
+        }
+        .btn-sm:hover { border-color: #6366f1; color: #e1e4ea; }
+        .btn-sm.primary { background: #6366f1; border-color: #6366f1; color: #fff; }
+        .btn-sm.primary:hover { opacity: 0.9; }
+        .btn-sm.danger { border-color: #ef4444; color: #ef4444; }
+        .btn-sm.danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #1a1d27;
+            border: 1px solid #2a2d3a;
+            border-radius: 12px;
+            padding: 28px;
+            width: 420px;
+            max-width: 90vw;
+        }
+        .modal h3 { font-size: 1rem; font-weight: 600; margin-bottom: 20px; }
+        .modal label { display: block; font-size: 0.8rem; color: #8b8fa3; margin-bottom: 6px; font-weight: 500; }
+        .modal input, .modal select {
+            width: 100%;
+            padding: 8px 12px;
+            background: #12141c;
+            border: 1px solid #2a2d3a;
+            border-radius: 6px;
+            color: #e1e4ea;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            outline: none;
+        }
+        .modal input:focus, .modal select:focus { border-color: #6366f1; }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+
+        /* Page sections */
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+
+        /* Empty state */
+        .empty-state { text-align: center; padding: 60px 20px; color: #5a5e72; }
+        .empty-state svg { width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.3; }
+        .empty-state p { font-size: 0.85rem; }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            border-top: 1px solid #2a2d3a;
+            font-size: 0.8rem;
+            color: #5a5e72;
+        }
+        .pagination .page-btns { display: flex; gap: 4px; }
+        .pagination .page-btn {
+            padding: 4px 10px;
+            border-radius: 4px;
+            background: #1e2030;
+            border: 1px solid #2a2d3a;
+            color: #8b8fa3;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .pagination .page-btn:hover { border-color: #6366f1; color: #e1e4ea; }
+        .pagination .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            z-index: 300;
+            transform: translateX(120%);
+            transition: transform 0.3s;
+        }
+        .toast.show { transform: translateX(0); }
+        .toast.success { background: #065f46; color: #34d399; border: 1px solid #34d399; }
+        .toast.error { background: #7f1d1d; color: #fb7185; border: 1px solid #fb7185; }
+
+        /* DB unavailable banner */
+        .db-banner {
+            display: none;
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 0.82rem;
+            color: #fbbf24;
+        }
+        .db-banner.show { display: block; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar { width: 60px; padding: 16px 0; }
+            .sidebar-brand h2, .sidebar-brand span, .nav-item span, .sidebar-footer .btn-logout span { display: none; }
+            .nav-item { padding: 12px 0; justify-content: center; border-left: none; border-right: 3px solid transparent; }
+            .nav-item.active { border-right-color: #6366f1; border-left-color: transparent; }
+            .main-content { margin-left: 60px; padding: 20px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- Login Page -->
+<div id="loginPage" class="login-page">
+    <div class="login-box">
+        <h1>Admin Dashboard</h1>
+        <p>Basketball Shot Analyzer 管理后台</p>
+        <label>Username</label>
+        <input type="text" id="loginUsername" placeholder="admin" autocomplete="username">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+        <div id="loginError" class="login-error"></div>
+        <button id="btnLogin" class="btn-login" onclick="handleLogin()">Sign In</button>
+    </div>
+</div>
+
+<!-- Admin Layout -->
+<div id="adminLayout" class="admin-layout">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <h2>Shot Admin</h2>
+            <span>Management Console</span>
+        </div>
+        <div class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard')">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+            <span>Dashboard</span>
+        </div>
+        <div class="nav-item" data-page="users" onclick="switchPage('users')">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/></svg>
+            <span>Users</span>
+        </div>
+        <div class="nav-item" data-page="analyses" onclick="switchPage('analyses')">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span>Analyses</span>
+        </div>
+        <div class="nav-item" data-page="payments" onclick="switchPage('payments')">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            <span>Payments</span>
+        </div>
+        <div class="nav-item" data-page="subscriptions" onclick="switchPage('subscriptions')">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            <span>Subscriptions</span>
+        </div>
+        <div class="nav-item" data-page="audit" onclick="switchPage('audit')">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Audit Logs</span>
+        </div>
+        <div class="sidebar-footer">
+            <button class="btn-logout" onclick="handleLogout()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                <span>Logout</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+
+        <!-- DB Unavailable Banner -->
+        <div id="dbBanner" class="db-banner">
+            Database (Supabase) is not available. User data, analysis records, and payment info cannot be loaded. Please check your Supabase configuration.
+        </div>
+
+        <!-- Dashboard -->
+        <div id="page-dashboard" class="page-section active">
+            <div class="page-header">
+                <h1>Dashboard</h1>
+                <p>System overview and key metrics</p>
+            </div>
+            <div class="stats-grid" id="dashboardStats"></div>
+            <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; margin-top: 8px;">User Breakdown</h3>
+            <div class="stats-grid" id="userBreakdownStats"></div>
+            <div class="data-table-wrap">
+                <div class="table-toolbar">
+                    <h3>Recent Activity</h3>
+                </div>
+                <table>
+                    <thead><tr><th>Action</th><th>User</th><th>Resource</th><th>Time</th></tr></thead>
+                    <tbody id="recentActivity"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Users -->
+        <div id="page-users" class="page-section">
+            <div class="page-header">
+                <h1>User Management</h1>
+                <p>View and manage users, subscriptions, and credits</p>
+            </div>
+            <div class="data-table-wrap">
+                <div class="table-toolbar">
+                    <h3>Users</h3>
+                    <div class="filters">
+                        <select class="filter-select" id="userSubscriptionFilter" onchange="loadUsers()">
+                            <option value="">All Plans</option>
+                            <option value="free">Free</option>
+                            <option value="paid">Paid (Active)</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                        <input type="text" class="filter-input" id="userSearch" placeholder="Search by user ID..." onkeydown="if(event.key==='Enter')loadUsers()">
+                        <button class="btn-sm primary" onclick="loadUsers()">Search</button>
+                    </div>
+                </div>
+                <table>
+                    <thead><tr><th>Email</th><th>Subscription</th><th>Credits</th><th>Analyses</th><th>Registered</th><th>Last Activity</th><th>Actions</th></tr></thead>
+                    <tbody id="usersTable"></tbody>
+                </table>
+                <div class="pagination" id="usersPagination"></div>
+            </div>
+        </div>
+
+        <!-- Analyses -->
+        <div id="page-analyses" class="page-section">
+            <div class="page-header">
+                <h1>Analysis Records</h1>
+                <p>All video analysis tasks</p>
+            </div>
+            <div class="data-table-wrap">
+                <div class="table-toolbar">
+                    <h3>Analyses</h3>
+                    <div class="filters">
+                        <select class="filter-select" id="analysisStatusFilter" onchange="loadAnalyses()">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="completed">Completed</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                        <input type="text" class="filter-input" id="analysisUserFilter" placeholder="User ID..." onkeydown="if(event.key==='Enter')loadAnalyses()">
+                        <button class="btn-sm primary" onclick="loadAnalyses()">Filter</button>
+                    </div>
+                </div>
+                <table>
+                    <thead><tr><th>ID</th><th>User</th><th>File</th><th>Status</th><th>Hand</th><th>Created</th></tr></thead>
+                    <tbody id="analysesTable"></tbody>
+                </table>
+                <div class="pagination" id="analysesPagination"></div>
+            </div>
+        </div>
+
+        <!-- Payments -->
+        <div id="page-payments" class="page-section">
+            <div class="page-header">
+                <h1>Payment Records</h1>
+                <p>Creem payment transactions</p>
+            </div>
+            <div class="data-table-wrap">
+                <div class="table-toolbar">
+                    <h3>Payments</h3>
+                </div>
+                <table>
+                    <thead><tr><th>Checkout ID</th><th>User ID</th><th>Processed At</th></tr></thead>
+                    <tbody id="paymentsTable"></tbody>
+                </table>
+                <div class="pagination" id="paymentsPagination"></div>
+            </div>
+        </div>
+
+        <!-- Subscriptions -->
+        <div id="page-subscriptions" class="page-section">
+            <div class="page-header">
+                <h1>Subscriptions</h1>
+                <p>Active and past subscription records</p>
+            </div>
+            <div class="data-table-wrap">
+                <div class="table-toolbar">
+                    <h3>Subscriptions</h3>
+                    <div class="filters">
+                        <select class="filter-select" id="subStatusFilter" onchange="loadSubscriptions()">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="scheduled_cancel">Scheduled Cancel</option>
+                            <option value="expired">Expired</option>
+                            <option value="canceled">Canceled</option>
+                        </select>
+                    </div>
+                </div>
+                <table>
+                    <thead><tr><th>Email</th><th>Plan</th><th>Status</th><th>Period Start</th><th>Period End</th><th>Created</th></tr></thead>
+                    <tbody id="subscriptionsTable"></tbody>
+                </table>
+                <div class="pagination" id="subscriptionsPagination"></div>
+            </div>
+        </div>
+
+        <!-- Audit Logs -->
+        <div id="page-audit" class="page-section">
+            <div class="page-header">
+                <h1>Audit Logs</h1>
+                <p>System activity and operation logs</p>
+            </div>
+            <div class="data-table-wrap">
+                <div class="table-toolbar">
+                    <h3>Logs</h3>
+                    <div class="filters">
+                        <select class="filter-select" id="auditActionFilter" onchange="loadAuditLogs()">
+                            <option value="">All Actions</option>
+                            <option value="analysis_started">Analysis Started</option>
+                            <option value="analysis_completed">Analysis Completed</option>
+                            <option value="analysis_failed">Analysis Failed</option>
+                            <option value="login">Login</option>
+                            <option value="register">Register</option>
+                        </select>
+                        <select class="filter-select" id="auditDaysFilter" onchange="loadAuditLogs()">
+                            <option value="7">Last 7 days</option>
+                            <option value="14">Last 14 days</option>
+                            <option value="30">Last 30 days</option>
+                        </select>
+                    </div>
+                </div>
+                <table>
+                    <thead><tr><th>Action</th><th>User</th><th>Resource</th><th>Details</th><th>Time</th></tr></thead>
+                    <tbody id="auditTable"></tbody>
+                </table>
+                <div class="pagination" id="auditPagination"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Credits Adjustment Modal -->
+<div id="creditsModal" class="modal-overlay">
+    <div class="modal">
+        <h3>Adjust Credits</h3>
+        <label>User ID</label>
+        <input type="text" id="modalUserId" readonly>
+        <label>Current Credits</label>
+        <input type="text" id="modalCurrentCredits" readonly>
+        <label>Adjust Amount (positive = add, negative = deduct)</label>
+        <input type="number" id="modalAmount" placeholder="e.g. 5 or -3">
+        <label>Reason</label>
+        <input type="text" id="modalReason" placeholder="Optional reason">
+        <div class="modal-actions">
+            <button class="btn-sm" onclick="closeCreditsModal()">Cancel</button>
+            <button class="btn-sm primary" onclick="submitCreditsAdjust()">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== State =====
+let authToken = localStorage.getItem('admin_token') || '';
+let currentPage = 'dashboard';
+let paginationState = { users: 0, analyses: 0, payments: 0, audit: 0, subscriptions: 0 };
+
+// ===== Auth =====
+async function handleLogin() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorEl = document.getElementById('loginError');
+    const btn = document.getElementById('btnLogin');
+
+    if (!username || !password) {
+        errorEl.textContent = 'Please enter username and password';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+    errorEl.style.display = 'none';
+
+    try {
+        const res = await fetch('/api/v1/auth/local-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (data.success && data.token) {
+            authToken = data.token;
+            localStorage.setItem('admin_token', authToken);
+            showAdmin();
+        } else {
+            errorEl.textContent = data.message || 'Login failed';
+            errorEl.style.display = 'block';
+        }
+    } catch (e) {
+        errorEl.textContent = 'Network error';
+        errorEl.style.display = 'block';
+    }
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+}
+
+function handleLogout() {
+    authToken = '';
+    localStorage.removeItem('admin_token');
+    document.getElementById('adminLayout').classList.remove('active');
+    document.getElementById('loginPage').style.display = 'flex';
+}
+
+function showAdmin() {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('adminLayout').classList.add('active');
+    loadDashboard();
+}
+
+// Auto-login if token exists
+async function checkAuth() {
+    if (!authToken) return;
+    try {
+        const res = await fetch('/api/v1/auth/me', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (res.ok) {
+            const user = await res.json();
+            if (user.role === 'admin') {
+                showAdmin();
+                return;
+            }
+        }
+    } catch (e) {}
+    authToken = '';
+    localStorage.removeItem('admin_token');
+}
+
+// ===== API Helper =====
+async function apiFetch(path, options = {}) {
+    const res = await fetch(`/api/v1/admin${path}`, {
+        ...options,
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
+    if (res.status === 401 || res.status === 403) {
+        handleLogout();
+        throw new Error('Unauthorized');
+    }
+    return res.json();
+}
+
+// ===== Navigation =====
+function switchPage(page) {
+    currentPage = page;
+    document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.page === page);
+    });
+    document.querySelectorAll('.page-section').forEach(el => {
+        el.classList.toggle('active', el.id === `page-${page}`);
+    });
+    const loaders = {
+        dashboard: loadDashboard,
+        users: loadUsers,
+        analyses: loadAnalyses,
+        payments: loadPayments,
+        subscriptions: loadSubscriptions,
+        audit: loadAuditLogs
+    };
+    if (loaders[page]) loaders[page]();
+}
+
+// ===== Dashboard =====
+async function loadDashboard() {
+    try {
+        const stats = await apiFetch('/dashboard-stats');
+
+        // Show/hide DB banner
+        const banner = document.getElementById('dbBanner');
+        if (stats.db_available === false) {
+            banner.classList.add('show');
+        } else {
+            banner.classList.remove('show');
+        }
+
+        const grid = document.getElementById('dashboardStats');
+        grid.innerHTML = `
+            <div class="stat-card accent-indigo">
+                <div class="label">Total Analyses</div>
+                <div class="value">${stats.total_analyses || 0}</div>
+                <div class="sub">${stats.recent_analyses_7d || 0} in last 7 days</div>
+            </div>
+            <div class="stat-card accent-green">
+                <div class="label">Completed</div>
+                <div class="value">${stats.completed_analyses || 0}</div>
+                <div class="sub">${stats.recent_analyses_30d || 0} in last 30 days</div>
+            </div>
+            <div class="stat-card accent-rose">
+                <div class="label">Failed</div>
+                <div class="value">${stats.failed_analyses || 0}</div>
+            </div>
+            <div class="stat-card accent-amber">
+                <div class="label">Total Users</div>
+                <div class="value">${stats.total_users || 0}</div>
+                <div class="sub">+${stats.new_users_7d || 0} this week, +${stats.new_users_30d || 0} this month</div>
+            </div>
+        `;
+
+        // User breakdown section
+        const breakdown = document.getElementById('userBreakdownStats');
+        const convRate = stats.total_users > 0 ? ((stats.paid_users / stats.total_users) * 100).toFixed(1) : '0.0';
+        breakdown.innerHTML = `
+            <div class="stat-card accent-green">
+                <div class="label">Paid Users</div>
+                <div class="value">${stats.paid_users || 0}</div>
+                <div class="sub">${convRate}% conversion rate</div>
+            </div>
+            <div class="stat-card accent-gray">
+                <div class="label">Free Users</div>
+                <div class="value">${stats.free_users || 0}</div>
+            </div>
+            <div class="stat-card accent-indigo">
+                <div class="label">Monthly Subs</div>
+                <div class="value">${stats.monthly_subscribers || 0}</div>
+                <div class="sub">$4.99/mo Early Adopter</div>
+            </div>
+            <div class="stat-card accent-amber">
+                <div class="label">Yearly Subs</div>
+                <div class="value">${stats.yearly_subscribers || 0}</div>
+                <div class="sub">$39.99/yr Early Adopter</div>
+            </div>
+            <div class="stat-card accent-rose">
+                <div class="label">Expired</div>
+                <div class="value">${stats.expired_subscribers || 0}</div>
+                <div class="sub">Churned subscribers</div>
+            </div>
+            <div class="stat-card accent-indigo">
+                <div class="label">Total Payments</div>
+                <div class="value">${stats.total_payments || 0}</div>
+            </div>
+        `;
+    } catch (e) {
+        console.error('Dashboard stats failed:', e);
+    }
+
+    // Recent activity
+    try {
+        const data = await apiFetch('/audit-logs?limit=10&days=7');
+        const tbody = document.getElementById('recentActivity');
+        if (!data.logs || data.logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No recent activity</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.logs.map(log => `
+            <tr>
+                <td><span class="badge ${actionBadgeClass(log.action)}">${log.action}</span></td>
+                <td title="${log.user_id || ''}">${truncate(log.user_email || log.user_id || '-', 24)}</td>
+                <td>${log.resource_type || '-'}</td>
+                <td>${formatTime(log.created_at)}</td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        console.error('Recent activity failed:', e);
+    }
+}
+
+// ===== Users =====
+async function loadUsers() {
+    const search = document.getElementById('userSearch').value.trim();
+    const subFilter = document.getElementById('userSubscriptionFilter').value;
+    const offset = paginationState.users || 0;
+    try {
+        let path = `/users?limit=50&offset=${offset}`;
+        if (search) path += `&search=${encodeURIComponent(search)}`;
+        if (subFilter) path += `&subscription_filter=${subFilter}`;
+        const data = await apiFetch(path);
+        const tbody = document.getElementById('usersTable');
+        if (!data.users || data.users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No users found</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.users.map(u => `
+            <tr>
+                <td title="${u.user_id}">${u.email || truncate(u.user_id, 16)}</td>
+                <td>${subscriptionBadge(u)}</td>
+                <td><span class="badge ${u.credits_remaining === 999 ? 'badge-blue' : u.credits_remaining > 0 ? 'badge-green' : 'badge-red'}">${u.credits_remaining === 999 ? 'Unlimited' : u.credits_remaining}</span></td>
+                <td>${u.completed_analyses}/${u.total_analyses}</td>
+                <td>${formatTime(u.created_at)}</td>
+                <td>${formatTime(u.last_activity)}</td>
+                <td><button class="btn-sm" onclick="openCreditsModal('${u.user_id}', ${u.credits_remaining})">Credits</button></td>
+            </tr>
+        `).join('');
+        renderPagination('usersPagination', 'users', data.total, 50, offset);
+    } catch (e) {
+        console.error('Load users failed:', e);
+    }
+}
+
+function subscriptionBadge(u) {
+    const display = u.subscription_display || 'free';
+    const plan = u.subscription_plan;
+    if (display === 'paid') {
+        const label = plan === 'early_adopter_monthly' ? 'Pro Monthly' : plan === 'early_adopter_yearly' ? 'Pro Yearly' : 'Pro';
+        return `<span class="badge badge-green">${label}</span>`;
+    }
+    if (display === 'expired') {
+        return `<span class="badge badge-yellow">Expired</span>`;
+    }
+    return `<span class="badge badge-gray">Free</span>`;
+}
+
+// ===== Credits Modal =====
+function openCreditsModal(userId, currentCredits) {
+    document.getElementById('modalUserId').value = userId;
+    document.getElementById('modalCurrentCredits').value = currentCredits === 999 ? 'Unlimited (Subscriber)' : currentCredits;
+    document.getElementById('modalAmount').value = '';
+    document.getElementById('modalReason').value = '';
+    document.getElementById('creditsModal').classList.add('active');
+}
+
+function closeCreditsModal() {
+    document.getElementById('creditsModal').classList.remove('active');
+}
+
+async function submitCreditsAdjust() {
+    const userId = document.getElementById('modalUserId').value;
+    const amount = parseInt(document.getElementById('modalAmount').value);
+    const reason = document.getElementById('modalReason').value;
+
+    if (!amount || amount === 0) {
+        showToast('Please enter a non-zero amount', 'error');
+        return;
+    }
+
+    try {
+        const res = await apiFetch(`/users/${encodeURIComponent(userId)}/credits`, {
+            method: 'PUT',
+            body: JSON.stringify({ amount, reason })
+        });
+        if (res.success) {
+            showToast(`Credits adjusted: ${res.credits_remaining} remaining`, 'success');
+            closeCreditsModal();
+            loadUsers();
+        } else {
+            showToast(res.detail || 'Adjustment failed', 'error');
+        }
+    } catch (e) {
+        showToast('Request failed', 'error');
+    }
+}
+
+// ===== Analyses =====
+async function loadAnalyses() {
+    const status = document.getElementById('analysisStatusFilter').value;
+    const userId = document.getElementById('analysisUserFilter').value.trim();
+    const offset = paginationState.analyses || 0;
+    try {
+        let path = `/analyses?limit=50&offset=${offset}`;
+        if (status) path += `&status_filter=${status}`;
+        if (userId) path += `&user_id=${encodeURIComponent(userId)}`;
+        const data = await apiFetch(path);
+        const tbody = document.getElementById('analysesTable');
+        if (!data.analyses || data.analyses.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No analyses found</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.analyses.map(a => `
+            <tr>
+                <td title="${a.id}">${truncate(a.id, 12)}</td>
+                <td title="${a.user_id || ''}">${truncate(a.user_id || '-', 16)}</td>
+                <td title="${a.video_filename || ''}">${truncate(a.video_filename || '-', 20)}</td>
+                <td><span class="badge ${statusBadgeClass(a.status)}">${a.status}</span></td>
+                <td>${a.shooting_hand || '-'}</td>
+                <td>${formatTime(a.created_at)}</td>
+            </tr>
+        `).join('');
+        renderPagination('analysesPagination', 'analyses', data.count, 50, offset);
+    } catch (e) {
+        console.error('Load analyses failed:', e);
+    }
+}
+
+// ===== Payments =====
+async function loadPayments() {
+    const offset = paginationState.payments || 0;
+    try {
+        const data = await apiFetch(`/payments?limit=50&offset=${offset}`);
+        const tbody = document.getElementById('paymentsTable');
+        if (!data.payments || data.payments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No payment records</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.payments.map(p => `
+            <tr>
+                <td title="${p.checkout_id}">${truncate(p.checkout_id, 24)}</td>
+                <td title="${p.user_id || ''}">${truncate(p.user_id || '-', 20)}</td>
+                <td>${formatTime(p.processed_at)}</td>
+            </tr>
+        `).join('');
+        renderPagination('paymentsPagination', 'payments', data.count, 50, offset);
+    } catch (e) {
+        console.error('Load payments failed:', e);
+    }
+}
+
+// ===== Subscriptions =====
+async function loadSubscriptions() {
+    const statusFilter = document.getElementById('subStatusFilter').value;
+    const offset = paginationState.subscriptions || 0;
+    try {
+        let path = `/subscriptions?limit=50&offset=${offset}`;
+        if (statusFilter) path += `&status_filter=${statusFilter}`;
+        const data = await apiFetch(path);
+        const tbody = document.getElementById('subscriptionsTable');
+        if (!data.subscriptions || data.subscriptions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No subscriptions found</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.subscriptions.map(s => `
+            <tr>
+                <td title="${s.user_id || ''}">${s.email || truncate(s.user_id || '-', 20)}</td>
+                <td>${planLabel(s.plan)}</td>
+                <td><span class="badge ${subStatusBadgeClass(s.status)}">${s.status}</span></td>
+                <td>${formatTime(s.current_period_start)}</td>
+                <td>${formatTime(s.current_period_end)}</td>
+                <td>${formatTime(s.created_at)}</td>
+            </tr>
+        `).join('');
+        renderPagination('subscriptionsPagination', 'subscriptions', data.count, 50, offset);
+    } catch (e) {
+        console.error('Load subscriptions failed:', e);
+    }
+}
+
+function planLabel(plan) {
+    const map = {
+        'early_adopter_monthly': 'Pro Monthly ($4.99)',
+        'early_adopter_yearly': 'Pro Yearly ($39.99)',
+        'regular': 'Regular',
+        'free': 'Free'
+    };
+    return map[plan] || plan || '-';
+}
+
+function subStatusBadgeClass(status) {
+    const map = { active: 'badge-green', scheduled_cancel: 'badge-yellow', expired: 'badge-red', canceled: 'badge-gray' };
+    return map[status] || 'badge-gray';
+}
+
+// ===== Audit Logs =====
+async function loadAuditLogs() {
+    const action = document.getElementById('auditActionFilter').value;
+    const days = document.getElementById('auditDaysFilter').value;
+    const offset = paginationState.audit || 0;
+    try {
+        let path = `/audit-logs?limit=100&offset=${offset}&days=${days}`;
+        if (action) path += `&action=${action}`;
+        const data = await apiFetch(path);
+        const tbody = document.getElementById('auditTable');
+        if (!data.logs || data.logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No logs found</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.logs.map(log => `
+            <tr>
+                <td><span class="badge ${actionBadgeClass(log.action)}">${log.action}</span></td>
+                <td title="${log.user_id || ''}">${truncate(log.user_email || log.user_id || '-', 20)}</td>
+                <td>${log.resource_type || '-'}${log.resource_id ? ' ' + truncate(log.resource_id, 8) : ''}</td>
+                <td title="${JSON.stringify(log.details || {})}">${truncate(JSON.stringify(log.details || {}), 40)}</td>
+                <td>${formatTime(log.created_at)}</td>
+            </tr>
+        `).join('');
+        renderPagination('auditPagination', 'audit', data.count, 100, offset);
+    } catch (e) {
+        console.error('Load audit logs failed:', e);
+    }
+}
+
+// ===== Helpers =====
+function truncate(str, len) {
+    if (!str) return '-';
+    return str.length > len ? str.substring(0, len) + '...' : str;
+}
+
+function formatTime(iso) {
+    if (!iso) return '-';
+    try {
+        const d = new Date(iso);
+        return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    } catch { return iso; }
+}
+
+function statusBadgeClass(status) {
+    const map = { completed: 'badge-green', failed: 'badge-red', processing: 'badge-blue', pending: 'badge-yellow' };
+    return map[status] || 'badge-gray';
+}
+
+function actionBadgeClass(action) {
+    if (action?.includes('completed')) return 'badge-green';
+    if (action?.includes('failed')) return 'badge-red';
+    if (action?.includes('started')) return 'badge-blue';
+    if (action?.includes('login') || action?.includes('register')) return 'badge-yellow';
+    return 'badge-gray';
+}
+
+function renderPagination(containerId, key, total, pageSize, currentOffset) {
+    const container = document.getElementById(containerId);
+    const totalPages = Math.ceil(total / pageSize);
+    const currentPageNum = Math.floor(currentOffset / pageSize) + 1;
+    container.innerHTML = `
+        <span>${total} records, page ${currentPageNum} of ${Math.max(totalPages, 1)}</span>
+        <div class="page-btns">
+            <button class="page-btn" ${currentOffset === 0 ? 'disabled' : ''} onclick="goPage('${key}', ${currentOffset - pageSize})">Prev</button>
+            <button class="page-btn" ${currentOffset + pageSize >= total ? 'disabled' : ''} onclick="goPage('${key}', ${currentOffset + pageSize})">Next</button>
+        </div>
+    `;
+}
+
+function goPage(key, offset) {
+    if (offset < 0) offset = 0;
+    paginationState[key] = offset;
+    const loaders = { users: loadUsers, analyses: loadAnalyses, payments: loadPayments, subscriptions: loadSubscriptions, audit: loadAuditLogs };
+    if (loaders[key]) loaders[key]();
+}
+
+function showToast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `toast ${type} show`;
+    setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ===== Init =====
+document.getElementById('loginPassword').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+});
+checkAuth();
+</script>
+</body>
+</html>

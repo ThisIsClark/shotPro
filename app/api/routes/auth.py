@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from ..deps import get_current_user_required, get_current_user_optional, get_user_id
 from ...services.supabase_client import get_supabase_client_anon, is_supabase_enabled
 from ...services.local_auth_service import local_auth_service
+from ...services.jwt_service import jwt_service
 from ...services.db_service import db_service
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -42,6 +43,7 @@ class AuthStatusResponse(BaseModel):
 class LocalLoginResponse(BaseModel):
     success: bool
     user: Optional[UserInfoResponse] = None
+    token: Optional[str] = None
     message: str = ""
 
 
@@ -71,6 +73,14 @@ async def local_login(request: LocalLoginRequest):
             message="Invalid username or password"
         )
 
+    # 签发本地 JWT
+    token = jwt_service.create_token({
+        "id": user["username"],
+        "role": user.get("role", "user"),
+        "is_local": True,
+        "email": user.get("email", ""),
+    })
+
     return LocalLoginResponse(
         success=True,
         user=UserInfoResponse(
@@ -80,6 +90,7 @@ async def local_login(request: LocalLoginRequest):
             role=user.get("role", "user"),
             is_local=True
         ),
+        token=token,
         message="Login successful"
     )
 
@@ -145,6 +156,10 @@ async def get_current_user_info(
 class CreditsResponse(BaseModel):
     credits_remaining: int
     is_unlimited: bool = False
+    subscription_plan: Optional[str] = None
+    subscription_status: Optional[str] = None
+    is_early_adopter: Optional[bool] = None
+    current_period_end: Optional[str] = None  # 订阅到期时间 ISO 格式
 
 
 @router.get("/credits", response_model=CreditsResponse)
@@ -152,15 +167,21 @@ async def get_user_credits(
     user: Optional[dict] = Depends(get_current_user_optional)
 ):
     """
-    获取用户剩余分析次数
+    获取用户剩余分析次数和订阅状态
 
     - 本地管理员账户：不限次数
+    - 订阅用户：不限次数
     - 未登录用户：返回 0 次
-    - Supabase 用户：从数据库读取
+    - Free 用户：从数据库读取
     """
     # 本地管理员不限次数
     if user and user.get("is_local"):
-        return CreditsResponse(credits_remaining=999, is_unlimited=True)
+        return CreditsResponse(
+            credits_remaining=999,
+            is_unlimited=True,
+            subscription_plan="admin",
+            subscription_status="active",
+        )
 
     user_id = get_user_id(user)
     if not user_id:
@@ -169,6 +190,20 @@ async def get_user_credits(
     if not db_service.is_available():
         return CreditsResponse(credits_remaining=999, is_unlimited=True)
 
+    # 检查订阅状态
+    sub = await db_service.get_user_subscription(user_id)
+    if sub and sub.get("status") in ("active", "scheduled_cancel"):
+        is_early_adopter = sub.get("plan", "").startswith("early_adopter")
+        return CreditsResponse(
+            credits_remaining=999,
+            is_unlimited=True,
+            subscription_plan=sub.get("plan"),
+            subscription_status=sub.get("status"),
+            is_early_adopter=is_early_adopter,
+            current_period_end=sub.get("current_period_end"),
+        )
+
+    # Free 用户
     remaining = await db_service.get_user_credits(user_id)
     if remaining < 0:
         remaining = 0
