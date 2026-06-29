@@ -16,9 +16,9 @@
             box-sizing: border-box;
         }
 
-        html {
-            overflow-x: hidden;
-            min-height: 100%;
+        /* 防止加载时闪烁中文，等 updateLanguage() 执行完再显示 */
+        body.loading-flash-prevent {
+            visibility: hidden !important;
         }
 
         body {
@@ -3383,7 +3383,7 @@
         }
     </style>
 </head>
-<body>
+<body class="loading-flash-prevent">
     <!-- 支付成功 Toast 通知 -->
     <div class="payment-toast" id="paymentToast">
         <span class="payment-toast-icon">🎉</span>
@@ -5426,6 +5426,9 @@
             
             // 更新 HTML lang 属性
             document.documentElement.lang = currentLang;
+
+            // 语言替换完成，移除加载防闪烁隐藏
+            document.body.classList.remove('loading-flash-prevent');
         }
 
         // 获取翻译文本
