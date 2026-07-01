@@ -428,8 +428,10 @@ class DatabaseService:
         """
         检查用户是否有活跃订阅
 
+        包括 active、scheduled_cancel，以及 expired 但 current_period_end 尚未到达的订阅
+
         Returns:
-            True 如果用户有 active 或 scheduled_cancel 状态的订阅
+            True 如果用户有活跃订阅
         """
         if not self.client:
             return False
@@ -440,17 +442,20 @@ class DatabaseService:
                 return False
 
             for sub in response.data:
-                if sub.get("status") in ("active", "scheduled_cancel"):
-                    # 检查是否在有效期内
+                status = sub.get("status")
+                if status in ("active", "scheduled_cancel"):
+                    return True
+                # expired 但计费周期未结束，仍视为有效
+                if status == "expired":
                     period_end = sub.get("current_period_end")
                     if period_end:
                         from datetime import timezone
-                        end_time = datetime.fromisoformat(period_end.replace("Z", "+00:00")) if isinstance(period_end, str) else period_end
-                        if end_time > datetime.now(timezone.utc):
-                            return True
-                    else:
-                        # 没有 period_end 也视为活跃（兼容旧数据）
-                        return True
+                        try:
+                            end_time = datetime.fromisoformat(period_end.replace("Z", "+00:00")) if isinstance(period_end, str) else period_end
+                            if end_time > datetime.now(timezone.utc):
+                                return True
+                        except Exception:
+                            pass
 
             return False
         except Exception as e:
@@ -460,6 +465,9 @@ class DatabaseService:
     async def get_user_subscription(self, user_id: str) -> Optional[Dict[str, Any]]:
         """
         获取用户当前活跃订阅
+
+        包括 active、scheduled_cancel，以及 expired 但 current_period_end 尚未到达的订阅
+        （用户取消后仍享有权限直到计费周期结束）
 
         Returns:
             订阅信息字典，无订阅返回 None
@@ -471,8 +479,20 @@ class DatabaseService:
             response = self.client.table(self.TABLE_USER_SUBSCRIPTIONS).select("*").eq("user_id", user_id).order("created_at", desc=True).limit(1).execute()
             if response.data:
                 sub = response.data[0]
-                if sub.get("status") in ("active", "scheduled_cancel"):
+                status = sub.get("status")
+                if status in ("active", "scheduled_cancel"):
                     return sub
+                # expired 但计费周期未结束，仍视为有效
+                if status == "expired":
+                    period_end = sub.get("current_period_end")
+                    if period_end:
+                        from datetime import timezone
+                        try:
+                            end_time = datetime.fromisoformat(period_end.replace("Z", "+00:00")) if isinstance(period_end, str) else period_end
+                            if end_time > datetime.now(timezone.utc):
+                                return sub
+                        except Exception:
+                            pass
             return None
         except Exception as e:
             print(f"[DB] Get user subscription failed: {e}")

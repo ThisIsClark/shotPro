@@ -192,7 +192,8 @@ async def get_user_credits(
 
     # 检查订阅状态
     sub = await db_service.get_user_subscription(user_id)
-    if sub and sub.get("status") in ("active", "scheduled_cancel"):
+    if sub:
+        # get_user_subscription 已经过滤了有效订阅（active, scheduled_cancel, expired但未到期）
         is_early_adopter = sub.get("plan", "").startswith("early_adopter")
         return CreditsResponse(
             credits_remaining=999,
