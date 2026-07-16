@@ -80,6 +80,23 @@ async def get_current_user_required(
     )
 
 
+async def require_admin(
+    user: dict = Depends(get_current_user_required)
+) -> dict:
+    """
+    要求当前用户是管理员（role == "admin"）。
+
+    用于保护管理类端点（如模板创建）。复用现有 local_auth_service JWT 体系：
+    admin 登录后 JWT payload 里带 role: "admin"（见 auth.py local-login）。
+    """
+    if user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin only",
+        )
+    return user
+
+
 # 用户 ID 提取辅助函数
 def get_user_id(user_info: Optional[dict]) -> Optional[str]:
     """从用户信息字典提取用户 ID"""

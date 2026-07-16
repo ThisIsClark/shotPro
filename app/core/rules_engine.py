@@ -95,6 +95,8 @@ class CoordinationIssue:
     description_en: str = ""
     suggestion: str = ""
     suggestion_en: str = ""
+    skipped: bool = False  # 是否因数据不足而跳过检测
+    skip_reason: str = ""  # 跳过原因
 
 
 class RulesEngine:
@@ -205,6 +207,13 @@ class RulesEngine:
                     issue.suggestion = ""
                     issue.suggestion_en = ""
                     print(f"[RulesEngine] Hand-foot sync: OK")
+            else:
+                # 膝盖数据不可用，无法检测
+                issue.skipped = True
+                issue.skip_reason = "knee_data_unavailable"
+                issue.description = "膝盖数据不可用（可见度不足或膝盖不在画面内），无法检测手脚同步性。请确保拍摄时膝盖完整出现在画面中。"
+                issue.description_en = "Knee data unavailable (visibility too low or knee not in frame). Unable to detect hand-foot sync. Please ensure the knee is fully visible in the video."
+                print(f"[RulesEngine] Hand-foot sync: skipped (knee data unavailable)")
 
         return issue
 
@@ -275,5 +284,12 @@ class RulesEngine:
                     issue.suggestion = ""
                     issue.suggestion_en = ""
                     print(f"[RulesEngine] Power disconnect: OK")
+            else:
+                # 膝盖数据不可用，无法检测
+                issue.skipped = True
+                issue.skip_reason = "knee_data_unavailable"
+                issue.description = "膝盖数据不可用（可见度不足或膝盖不在画面内），无法检测发力脱节。请确保拍摄时膝盖完整出现在画面中。"
+                issue.description_en = "Knee data unavailable (visibility too low or knee not in frame). Unable to detect power disconnect. Please ensure the knee is fully visible in the video."
+                print(f"[RulesEngine] Power disconnect: skipped (knee data unavailable)")
 
         return issue

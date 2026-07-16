@@ -1,20 +1,9 @@
 {
-  "template_3e7fbf098d26": {
-    "name": "DevinBooker",
-    "description": "",
-    "created_at": "2026-02-26T06:42:16.978055",
-    "key_frame_count": 4
-  },
-  "template_68a71955a0e3": {
+  "template_56140d232ffa": {
     "name": "Curry",
-    "description": "",
-    "created_at": "2026-02-26T18:42:19.933251",
-    "key_frame_count": 4
-  },
-  "template_b44eafed4339": {
-    "name": "Curry2",
-    "description": "",
-    "created_at": "2026-03-01T12:49:20.745704",
-    "key_frame_count": 4
+    "description": "Curry shooting form",
+    "created_at": "2026-07-17T20:01:19.903394",
+    "key_frame_count": 8,
+    "has_curve_data": true
   }
 }

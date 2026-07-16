@@ -291,6 +291,86 @@ class VideoProcessor:
         }
 
         return cropped, crop_info
+
+    def compute_person_crop_region(
+        self,
+        pose_results: dict,
+        frame_cache: dict,
+        frame_numbers: list,
+        padding_ratio: float = 0.15,
+        horizontal_padding_ratio: Optional[float] = None,
+        text_margin: int = 150
+    ) -> Optional[dict]:
+        """
+        收集指定帧的可见关键点，取并集 bbox，返回统一裁剪区域。
+        所有关键帧共用此区域，保证构图统一（不会忽大忽小）。
+
+        Args:
+            pose_results: {frame_number: PoseResult}
+            frame_cache: {frame_number: np.ndarray} - 用于取画面尺寸
+            frame_numbers: 需要裁剪的帧号列表（通常是 8 个关键帧）
+            padding_ratio: 垂直边距比例（相对人物高度）
+            horizontal_padding_ratio: 水平边距比例（相对人物宽度），None 则用 padding_ratio
+            text_margin: 右侧/上方额外文字边距，避免角度标签被裁切
+
+        Returns:
+            crop_info dict 或 None（无可用关键点时，调用方应回退到不裁剪）
+        """
+        x_coords = []
+        y_coords = []
+        width = height = None
+
+        for frame_number in frame_numbers:
+            pose_result = pose_results.get(frame_number)
+            if not pose_result or not pose_result.landmarks:
+                continue
+
+            # 取画面尺寸（同视频尺寸一致，取任一可用帧即可）
+            if width is None:
+                frame = frame_cache.get(frame_number)
+                if frame is not None:
+                    height, width = frame.shape[:2]
+                else:
+                    # 无帧图像时用 PoseResult 记录的尺寸
+                    width = pose_result.image_width or 0
+                    height = pose_result.image_height or 0
+
+            for landmark in pose_result.landmarks.values():
+                if landmark.visibility > 0.5:
+                    x_coords.append(landmark.x * (width or 0))
+                    y_coords.append(landmark.y * (height or 0))
+
+        if not x_coords or not y_coords or not width or not height:
+            return None
+
+        min_x, max_x = int(min(x_coords)), int(max(x_coords))
+        min_y, max_y = int(min(y_coords)), int(max(y_coords))
+        person_width = max_x - min_x
+        person_height = max_y - min_y
+
+        h_padding = horizontal_padding_ratio if horizontal_padding_ratio is not None else padding_ratio
+        padding_x = int(person_width * h_padding)
+        padding_y = int(person_height * padding_ratio)
+
+        # 与 crop_to_person 一致：右侧/上方留文字边距，避免角度标签出框
+        crop_x1 = max(0, min_x - padding_x)
+        crop_x2 = min(width, max_x + padding_x + text_margin)
+        crop_y1 = max(0, min_y - padding_y - int(text_margin * 0.5))
+        crop_y2 = min(height, max_y + padding_y + int(text_margin * 0.3))
+
+        # 裁剪区域退化检查（过小或无效则放弃）
+        if crop_x2 - crop_x1 < 50 or crop_y2 - crop_y1 < 50:
+            return None
+
+        return {
+            'crop_x1': crop_x1,
+            'crop_y1': crop_y1,
+            'crop_x2': crop_x2,
+            'crop_y2': crop_y2,
+            'orig_width': width,
+            'orig_height': height
+        }
+
     
     def create_annotated_video(
         self,

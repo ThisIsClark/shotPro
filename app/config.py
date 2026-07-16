@@ -36,8 +36,8 @@ class Settings(BaseSettings):
     supabase_service_key: str = ""  # Service role key for backend (higher privileges)
 
     # Model Configuration
-    # Use a fixed model URL to ensure consistent pose detection results
-    # If empty, will use local models/ directory
+    # If empty, uses the fixed-version default URL in pose_detector.py (0_2024-03-19, NOT latest)
+    # To override, set this to a specific model URL. Do NOT use "latest" tag URLs.
     pose_model_url: str = ""  # e.g., "https://your-supabase.supabase.co/storage/v1/object/public/models/pose_landmarker.task"
 
     # Admin Configuration

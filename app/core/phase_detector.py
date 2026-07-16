@@ -23,6 +23,11 @@ class ShootingPhase(str, Enum):
     SYNC_FRAME_2 = "sync_frame_2"      # 手脚同步检测帧2：手上升后（沉球点后N帧）
     MAX_HOLD_FRAME = "max_hold_frame"  # 发力脱节检测帧1：最高持球点（手腕高+肘角未伸展）
     RELEASE_FRAME = "release_frame"    # 发力脱节检测帧2：出手点（手腕最高+肘角伸展）
+    # 关键帧（角度极值帧 - 曲线联动）
+    KNEE_MIN_FRAME = "knee_min_frame"          # 最低蹲点：膝盖弯曲角度最小的帧（下蹲→蹬伸转折点）
+    ELBOW_MIN_FRAME = "elbow_min_frame"        # 最紧折叠点：手肘角度最小的帧（起球→出手过渡点）
+    WRIST_PEAK_FRAME = "wrist_peak_frame"      # 手腕最高点：手腕物理位置最高的帧（出手瞬间）
+    FOLLOW_THROUGH_FRAME = "follow_through_frame"  # 跟随定型点：出手后手腕稳定的帧（跟随动作定型姿态）
 
 
 @dataclass
@@ -46,7 +51,7 @@ class PhaseThresholds:
     
     # 上升阶段
     wrist_rising_window: int = 3  # 手腕上升判断窗口大小（减小窗口以提高灵敏度）
-    wrist_rising_threshold: float = 0.005  # 手腕上升阈值（降低阈值以更早检测上升）
+    wrist_rising_threshold: float = 0.01  # 手腕上升阈值（提高到0.01减少MediaPipe抖动误判）
     
     # 出手阶段
     release_window: int = 5  # 出手判断窗口大小（减小窗口）
@@ -267,7 +272,22 @@ class PhaseDetector:
                 # 判断上升或下降
                 is_wrist_rising = total_change < -th.wrist_rising_threshold
                 is_wrist_falling = total_change > th.wrist_rising_threshold
-        
+
+        # 多信号融合：检测肘部和肩部角度趋势作为辅助信号
+        is_elbow_extending = False
+        is_shoulder_raising = False
+        if len(self.angles_history) >= 3:
+            recent_angles = self.angles_history[-3:]
+            # 肘部角度趋势（增大=手臂展开）
+            elbow_vals = [a.elbow_angle for a in recent_angles if a is not None]
+            if len(elbow_vals) >= 2:
+                is_elbow_extending = (elbow_vals[-1] - elbow_vals[0]) > 2.0  # 3帧内增大2°以上
+
+            # 肩部角度趋势（增大=手臂抬起）
+            shoulder_vals = [a.shoulder_angle for a in recent_angles if a is not None]
+            if len(shoulder_vals) >= 2:
+                is_shoulder_raising = (shoulder_vals[-1] - shoulder_vals[0]) > 2.0  # 3帧内增大2°以上
+
         # 检查是否达到最高点（手腕开始下降）
         at_peak = False
         if len(self.frame_history) >= th.release_window:
@@ -322,11 +342,11 @@ class PhaseDetector:
             self.release_detected = True
             return ShootingPhase.RELEASE
         
-        # 上升阶段判断（增加速度判断）
-        if is_wrist_rising and not self.release_detected:
-            # 手腕上升速度足够
-            # 优化：降低进入上升阶段的门槛，只要有明显上升趋势即可
-            if wrist_rising_speed > 0.005:  # 降低速度阈值
+        # 上升阶段判断（多信号融合）
+        # 手腕上升 OR (肘部展开 AND 肩部抬起) → 进入上升阶段
+        # 不再仅依赖手腕Y坐标，减少MediaPipe抖动导致的误判
+        if not self.release_detected:
+            if is_wrist_rising or (is_elbow_extending and is_shoulder_raising):
                 self.wrist_rising = True
                 self.shooting_started = True
                 return ShootingPhase.LIFTING
@@ -445,7 +465,11 @@ class PhaseDetector:
             ShootingPhase.SYNC_FRAME_1: None,
             ShootingPhase.SYNC_FRAME_2: None,
             ShootingPhase.MAX_HOLD_FRAME: None,
-            ShootingPhase.RELEASE_FRAME: None
+            ShootingPhase.RELEASE_FRAME: None,
+            ShootingPhase.KNEE_MIN_FRAME: None,
+            ShootingPhase.ELBOW_MIN_FRAME: None,
+            ShootingPhase.WRIST_PEAK_FRAME: None,
+            ShootingPhase.FOLLOW_THROUGH_FRAME: None
         }
 
         if not self.frame_history:
@@ -553,7 +577,33 @@ class PhaseDetector:
                         print(f"[PhaseDetector] 找到沉球转折点: frame#{curr.frame_number}, wrist_y={get_wrist_y(curr):.4f}")
                         break
 
-            # 如果没找到明显的转折点，取最高点前手腕Y值最大点（使用原始值）
+            # 如果手腕转折点未找到，改用膝盖角度转折作为备用信号
+            # 膝盖从弯曲转为伸展的那一刻 = 蓄力完成、力量开始释放
+            if sync_frame_1 is None:
+                # 尝试方案A：膝盖角度转折点（从减小转为增大）
+                knee_angles_before_peak = [
+                    (f, f.angles.knee_angle) for f in frames_before_peak
+                    if f.angles and f.angles.knee_angle is not None
+                ]
+                if len(knee_angles_before_peak) >= 5:
+                    for i in range(2, len(knee_angles_before_peak) - 2):
+                        _, prev_knee = knee_angles_before_peak[i - 1]
+                        _, curr_knee = knee_angles_before_peak[i]
+                        _, next1_knee = knee_angles_before_peak[i + 1]
+                        _, next2_knee = knee_angles_before_peak[i + 2]
+
+                        # 膝盖角度之前在减小（弯曲），现在开始增大（伸展）
+                        # 需要至少连续2帧增大确认转折
+                        if (prev_knee > curr_knee and
+                            next1_knee > curr_knee and
+                            next2_knee > next1_knee):
+                            sync_frame_1 = knee_angles_before_peak[i][0]
+                            print(f"[PhaseDetector] 使用膝盖角度转折点作为沉球点: "
+                                  f"frame#{sync_frame_1.frame_number}, "
+                                  f"knee={curr_knee:.1f}°")
+                            break
+
+            # 如果膝盖转折点也未找到，回退到局部最大Y值策略
             if sync_frame_1 is None:
                 # 在最高点前1/3范围内找Y值最大点（排除准备阶段的稳定期）
                 search_start = len(frames_before_peak) // 3
@@ -573,9 +623,16 @@ class PhaseDetector:
                   f"knee={knee_str}°")
 
         # ===== 2. 检测手上升后 (SYNC_FRAME_2) =====
-        # 沉球点后3-5帧（取沉球点后第4帧，约0.1秒）
+        # 自适应定位：取沉球点到最高点距离的15%，而非固定+4帧
+        # 这样无论投篮快慢都能落在"手刚开始上升不久"的位置
         if sync_frame_1:
-            target_frame_num = sync_frame_1.frame_number + 4
+            if true_peak_fn and true_peak_fn > sync_frame_1.frame_number:
+                # 自适应：沉球点到最高点的15%位置，至少3帧
+                gap = true_peak_fn - sync_frame_1.frame_number
+                target_frame_num = sync_frame_1.frame_number + max(3, int(gap * 0.15))
+            else:
+                # 回退：固定+4帧
+                target_frame_num = sync_frame_1.frame_number + 4
             # 找目标帧附近的有效帧（允许±2帧误差）
             candidate_frames = [
                 f for f in valid_frames
@@ -712,6 +769,80 @@ class PhaseDetector:
                   f"wrist_y={release_frame.wrist_y:.4f}, "
                   f"elbow={release_frame.angles.elbow_angle:.1f}°, "
                   f"knee={knee_str}°")
+
+        # ===== 5. 检测最低蹲点 (KNEE_MIN_FRAME) =====
+        # 在准备+上升阶段中找膝盖角度最小的帧（下蹲最深）
+        knee_min_frame = None
+        prep_lift_frames = [
+            f for f in self.frame_history
+            if f.phase in (ShootingPhase.PREPARATION, ShootingPhase.LIFTING)
+            and f.angles is not None and f.angles.knee_angle is not None
+        ]
+        if prep_lift_frames:
+            knee_min_frame = min(prep_lift_frames, key=lambda f: f.angles.knee_angle)
+            print(f"[PhaseDetector] KNEE_MIN_FRAME keyframe: frame#{knee_min_frame.frame_number}, "
+                  f"knee={knee_min_frame.angles.knee_angle:.1f}°")
+        key_frames[ShootingPhase.KNEE_MIN_FRAME] = knee_min_frame
+
+        # ===== 6. 检测最紧折叠点 (ELBOW_MIN_FRAME) =====
+        # 在上升+出手阶段中找肘角最小的帧（手臂折叠最紧）
+        elbow_min_frame = None
+        lift_release_frames = [
+            f for f in self.frame_history
+            if f.phase in (ShootingPhase.LIFTING, ShootingPhase.RELEASE)
+            and f.angles is not None and f.angles.elbow_angle is not None
+        ]
+        if lift_release_frames:
+            elbow_min_frame = min(lift_release_frames, key=lambda f: f.angles.elbow_angle)
+            print(f"[PhaseDetector] ELBOW_MIN_FRAME keyframe: frame#{elbow_min_frame.frame_number}, "
+                  f"elbow={elbow_min_frame.angles.elbow_angle:.1f}°")
+        key_frames[ShootingPhase.ELBOW_MIN_FRAME] = elbow_min_frame
+
+        # ===== 7. 检测手腕最高点 (WRIST_PEAK_FRAME) =====
+        # 复用已有的 min_wrist_y_frame（全局手腕Y值最小=物理位置最高）
+        wrist_peak_frame = min_wrist_y_frame
+        key_frames[ShootingPhase.WRIST_PEAK_FRAME] = wrist_peak_frame
+        if wrist_peak_frame:
+            wrist_y_val = get_wrist_y(wrist_peak_frame)
+            print(f"[PhaseDetector] WRIST_PEAK_FRAME keyframe: frame#{wrist_peak_frame.frame_number}, "
+                  f"wrist_y={wrist_y_val:.4f}")
+
+        # ===== 8. 检测跟随定型点 (FOLLOW_THROUGH_FRAME) =====
+        # 在手腕最高点之后，找手腕Y值回升后趋于稳定的帧
+        # 稳定定义：连续3帧 wrist_y 变化量 < 0.005
+        follow_through_frame = None
+        if wrist_peak_frame:
+            frames_after_peak = [
+                f for f in valid_frames
+                if f.frame_number > wrist_peak_frame.frame_number
+            ]
+            # 先找手腕明显回升的区域（wrist_y 增大超过0.03说明已开始下落）
+            risen_frames = [
+                f for f in frames_after_peak
+                if get_wrist_y(f) - get_wrist_y(wrist_peak_frame) > 0.03
+            ]
+            if len(risen_frames) >= 3:
+                # 从回升区域找第一个稳定点
+                for i in range(2, len(risen_frames)):
+                    delta1 = abs(get_wrist_y(risen_frames[i]) - get_wrist_y(risen_frames[i - 1]))
+                    delta2 = abs(get_wrist_y(risen_frames[i - 1]) - get_wrist_y(risen_frames[i - 2]))
+                    if delta1 < 0.005 and delta2 < 0.005:
+                        follow_through_frame = risen_frames[i - 1]
+                        break
+
+            # 回退：取跟随阶段的最后一帧
+            if follow_through_frame is None:
+                follow_frames = [
+                    f for f in self.frame_history
+                    if f.phase == ShootingPhase.FOLLOW_THROUGH and f.angles is not None
+                ]
+                if follow_frames:
+                    # 取跟随阶段中间偏后的帧（定型姿态，不是最后松懈的帧）
+                    follow_through_frame = follow_frames[min(len(follow_frames) * 3 // 4, len(follow_frames) - 1)]
+
+        key_frames[ShootingPhase.FOLLOW_THROUGH_FRAME] = follow_through_frame
+        if follow_through_frame:
+            print(f"[PhaseDetector] FOLLOW_THROUGH_FRAME keyframe: frame#{follow_through_frame.frame_number}")
 
         return key_frames
 

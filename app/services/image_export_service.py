@@ -34,8 +34,13 @@ PHASE_NAMES = {
     'zh-CN': {
         'sync_frame_1': '沉球点',
         'sync_frame_2': '手上升点',
+        'knee_min_frame': '最低蹲点',
+        'elbow_min_frame': '最紧折叠点',
         'max_hold_frame': '最高持球点',
+        'wrist_peak_frame': '手腕最高点',
         'release_frame': '出手点',
+        'follow_through_frame': '跟随定型点',
+        # 旧版阶段名（兼容）
         'preparation': '准备阶段',
         'lifting': '上升阶段',
         'release': '出手阶段',
@@ -44,8 +49,13 @@ PHASE_NAMES = {
     'en-US': {
         'sync_frame_1': 'Dip Point',
         'sync_frame_2': 'Hand Rise',
+        'knee_min_frame': 'Deep Squat',
+        'elbow_min_frame': 'Elbow Tuck',
         'max_hold_frame': 'Max Hold',
-        'release_frame': 'Release Point',
+        'wrist_peak_frame': 'Wrist Peak',
+        'release_frame': 'Release',
+        'follow_through_frame': 'Follow-thru',
+        # 旧版阶段名（兼容）
         'preparation': 'Preparation',
         'lifting': 'Lifting',
         'release': 'Release',
@@ -73,8 +83,11 @@ ANGLE_LABELS = {
     }
 }
 
-# 阶段排列顺序
-PHASE_ORDER_NEW = ['sync_frame_1', 'sync_frame_2', 'max_hold_frame', 'release_frame']
+# 阶段排列顺序（与前端 KEYFRAME_DISPLAY_ORDER 一致）
+PHASE_ORDER_NEW = [
+    'knee_min_frame', 'sync_frame_1', 'elbow_min_frame', 'sync_frame_2',
+    'wrist_peak_frame', 'max_hold_frame', 'release_frame', 'follow_through_frame'
+]
 PHASE_ORDER_OLD = ['preparation', 'lifting', 'release', 'follow_through']
 
 

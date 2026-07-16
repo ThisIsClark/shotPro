@@ -16,6 +16,11 @@ class ShootingPhase(str, Enum):
     SYNC_FRAME_2 = "sync_frame_2"      # 手脚同步检测帧2：手上升后（沉球点后N帧）
     MAX_HOLD_FRAME = "max_hold_frame"  # 发力脱节检测帧1：最高持球点（手腕高+肘角未伸展）
     RELEASE_FRAME = "release_frame"    # 发力脱节检测帧2：出手点（手腕最高+肘角伸展）
+    # 关键帧（8帧版本 - 细化动作节点，与 phase_detector.ShootingPhase 对齐）
+    KNEE_MIN_FRAME = "knee_min_frame"            # 最低蹲点：膝盖弯曲角度最小的帧
+    ELBOW_MIN_FRAME = "elbow_min_frame"          # 最紧折叠点：手肘角度最小的帧
+    WRIST_PEAK_FRAME = "wrist_peak_frame"        # 手腕最高点：手腕物理位置最高的帧
+    FOLLOW_THROUGH_FRAME = "follow_through_frame"  # 跟随定型点：出手后手腕稳定的帧
 
 
 class IssueSeverity(str, Enum):

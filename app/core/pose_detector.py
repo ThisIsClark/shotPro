@@ -107,8 +107,8 @@ class PoseResult:
 
 # 模型文件路径
 MODEL_PATH = Path(__file__).parent.parent.parent / "models" / "pose_landmarker.task"
-# 默认使用 latest 版本（不推荐，可能不稳定）
-DEFAULT_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task"
+# 使用固定版本，避免 latest 标签导致模型静默更新、检测结果不一致
+DEFAULT_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/0_2024-03-19/pose_landmarker_heavy.task"
 
 
 def download_model():

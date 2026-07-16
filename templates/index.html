@@ -6,6 +6,7 @@
     <title>Basketball Shooting Form Analyzer</title>
     <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -820,92 +821,209 @@
 
         .key-frames-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
             position: relative;
             z-index: 1;
         }
 
-        .key-frame {
+        /* ===== M4: 角度时序曲线 ===== */
+        .curves-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
             position: relative;
-            border-radius: 18px;
+            z-index: 1;
+        }
+        .curve-toggle {
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .curve-toggle .swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            display: inline-block;
+        }
+        .curve-toggle.off {
+            opacity: 0.35;
+        }
+        .curve-toggle.off .swatch {
+            background: #666 !important;
+        }
+        .curves-chart-wrap {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        #angleCurvesSvg {
+            display: block;
+            width: 100%;
+            min-height: 320px;
+            font-family: 'Inter', sans-serif;
+        }
+        .curves-hint {
+            margin-top: 12px;
+            font-size: 0.75rem;
+            color: #8b8fa3;
+            position: relative;
+            z-index: 1;
+        }
+        @media (max-width: 600px) {
+            #angleCurvesSvg { min-height: 260px; }
+        }
+
+        .key-frame-card {
+            position: relative;
+            border-radius: 14px;
             overflow: hidden;
             cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            background: rgba(0, 0, 0, 0.2);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            background: rgba(0, 0, 0, 0.25);
         }
-
-        .key-frame::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(72, 219, 251, 0.3), transparent);
-            opacity: 0;
-            transition: opacity 0.4s;
-            z-index: 1;
+        .key-frame-card:hover {
+            border-color: rgba(72, 219, 251, 0.5);
+            box-shadow: 0 4px 20px rgba(72, 219, 251, 0.2);
         }
-
-        .key-frame:hover::before {
-            opacity: 1;
+        .key-frame-card.highlight {
+            border-color: #48dbfb;
+            box-shadow: 0 0 16px rgba(72, 219, 251, 0.4);
         }
-
-        .key-frame:hover {
-            transform: translateY(-8px) scale(1.03);
-            box-shadow: 
-                0 20px 50px rgba(72, 219, 251, 0.4),
-                0 0 0 1px rgba(72, 219, 251, 0.7);
-            border-color: rgba(72, 219, 251, 0.8);
-        }
-
-        .key-frame img {
+        .key-frame-card img {
             width: 100%;
-            height: auto;
+            height: 140px;
+            object-fit: cover;
             display: block;
-            transition: transform 0.4s;
         }
-
-        .key-frame:hover img {
-            transform: scale(1.05);
-        }
-
-        .key-frame-label {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.7) 50%, transparent);
-            padding: 40px 18px 18px;
-            font-size: 1rem;
-            font-weight: 600;
+        .key-frame-card-info {
+            padding: 10px 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            z-index: 2;
+            gap: 6px;
         }
+        .key-frame-card-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .key-frame-card-angle {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.6);
+            white-space: nowrap;
+        }
+        .key-frame-card-diff {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .key-frame-card-diff.good { color: #00d26a; background: rgba(0,210,106,0.15); }
+        .key-frame-card-diff.warn { color: #feca57; background: rgba(254,202,87,0.15); }
+        .key-frame-card-diff.bad  { color: #ff6b6b; background: rgba(255,107,107,0.15); }
 
-        .key-frame-label .phase-name {
+        /* 展开的对比视图 */
+        .key-frame-compare {
+            display: none;
+            grid-column: 1 / -1;
+            background: rgba(0,0,0,0.3);
+            border-radius: 14px;
+            border: 1px solid rgba(72,219,251,0.3);
+            padding: 20px;
+            animation: slideDown 0.25s ease;
+        }
+        .key-frame-compare.active { display: block; }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .compare-title {
             font-size: 1.1rem;
             font-weight: 700;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-        }
-
-        .key-frame-label .expand-hint {
-            font-size: 0.85rem;
             color: #48dbfb;
+            margin-bottom: 16px;
+            padding-left: 10px;
+            border-left: 3px solid #48dbfb;
+        }
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .compare-side {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .compare-side-label {
+            font-size: 0.9rem;
             font-weight: 600;
-            opacity: 0.8;
-            transition: all 0.3s;
+            text-align: center;
         }
-
-        .key-frame:hover .expand-hint {
-            opacity: 1;
-            transform: scale(1.1);
+        .compare-side-label.user { color: #feca57; }
+        .compare-side-label.template { color: #48dbfb; }
+        .compare-side img {
+            width: 100%;
+            border-radius: 10px;
+            border: 2px solid rgba(255,255,255,0.15);
         }
+        .compare-side.user img { border-color: rgba(254,202,87,0.4); }
+        .compare-side.template img { border-color: rgba(72,219,251,0.4); }
+        .compare-angles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .compare-angle-item {
+            padding: 6px 8px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+        .compare-angle-item .label { color: rgba(255,255,255,0.5); font-size: 0.7rem; }
+        .compare-angle-item .value { font-weight: 600; }
+        .compare-angle-item .diff { font-size: 0.7rem; font-weight: 700; }
+        .compare-angle-item .diff.good { color: #00d26a; }
+        .compare-angle-item .diff.warn { color: #feca57; }
+        .compare-angle-item .diff.bad  { color: #ff6b6b; }
+        .compare-no-template {
+            text-align: center;
+            color: #666;
+            padding: 40px 0;
+            font-size: 0.9rem;
+        }
+        .compare-close {
+            margin-top: 12px;
+            text-align: center;
+        }
+        .compare-close button {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 6px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .compare-close button:hover { background: rgba(255,255,255,0.2); }
 
         /* 标注视频部分 */
         .video-section {
@@ -1719,6 +1837,12 @@
             }
 
             .key-frames-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .key-frame-card img {
+                height: 100px;
+            }
+            .compare-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -1920,7 +2044,7 @@
 
         .landing-features-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 28px;
             max-width: 1200px;
             margin: 0 auto;
@@ -2133,6 +2257,65 @@
             border-radius: 24px;
             padding: 40px;
             border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        /* ===== 落地页示例曲线 section ===== */
+        .landing-curves-demo {
+            padding: 80px 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .landing-curves-demo-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+        .landing-curves-demo-subtitle {
+            text-align: center;
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 36px;
+            line-height: 1.6;
+        }
+        .landing-curves-demo-subtitle strong {
+            color: #48dbfb;
+            font-weight: 600;
+        }
+        .landing-curves-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .landing-curves-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+            justify-content: center;
+        }
+        .landing-curves-legend .curve-toggle {
+            pointer-events: none;
+        }
+        .landing-curves-chart-wrap {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        #landingCurvesSvg {
+            display: block;
+            width: 100%;
+            min-height: 320px;
+            font-family: 'Inter', sans-serif;
+        }
+        @media (max-width: 600px) {
+            .landing-curves-demo { padding: 60px 20px; }
+            .landing-curves-card { padding: 20px; }
+            .landing-curves-demo-title { font-size: 1.5rem; }
+            .landing-curves-demo-subtitle { font-size: 0.95rem; }
+            #landingCurvesSvg { min-height: 260px; }
         }
 
         /* 检测行 */
@@ -2393,6 +2576,287 @@
 
         .landing-knowledge-text strong {
             color: #feca57;
+        }
+
+        /* ===== SB7 新增段样式 ===== */
+
+        /* Failure 段 — 不修的代价 */
+        .landing-failure {
+            padding: 80px 40px;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+            background: linear-gradient(180deg, rgba(255, 107, 107, 0.06) 0%, transparent 100%);
+        }
+
+        .landing-failure-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+
+        .landing-failure-desc {
+            font-size: 1.05rem;
+            color: rgba(255, 255, 255, 0.65);
+            line-height: 1.8;
+        }
+
+        /* Guide 段 — 共情 + 权威 */
+        .landing-guide-story {
+            padding: 60px 40px;
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+            align-items: stretch;
+        }
+
+        .landing-guide-empathy,
+        .landing-guide-authority {
+            flex: 1;
+            padding: 40px 32px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .landing-guide-empathy h3,
+        .landing-guide-authority h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 16px;
+        }
+
+        .landing-guide-empathy h3 {
+            color: #feca57;
+        }
+
+        .landing-guide-authority h3 {
+            color: #48dbfb;
+        }
+
+        .landing-guide-empathy p,
+        .landing-guide-authority p {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .landing-guide-divider {
+            width: 1px;
+            background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            flex-shrink: 0;
+        }
+
+        /* Plan 段 — 三步计划 */
+        .landing-plan {
+            padding: 60px 40px;
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .landing-plan-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+            color: #fff;
+        }
+
+        .landing-plan-steps {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .plan-step {
+            flex: 1;
+            max-width: 220px;
+            padding: 24px 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+        }
+
+        .plan-step-highlight {
+            border-color: rgba(72, 219, 251, 0.3);
+            background: rgba(72, 219, 251, 0.06);
+        }
+
+        .plan-step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(72, 219, 251, 0.15);
+            color: #48dbfb;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .plan-step-icon {
+            font-size: 1.6rem;
+            margin-bottom: 12px;
+        }
+
+        .plan-step h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .plan-step p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.55);
+            line-height: 1.5;
+        }
+
+        .plan-step-arrow {
+            color: rgba(255, 255, 255, 0.25);
+            font-size: 1.4rem;
+            padding-top: 60px;
+            flex-shrink: 0;
+        }
+
+        /* Plan Step 2 对比效果图预览 */
+        .plan-step-preview {
+            max-width: 680px;
+            margin: 0 auto;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .preview-keyframes {
+            padding: 20px 24px 16px;
+        }
+
+        .preview-kf-pair {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .preview-kf-pair img {
+            width: 45%;
+            height: 240px;
+            border-radius: 8px;
+            border: 2px solid rgba(254, 202, 87, 0.4);
+            object-fit: contain;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .preview-kf-pair img:last-child {
+            border-color: rgba(72, 219, 251, 0.4);
+        }
+
+        .preview-vs {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            flex-shrink: 0;
+        }
+
+        .preview-angle-diff {
+            text-align: center;
+            padding: 8px 0 4px;
+            color: #feca57;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .preview-curve {
+            padding: 0 24px 16px;
+        }
+
+        .preview-curve svg {
+            width: 100%;
+            height: 120px;
+        }
+
+        .preview-label {
+            text-align: center;
+            padding: 8px 0 14px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .preview-real {
+            display: none;
+        }
+
+        .preview-keyframes .preview-kf-pair + .preview-kf-pair {
+            margin-top: 18px;
+        }
+
+        .landing-compare-title {
+            text-align: center;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.95);
+            max-width: 680px;
+            margin: 0 auto 24px;
+        }
+
+        /* Success 段 — 成功愿景 */
+        .landing-success {
+            padding: 80px 40px;
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto;
+            background: linear-gradient(180deg, transparent, rgba(72, 219, 251, 0.06) 50%, transparent);
+        }
+
+        .landing-success-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #48dbfb;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+
+        .landing-success-desc {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.8;
+            margin-bottom: 32px;
+        }
+
+        /* SB7 新增段 — 响应式 */
+        @media (max-width: 900px) {
+            .landing-guide-story {
+                flex-direction: column;
+            }
+            .landing-guide-divider {
+                width: 100%;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .landing-failure-title { font-size: 1.4rem; }
+            .landing-success-title { font-size: 1.5rem; }
+            .landing-plan-steps { flex-direction: column; align-items: center; }
+            .plan-step-arrow { transform: rotate(90deg); padding-top: 0; }
+            .plan-step { max-width: 280px; width: 100%; }
         }
 
         @media (max-width: 900px) {
@@ -3401,160 +3865,204 @@
                 Shot Analyzer
             </div>
             <button class="landing-login-btn" onclick="openAuthModal()">
-                Login / Sign Up
+                <span data-i18n="landing.headerCta">Start Free</span>
             </button>
         </header>
 
+        <!-- 1. HERO - 主角 -->
         <section class="landing-hero">
             <div class="landing-hero-content">
-                <h1 data-i18n="landing.title">两分随便投，一到三分线外就 Air Ball？不是力量不够，是发力不够连贯。</h1>
-                <p data-i18n="landing.subtitle">AI 分析你的手腿协调性，检测手脚同步问题 & 发力脱节，给出精准改进建议</p>
+                <h1 data-i18n="landing.title">Shoot like it's second nature.</h1>
+                <p data-i18n="landing.subtitle">You love this game. But every release is a guess. Find the one flaw breaking your rhythm - and start shooting the way you always knew you could.</p>
                 <button class="landing-cta-btn" onclick="openAuthModal()">
-                    <span>🎬</span>
-                    <span data-i18n="landing.cta">上传视频，免费检测一次</span>
+                    <span>-></span>
+                    <span data-i18n="landing.cta">Start Free</span>
                 </button>
                 <div class="landing-benefits">
-                    <div data-i18n="landing.benefit1">30秒出结果</div>
-                    <div data-i18n="landing.benefit2">无需信用卡</div>
-                    <div data-i18n="landing.benefit3">检测你最不知道的问题</div>
+                    <div data-i18n="landing.benefit1">3 free</div>
+                    <div data-i18n="landing.benefit2">No card to start</div>
+                    <div data-i18n="landing.benefit3">30 seconds</div>
                 </div>
             </div>
         </section>
 
-        <section class="landing-guide">
-            <h2 class="landing-guide-title" data-i18n="landing.guideTitle">如何拍摄分析视频</h2>
-            <p class="landing-guide-subtitle" data-i18n="landing.guideSubtitle">拍得好，才能分析得准</p>
-            <div class="landing-guide-layout">
-                <div class="landing-guide-image">
-                    <img src="https://cfsabjichjyzjraarrjh.supabase.co/storage/v1/object/public/models/upload_guide.png" alt="Video shooting guide" onerror="this.parentElement.style.display='none'">
+        <!-- 2. PROBLEM - 问题（外部/内部/哲学） -->
+        <section class="landing-problem" style="padding: 72px 40px; text-align: center; max-width: 720px; margin: 0 auto;">
+            <h2 style="font-size: 1.9rem; font-weight: 800; color: rgba(255,255,255,0.95); margin-bottom: 28px; line-height: 1.3;" data-i18n="landing.problemTitle">One game you're hot. The next, you're not.</h2>
+            <p style="font-size: 1.05rem; color: rgba(255,255,255,0.6); line-height: 1.7; margin: 0 0 14px;" data-i18n="landing.problemExternal">Your shot is inconsistent - you can't find a rhythm you trust.</p>
+            <p style="font-size: 1.1rem; color: rgba(255,255,255,0.85); line-height: 1.7; margin: 0 0 14px;" data-i18n="landing.problemInternal">You love basketball, but every release is hesitation - a blind box you never win.</p>
+            <p style="font-size: 1.05rem; color: #feca57; line-height: 1.7; margin: 0;" data-i18n="landing.problemPhilosophical">Basketball is best when it's instinct. But if you're always fighting your own motion, you'll never get there.</p>
+        </section>
+
+        <!-- 3. GUIDE - 向导（共情+权威）+ 权威证据 -->
+        <section class="landing-proof" style="padding: 24px 0 0;">
+            <div class="landing-proof-intro" style="text-align:center; max-width:680px; margin:0 auto 48px;">
+                <p style="font-size:1.05rem; color:rgba(255,255,255,0.7); line-height:1.7; margin:0 0 14px;" data-i18n="landing.guideEmpathy">You love this game. You deserve to play it with confidence - not fight your own shot every time you step on the court.</p>
+                <p style="font-size:1.15rem; color:#feca57; line-height:1.7; font-weight:500;" data-i18n="landing.guideAuthority">AI biomechanics analysis - the same tech pro trainers use, now in your pocket.</p>
+            </div>
+
+            <div class="landing-curves-demo">
+                <h2 class="landing-curves-demo-title" data-i18n="landing.curvesTitle">The gap is real. And it's measurable.</h2>
+                <p class="landing-curves-demo-subtitle" data-i18n="landing.curvesSubtitle">Your eyes see a shot. We see 6 joint angles across 8 keyframes - the timing, the breaks, the invisible gaps that decide whether the ball goes in.</p>
+                <div class="landing-curves-card">
+                    <div class="landing-curves-legend" id="landingCurvesLegend"></div>
+                    <div class="landing-curves-chart-wrap">
+                        <svg id="landingCurvesSvg" aria-label="ideal shot angle curves"></svg>
+                    </div>
+                    <p style="margin-top: 16px; font-size: 0.78rem; color: rgba(255,255,255,0.45); text-align: center;">
+                        <span data-i18n="landing.curvesCaption">Ideal shooting motion - 6 joint angles · 8 keyframes · 4 phases (Preparation -> Lifting -> Release -> Follow-through)</span>
+                    </p>
                 </div>
-                <div class="landing-guide-tips">
-                    <div class="guide-tip">
-                        <div class="guide-tip-icon">👤</div>
-                        <div class="guide-tip-text">
-                            <h4 data-i18n="landing.guideTip1Title">侧身拍摄</h4>
-                            <p data-i18n="landing.guideTip1Desc">手机放在投篮手一侧，拍摄侧面全身动作，看清手臂和腿部角度</p>
+            </div>
+
+            <h2 class="landing-compare-title" data-i18n="landing.compareTitle">Your form vs Curry</h2>
+            <div class="plan-step-preview" id="planStep2Preview">
+                <div class="preview-demo" id="previewDemo">
+                    <div class="preview-keyframes">
+                        <div class="preview-kf-pair">
+                            <img src="/static/demo_sync_frame_1.jpg" alt="Your form" onerror="this.src='https://placehold.co/280x210/1a1f3a/feca57?text=Your+Form'">
+                            <span class="preview-vs">vs</span>
+                            <img src="/template_images/template_56140d232ffa/sync_frame_1.jpg" alt="Curry" onerror="this.src='https://placehold.co/280x210/1a1f3a/48dbfb?text=Curry'">
                         </div>
-                    </div>
-                    <div class="guide-tip">
-                        <div class="guide-tip-icon">📏</div>
-                        <div class="guide-tip-text">
-                            <h4 data-i18n="landing.guideTip2Title">人物占画面 60% 以上</h4>
-                            <p data-i18n="landing.guideTip2Desc">不要站太远，让投篮者占据画面大部分，保证关节检测精度</p>
+                        <div class="preview-angle-diff" data-i18n="landing.demoSyncFrame1">沉球点</div>
+                        <div class="preview-kf-pair">
+                            <img src="/static/demo_highest_frame.jpg" alt="Your form" onerror="this.src='https://placehold.co/280x210/1a1f3a/feca57?text=Your+Form'">
+                            <span class="preview-vs">vs</span>
+                            <img src="/template_images/template_56140d232ffa/max_hold_frame.jpg" alt="Curry" onerror="this.src='https://placehold.co/280x210/1a1f3a/48dbfb?text=Curry'">
                         </div>
-                    </div>
-                    <div class="guide-tip">
-                        <div class="guide-tip-icon">🎬</div>
-                        <div class="guide-tip-text">
-                            <h4 data-i18n="landing.guideTip3Title">完整的投篮过程</h4>
-                            <p data-i18n="landing.guideTip3Desc">从准备姿势拍到随球动作结束，至少包含完整的出手过程</p>
+                        <div class="preview-angle-diff" data-i18n="landing.demoDisconnFrame1">最高持球点</div>
+                        <div class="preview-kf-pair">
+                            <img src="/static/demo_release_frame.jpg" alt="Your form" onerror="this.src='https://placehold.co/280x210/1a1f3a/feca57?text=Your+Form'">
+                            <span class="preview-vs">vs</span>
+                            <img src="/template_images/template_56140d232ffa/release_frame.jpg" alt="Curry" onerror="this.src='https://placehold.co/280x210/1a1f3a/48dbfb?text=Curry'">
                         </div>
+                        <div class="preview-angle-diff" data-i18n="landing.demoDisconnFrame2">出手点</div>
                     </div>
-                    <div class="guide-tip">
-                        <div class="guide-tip-icon">💡</div>
-                        <div class="guide-tip-text">
-                            <h4 data-i18n="landing.guideTip4Title">光线充足，背景简洁</h4>
-                            <p data-i18n="landing.guideTip4Desc">避免逆光和杂乱背景，确保身体轮廓清晰可辨</p>
+                    <div class="preview-curve">
+                        <svg id="previewCurveSvg"></svg>
+                    </div>
+                    <div class="preview-label">Example result</div>
+                </div>
+            </div>
+
+            <div class="landing-features">
+                <h2 class="landing-features-title" data-i18n="landing.featuresTitle">The gaps we find</h2>
+                <div class="landing-features-grid">
+                    <div class="landing-feature-card">
+                        <div class="landing-feature-glow"></div>
+                        <div class="landing-feature-icon-ring">
+                            <div class="landing-feature-icon">🦵</div>
+                        </div>
+                        <h3 data-i18n="landing.feature1Title">你的手比脚快？</h3>
+                        <p data-i18n="landing.feature1Desc">你的手开始举球时，脚还在下蹲蓄力。力量没连上，出手就没力。我们看沉球点的膝盖角度，告诉你时机对不对。</p>
+                    </div>
+                    <div class="landing-feature-card">
+                        <div class="landing-feature-glow"></div>
+                        <div class="landing-feature-icon-ring">
+                            <div class="landing-feature-icon">💪</div>
+                        </div>
+                        <h3 data-i18n="landing.feature2Title">你的手在等脚蹬？</h3>
+                        <p data-i18n="landing.feature2Desc">你的手举到最高点时，腿还没蹬直。力量传递断了，全靠手臂。我们看最高持球点的膝盖伸展，看力链通不通。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. PLAN + 5. ACTION（计划 + 行动 CTA） -->
+        <section class="landing-howitworks" style="padding: 24px 0 0;">
+            <div class="landing-plan">
+                <h2 class="landing-plan-title" data-i18n="landing.planTitle">3 steps to a shot you trust</h2>
+                <div class="landing-plan-steps">
+                    <div class="plan-step">
+                        <div class="plan-step-number">1</div>
+                        <div class="plan-step-icon">🎬</div>
+                        <h3 data-i18n="landing.planStep1Title">Record your shot</h3>
+                        <p data-i18n="landing.planStep1Desc">One clip, side angle, any phone</p>
+                    </div>
+                    <div class="plan-step-arrow">-></div>
+                    <div class="plan-step plan-step-highlight">
+                        <div class="plan-step-number">2</div>
+                        <div class="plan-step-icon">👁️</div>
+                        <h3 data-i18n="landing.planStep2Title">AI finds the flaw</h3>
+                        <p data-i18n="landing.planStep2Desc">The exact flaw breaking your rhythm - measured, not guessed</p>
+                    </div>
+                    <div class="plan-step-arrow">-></div>
+                    <div class="plan-step">
+                        <div class="plan-step-number">3</div>
+                        <div class="plan-step-icon">🔧</div>
+                        <h3 data-i18n="landing.planStep3Title">Fix it</h3>
+                        <p data-i18n="landing.planStep3Desc">Start shooting like it's second nature</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACTION - CTA -->
+            <div style="text-align: center; margin: 48px auto 0; max-width: 680px;">
+                <p style="font-size: 0.95rem; color: rgba(255,255,255,0.55); line-height: 1.6; margin: 0 0 20px; font-style: italic;" data-i18n="landing.actionMicrocopy">Curry made 100+ reps a day. You just need one clip to start.</p>
+                <button class="landing-cta-btn" onclick="openAuthModal()">
+                    <span>-></span>
+                    <span data-i18n="landing.cta">Start Free</span>
+                </button>
+            </div>
+
+            <div class="landing-guide">
+                <h2 class="landing-guide-title" data-i18n="landing.guideTitle">如何拍摄分析视频</h2>
+                <p class="landing-guide-subtitle" data-i18n="landing.guideSubtitle">拍得好，才能分析得准</p>
+                <div class="landing-guide-layout">
+                    <div class="landing-guide-image">
+                        <img src="https://cfsabjichjyzjraarrjh.supabase.co/storage/v1/object/public/models/upload_guide.png" alt="Video shooting guide" onerror="this.parentElement.style.display='none'">
+                    </div>
+                    <div class="landing-guide-tips">
+                        <div class="guide-tip">
+                            <div class="guide-tip-icon">👤</div>
+                            <div class="guide-tip-text">
+                                <h4 data-i18n="landing.guideTip1Title">侧身拍摄</h4>
+                                <p data-i18n="landing.guideTip1Desc">手机放在投篮手一侧，拍摄侧面全身动作，看清手臂和腿部角度</p>
+                            </div>
+                        </div>
+                        <div class="guide-tip">
+                            <div class="guide-tip-icon">📏</div>
+                            <div class="guide-tip-text">
+                                <h4 data-i18n="landing.guideTip2Title">人物占画面 60% 以上</h4>
+                                <p data-i18n="landing.guideTip2Desc">不要站太远，让投篮者占据画面大部分，保证关节检测精度</p>
+                            </div>
+                        </div>
+                        <div class="guide-tip">
+                            <div class="guide-tip-icon">🎬</div>
+                            <div class="guide-tip-text">
+                                <h4 data-i18n="landing.guideTip3Title">完整的投篮过程</h4>
+                                <p data-i18n="landing.guideTip3Desc">从准备姿势拍到随球动作结束，至少包含完整的出手过程</p>
+                            </div>
+                        </div>
+                        <div class="guide-tip">
+                            <div class="guide-tip-icon">💡</div>
+                            <div class="guide-tip-text">
+                                <h4 data-i18n="landing.guideTip4Title">光线充足，背景简洁</h4>
+                                <p data-i18n="landing.guideTip4Desc">避免逆光和杂乱背景，确保身体轮廓清晰可辨</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="landing-features">
-            <h2 class="landing-features-title" data-i18n="landing.featuresTitle">你的问题可能在这里</h2>
-            <div class="landing-features-grid">
-                <div class="landing-feature-card">
-                    <div class="landing-feature-glow"></div>
-                    <div class="landing-feature-icon-ring">
-                        <div class="landing-feature-icon">🦵</div>
-                    </div>
-                    <h3 data-i18n="landing.feature1Title">手快脚慢？</h3>
-                    <p data-i18n="landing.feature1Desc">手开始举球时脚还在下蹲蓄力——力量断层，出手没力。我们精确检测沉球点的膝盖角度变化，告诉你时机是否对。</p>
-                </div>
-                <div class="landing-feature-card">
-                    <div class="landing-feature-glow"></div>
-                    <div class="landing-feature-icon-ring">
-                        <div class="landing-feature-icon">💪</div>
-                    </div>
-                    <h3 data-i18n="landing.feature2Title">手等脚蹬？</h3>
-                    <p data-i18n="landing.feature2Desc">手举到最高点时腿还没蹬直——力量传递中断，全靠手臂。我们检测最高持球点的膝盖伸展度，看力链是否贯通。</p>
-                </div>
-                <div class="landing-feature-card">
-                    <div class="landing-feature-glow"></div>
-                    <div class="landing-feature-icon-ring">
-                        <div class="landing-feature-icon">🔗</div>
-                    </div>
-                    <h3 data-i18n="landing.feature3Title">力链贯通 = 远投轻松</h3>
-                    <p data-i18n="landing.feature3Desc">投篮的力量链从脚→膝→髋→肩→肘→腕，像鞭子一样传递。NBA 球星的关键就是：蓄力完成 → 同步发力 → 顺畅出手，整个链路一气呵成。</p>
-                </div>
-            </div>
+        <!-- 6. FAILURE - 不修的代价 -->
+        <section class="landing-failure">
+            <h2 class="landing-failure-title" data-i18n="landing.failureTitle">The harder you train the wrong motion, the further you get from your shot.</h2>
+            <p class="landing-failure-desc" data-i18n="landing.failureDesc">Without finding the real flaw, every rep just deepens the wrong muscle memory. You're not staying still - you're moving away from the shooter you want to be.</p>
         </section>
 
-        <section class="landing-demo">
-            <h2 class="landing-demo-title" data-i18n="landing.demoTitle">发力连贯性检测示例</h2>
-            <div class="landing-demo-container">
-                <div class="demo-detection-row">
-                    <div class="demo-detection-label" data-i18n="landing.syncLabel">🦵 手脚同步性检测</div>
-                    <div class="demo-detection-frames">
-                        <div class="demo-frame-pair">
-                            <div class="demo-frame">
-                                <img src="/static/demo_sync_frame_1.jpg" alt="Dip Point" onerror="this.src='https://placehold.co/280x210/1a1f3a/48dbfb?text=Dip+Point'">
-                                <div class="demo-frame-label" data-i18n="landing.demoSyncFrame1">沉球点</div>
-                                <span class="angle-tag" data-i18n="landing.demoSyncAngle1">膝 162°</span>
-                            </div>
-                            <span class="demo-frame-arrow">→</span>
-                            <div class="demo-frame">
-                                <img src="/static/demo_sync_frame_2.jpg" alt="Arm Rise" onerror="this.src='https://placehold.co/280x210/1a1f3a/48dbfb?text=Arm+Rise'">
-                                <div class="demo-frame-label" data-i18n="landing.demoSyncFrame2">手上升后</div>
-                                <span class="angle-tag" data-i18n="landing.demoSyncAngle2">膝 162°</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="demo-detection-result">
-                        <span class="demo-result-tag good">✓ <span data-i18n="landing.demoSyncResult">良好</span></span>
-                        <span style="color: rgba(255,255,255,0.6); font-size: 0.85rem;" data-i18n="landing.demoSyncNote">膝盖角度变化正常，手脚时机协调</span>
-                    </div>
-                </div>
-                <div class="demo-detection-row">
-                    <div class="demo-detection-label" data-i18n="landing.disconnectLabel">💪 发力脱节检测</div>
-                    <div class="demo-detection-frames">
-                        <div class="demo-frame-pair">
-                            <div class="demo-frame">
-                                <img src="/static/demo_highest_frame.jpg" alt="Highest Hold" onerror="this.src='https://placehold.co/280x210/1a1f3a/feca57?text=Highest+Hold'">
-                                <div class="demo-frame-label" data-i18n="landing.demoDisconnFrame1">最高持球点</div>
-                                <span class="angle-tag warning" data-i18n="landing.demoDisconnAngle1">膝 146°</span>
-                            </div>
-                            <span class="demo-frame-arrow">→</span>
-                            <div class="demo-frame">
-                                <img src="/static/demo_release_frame.jpg" alt="Release" onerror="this.src='https://placehold.co/280x210/1a1f3a/feca57?text=Release'">
-                                <div class="demo-frame-label" data-i18n="landing.demoDisconnFrame2">出手点</div>
-                                <span class="angle-tag" data-i18n="landing.demoDisconnAngle2">膝 172°</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="demo-detection-result">
-                        <span class="demo-result-tag warning">⚠ <span data-i18n="landing.demoDisconnResult">中等问题</span></span>
-                    </div>
-                    <div class="demo-suggestion" data-i18n="landing.demoDisconnTip">建议：放慢举球速度，等腿蹬伸完成再出手，确保力量从下到上顺畅传递</div>
-                </div>
-                <div style="text-align: center; margin-top: 32px;">
-                    <button class="landing-cta-btn" onclick="openAuthModal()">
-                        <span>🎬</span>
-                        <span data-i18n="landing.ctaDemo">上传视频，免费检测一次</span>
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <section class="landing-knowledge">
-            <p class="landing-knowledge-text" data-i18n="landing.knowledgeText">投篮不是只靠手臂。力量从<strong>脚→膝→髋→肩→肘→腕</strong>传递，就像甩鞭子——手比鞭身快，力量就散了。你的问题不是力量不够，而是力量没连上。</p>
+        <!-- 7. SUCCESS - 成功愿景 -->
+        <section class="landing-success">
+            <h2 class="landing-success-title" data-i18n="landing.successTitle">Not grinding. Not guessing. Just hooping.</h2>
+            <p class="landing-success-desc" data-i18n="landing.successDesc">You catch the ball - no thought, just rise and fire. Splash. Again. Splash. It's not luck anymore, it's who you are. People whisper "that guy can shoot." And you? You're just playing - finally, purely playing.</p>
             <button class="landing-cta-btn" onclick="openAuthModal()">
-                <span>🔗</span>
-                <span data-i18n="landing.knowledgeCta">检测我的发力连贯性</span>
+                <span>-></span>
+                <span data-i18n="landing.successCta">Start Hooping</span>
             </button>
         </section>
 
+        <!-- 8. PRICING -->
         <section class="landing-pricing">
             <h2 class="landing-pricing-title" data-i18n="landing.pricingTitle">Pricing</h2>
             <div class="landing-pricing-plans">
@@ -3680,6 +4188,50 @@
         </div>
     </div>
 
+    <!-- 模板管理弹窗（仅管理员） -->
+    <div class="template-modal" id="templateModal">
+        <div class="template-modal-content">
+            <div class="template-modal-header">
+                <h2 data-i18n="template.manageTitle">Manage Templates</h2>
+                <button class="template-modal-close" onclick="closeTemplateManager()">×</button>
+            </div>
+            <div class="template-modal-body">
+                <!-- 模板列表 -->
+                <div id="templateManageList"></div>
+
+                <!-- 创建新模板 -->
+                <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <h3 style="margin: 0 0 16px; font-size: 1.1rem; color: #feca57;" data-i18n="template.createTitle">+ Create New Template</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div>
+                            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:6px;" data-i18n="upload.videoFile">Video File</label>
+                            <input type="file" id="templateVideoInput" accept="video/*" style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.2); color:#fff; font-size:0.9rem;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:6px;" data-i18n="upload.templateName">Template Name</label>
+                            <input type="text" id="templateNameInput" placeholder="" style="width:100%; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.2); color:#fff; font-size:1rem;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:6px;" data-i18n="upload.templateDescPlaceholder">Description (optional)</label>
+                            <input type="text" id="templateDescInput" placeholder="" style="width:100%; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.2); color:#fff; font-size:1rem;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:6px;" data-i18n="upload.shootingHand">Shooting Hand</label>
+                            <div style="display:flex; gap:16px;">
+                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.95rem;"><input type="radio" name="templateShootingHand" value="right" checked> <span data-i18n="upload.rightHand">Right</span></label>
+                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.95rem;"><input type="radio" name="templateShootingHand" value="left"> <span data-i18n="upload.leftHand">Left</span></label>
+                            </div>
+                        </div>
+                        <button id="createTemplateBtn" onclick="createTemplate()" style="padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#48dbfb,#a855f7); color:#fff; font-size:1rem; font-weight:600; cursor:pointer; transition:all 0.3s;">
+                            <span data-i18n="template.create">Create Template</span>
+                        </button>
+                        <p id="templateCreateHint" style="display:none; font-size:0.8rem; color:#feca57; text-align:center; margin:0;"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 登录提示弹窗 -->
     <div class="login-prompt-modal" id="loginPromptModal">
         <div class="login-prompt-content">
@@ -3727,6 +4279,9 @@
                             <span style="background:linear-gradient(135deg,#34d399,#a855f7);color:#fff;padding:2px 8px;border-radius:12px;font-size:0.7rem;font-weight:700;">PRO</span>
                             <span id="dropdownProLabel" style="font-size:0.85rem;color:#34d399;font-weight:600;"></span>
                         </div>
+                        <button class="user-dropdown-logout" id="dropdownManageTemplatesBtn" onclick="openTemplateManager()" style="display:none; color: #48dbfb;">
+                            <span>📋</span> <span data-i18n="upload.manageTemplates">Manage Templates</span>
+                        </button>
                         <button class="user-dropdown-logout" id="dropdownSubscribeBtn" onclick="openPaymentModal()" style="color: #a855f7;">
                             <span>⭐</span> <span data-i18n="pricing.subscribe">Subscribe</span>
                         </button>
@@ -3845,15 +4400,31 @@
                         </button>
                     </div>
 
-                    <!-- 关键帧区域 - 暂时隐藏，关键帧整合到问题检测区域中 -->
+                    <!-- 关键帧卡片区域 -->
                     <div class="key-frames-section" id="keyFramesSection" style="display: none;">
                         <h2 class="section-title">
                             <span class="section-title-icon">🎬</span>
                             <span data-i18n="results.keyFrames">Key Frames</span>
+                            <span id="keyframeTemplateBadge" style="display:none; font-size:0.85rem; background:rgba(72,219,251,0.15); border:1px solid rgba(72,219,251,0.4); border-radius:8px; padding:4px 12px; color:#48dbfb; font-weight:600; margin-left:8px;"></span>
                         </h2>
                         <div class="key-frames-grid" id="keyFrames">
                             <!-- Populated by JS -->
                         </div>
+                    </div>
+
+                    <!-- 角度时序曲线（M4）-->
+                    <div class="key-frames-section" id="curvesSection" style="display: none;">
+                        <h2 class="section-title">
+                            <span class="section-title-icon">📈</span>
+                            <span data-i18n="results.angleCurves">Angle Curves</span>
+                        </h2>
+                        <div class="curves-controls" id="curvesControls">
+                            <!-- 关节切换按钮由 JS 注入 -->
+                        </div>
+                        <div class="curves-chart-wrap">
+                            <svg id="angleCurvesSvg" aria-label="angle curves chart"></svg>
+                        </div>
+                        <p class="curves-hint" data-i18n="results.curvesHint">Tap a joint to toggle. X-axis: time. Shaded bands mark the 4 shooting phases.</p>
                     </div>
 
                     <!-- 标注视频 -->
@@ -4044,10 +4615,16 @@
             if (localUser) {
                 try {
                     const userData = JSON.parse(localUser);
-                    currentUser = userData;
-                    showLoggedInState(userData.email, userData.isAdmin);
-                    console.log('[Auth] Restored local user session:', userData.email);
-                    return;
+                    if (userData.isLocal && !userData.token) {
+                        // 旧会话 token 缺失（改版前登录残留），无法通过鉴权接口，清空让其重新登录
+                        console.log('[Auth] Local session missing token, clearing. Please re-login.');
+                        localStorage.removeItem('localUser');
+                    } else {
+                        currentUser = userData;
+                        showLoggedInState(userData.email, userData.isAdmin);
+                        console.log('[Auth] Restored local user session:', userData.email);
+                        return;
+                    }
                 } catch (e) {
                     localStorage.removeItem('localUser');
                 }
@@ -4069,11 +4646,14 @@
             document.getElementById('loginBtn').style.display = 'none';
             document.getElementById('userInfo').style.display = 'flex';
             document.getElementById('userEmail').textContent = email;
+            // 管理员才显示「模板管理」入口
+            const manageTemplatesBtn = document.getElementById('dropdownManageTemplatesBtn');
+            if (manageTemplatesBtn) manageTemplatesBtn.style.display = isAdmin ? 'flex' : 'none';
             // 设置头像首字母
             const initial = email.charAt(0).toUpperCase();
             document.getElementById('userAvatar').textContent = initial;
 
-            currentUser = { email, isAdmin };
+            currentUser = { ...(currentUser || {}), email, isAdmin };
 
             // 隐藏导出按钮的登录提示
             updateExportButtonsLoginHint();
@@ -4486,7 +5066,8 @@
                             email: localLoginResult.user.email,
                             isLocal: true,
                             role: localLoginResult.user.role,
-                            isAdmin
+                            isAdmin,
+                            token: localLoginResult.token
                         };
                         // 存储到 localStorage 以持久化登录状态
                         localStorage.setItem('localUser', JSON.stringify(currentUser));
@@ -4567,9 +5148,9 @@
 
         // 获取当前用户 Token（用于 API 请求）
         async function getAuthToken() {
-            // 本地用户不需要 token
+            // 本地用户返回登录时签发的 JWT
             if (currentUser && currentUser.isLocal) {
-                return 'local-' + currentUser.id;
+                return currentUser.token || null;
             }
 
             if (!supabaseClient || !currentUser) return null;
@@ -4859,6 +5440,7 @@
                     analysisType: '分析类型',
                     typeAnalyze: '分析投篮',
                     typeTemplate: '创建模板',
+                    videoFile: '视频文件',
                     templateName: '模板名称',
                     templateNamePlaceholder: '如：Curry投篮、我的最佳投篮',
                     templateDescPlaceholder: '描述（可选）',
@@ -4893,6 +5475,8 @@
                 },
                 template: {
                     createSuccess: '模板创建成功！',
+                    createTitle: '+ 新建模板',
+                    create: '创建模板',
                     keyFrames: '模板关键帧',
                     manageTitle: '模板管理',
                     loading: '加载中...',
@@ -4934,6 +5518,10 @@
                     sync_frame_2: '手上升后',
                     max_hold_frame: '最高持球点',
                     release_frame: '出手点',
+                    knee_min_frame: '最低蹲点',
+                    elbow_min_frame: '最紧折叠点',
+                    wrist_peak_frame: '手腕最高点',
+                    follow_through_frame: '跟随定型点',
                     preparation: '准备阶段',
                     lifting: '上升阶段',
                     release: '出手阶段',
@@ -5013,20 +5601,38 @@
                     contact: '联系我们'
                 },
                 landing: {
-                    title: '两分随便投，一到三分线外就 Air Ball？不是力量不够，是发力不够连贯。',
-                    subtitle: 'AI 分析你的手腿协调性，检测手脚同步问题 & 发力脱节，给出精准改进建议',
-                    cta: '上传视频，免费分析 2 次',
-                    ctaDemo: '上传视频，免费分析 2 次',
-                    benefit1: '30秒出结果',
-                    benefit2: '3 次免费试用',
-                    benefit3: '检测你最不知道的问题',
-                    featuresTitle: '你的问题可能在这里',
-                    feature1Title: '手快脚慢？',
-                    feature1Desc: '手开始举球时脚还在下蹲蓄力——力量断层，出手没力。我们精确检测沉球点的膝盖角度变化，告诉你时机是否对。',
-                    feature2Title: '手等脚蹬？',
-                    feature2Desc: '手举到最高点时腿还没蹬直——力量传递中断，全靠手臂。我们检测最高持球点的膝盖伸展度，看力链是否贯通。',
-                    feature3Title: '力链贯通 = 远投轻松',
-                    feature3Desc: '投篮的力量链从脚→膝→髋→肩→肘→腕，像鞭子一样传递。NBA 球星的关键就是：蓄力完成 → 同步发力 → 顺畅出手，整个链路一气呵成。',
+                    headerCta: '免费开始',
+                    title: '让出手变成一种本能。',
+                    subtitle: '你热爱篮球，可每次出手都像在赌。找到那个打断你节奏的缺陷——投出你一直知道能投出的那记球。',
+                    cta: '免费开始',
+                    benefit1: '3 次免费',
+                    benefit2: '无需绑卡试用',
+                    benefit3: '30 秒',
+                    problemTitle: '上一场怎么投怎么有，这一场怎么投怎么铁。',
+                    problemExternal: '投篮不稳定，你找不到一个能相信的节奏。',
+                    problemInternal: '你热爱篮球，可出手那一刻全是犹豫——一个永远猜不透的盲盒。',
+                    problemPhilosophical: '篮球最美是本能出手。但若总跟自己的动作较劲，你永远到不了那里。',
+                    failureTitle: '没找到关键问题，越努力练，离提升反而越远。',
+                    failureDesc: '找不到真正的缺陷，每一次重复都在强化错误的肌肉记忆。你不是原地踏步，而是在远离你想成为的那个投手。',
+                    guideEmpathy: '你热爱这场比赛。你该带着自信去打——而不是每次上场都跟自己的出手较劲。',
+                    guideAuthority: 'AI 运动生物力学分析——职业训练师用的同款技术，现在装进你口袋。',
+                    planTitle: '三步，拥有一个你信得过的出手',
+                    planStep1Title: '录下你的投篮',
+                    planStep1Desc: '一段视频，侧面角度，任何手机',
+                    planStep2Title: 'AI 找到那个缺陷',
+                    planStep2Desc: '打断你节奏的那个确切缺陷——量出来，不是猜出来',
+                    planStep3Title: '修掉它',
+                    planStep3Desc: '让出手变成一种本能',
+                    compareTitle: '你的出手 vs Curry',
+                    actionMicrocopy: 'Curry 每天练 100+ 次。你只需要一段视频就能开始。',
+                    featuresTitle: '我们发现的差距',
+                    feature1Title: '你的手比脚快？',
+                    feature1Desc: '你的手开始举球时，脚还在下蹲蓄力。力量没连上，出手就没力。我们看沉球点的膝盖角度，告诉你时机对不对。',
+                    feature2Title: '你的手在等脚蹬？',
+                    feature2Desc: '你的手举到最高点时，腿还没蹬直。力量传递断了，全靠手臂。我们看最高持球点的膝盖伸展，看力链通不通。',
+                    curvesTitle: '差距是真实的。而且可测量。',
+                    curvesSubtitle: '你的眼睛看到一个投篮。我们看到 8 个关键帧的 6 个关节角度——时序、断点、决定进球与否的看不见的差距。',
+                    curvesCaption: '理想投篮动作 - 6 个关节角度 · 8 个关键帧 · 4 个阶段（准备 -> 上升 -> 出手 -> 跟随）',
                     frame1Label: '沉球点',
                     frame1Angle: '膝 115°',
                     frame2Label: '手上升',
@@ -5035,23 +5641,12 @@
                     frame3Angle: '膝 140°',
                     frame4Label: '出手点',
                     frame4Angle: '膝 170°',
-                    demoTitle: '发力连贯性检测示例',
-                    syncLabel: '🦵 手脚同步性检测',
-                    disconnectLabel: '💪 发力脱节检测',
                     demoSyncFrame1: '沉球点',
-                    demoSyncAngle1: '膝 162°',
-                    demoSyncFrame2: '手上升后',
-                    demoSyncAngle2: '膝 162°',
-                    demoSyncResult: '良好',
-                    demoSyncNote: '膝盖角度变化正常，手脚时机协调',
                     demoDisconnFrame1: '最高持球点',
-                    demoDisconnAngle1: '膝 146°',
                     demoDisconnFrame2: '出手点',
-                    demoDisconnAngle2: '膝 172°',
-                    demoDisconnResult: '中等问题',
-                    demoDisconnTip: '建议：放慢举球速度，等腿蹬伸完成再出手，确保力量从下到上顺畅传递',
-                    knowledgeText: '投篮不是只靠手臂。力量从<strong>脚→膝→髋→肩→肘→腕</strong>传递，就像甩鞭子——手比鞭身快，力量就散了。你的问题不是力量不够，而是力量没连上。',
-                    knowledgeCta: '检测我的发力连贯性',
+                    successTitle: '不再苦练，不再瞎猜，只是打球。',
+                    successDesc: '你接到球——不想，起跳就投。唰。再一个。唰。不再是运气，而是你本来的样子。场边有人小声说"那家伙真能投"。而你？只是在打球——终于，纯粹地在打球。',
+                    successCta: '开始享受',
                     guideTitle: '如何拍摄分析视频',
                     guideSubtitle: '拍得好，才能分析得准',
                     guideTip1Title: '侧身拍摄',
@@ -5134,6 +5729,7 @@
                     analysisType: 'Analysis Type',
                     typeAnalyze: 'Analyze Shooting',
                     typeTemplate: 'Create Template',
+                    videoFile: 'Video File',
                     templateName: 'Template Name',
                     templateNamePlaceholder: 'e.g., Curry Shooting, My Best Shot',
                     templateDescPlaceholder: 'Description (optional)',
@@ -5168,6 +5764,8 @@
                 },
                 template: {
                     createSuccess: 'Template Created Successfully!',
+                    createTitle: '+ Create New Template',
+                    create: 'Create Template',
                     keyFrames: 'Template Key Frames',
                     manageTitle: 'Manage Templates',
                     loading: 'Loading...',
@@ -5209,6 +5807,10 @@
                     sync_frame_2: 'After Rising',
                     max_hold_frame: 'Max Hold Point',
                     release_frame: 'Release Point',
+                    knee_min_frame: 'Deepest Squat',
+                    elbow_min_frame: 'Elbow Tuck',
+                    wrist_peak_frame: 'Wrist Peak',
+                    follow_through_frame: 'Follow-through Hold',
                     preparation: 'Preparation',
                     lifting: 'Lifting',
                     release: 'Release',
@@ -5288,20 +5890,38 @@
                     contact: 'Contact Us'
                 },
                 landing: {
-                    title: 'Easy from 2-point range, but air balls from 3? It\'s not strength — it\'s coordination.',
-                    subtitle: 'AI analyzes your hand-leg coordination, detects sync issues & power disconnection, and gives precise improvement advice',
-                    cta: 'Upload Video, 3 Free Trials',
-                    ctaDemo: 'Upload Video, 3 Free Trials',
-                    benefit1: 'Results in 30 seconds',
-                    benefit2: '3 free trials',
-                    benefit3: 'Detect the problem you didn\'t know you had',
-                    featuresTitle: 'Your problem might be here',
-                    feature1Title: 'Arms faster than legs?',
-                    feature1Desc: 'Your arms start raising the ball while your legs are still bending — power gap, weak shot. We precisely detect knee angle changes at the dip point to tell you if your timing is right.',
-                    feature2Title: 'Arms waiting for leg push?',
-                    feature2Desc: 'Your arms reach the highest hold point but your legs aren\'t fully extended yet — power chain broken, all arms. We detect knee extension at the highest hold to see if the power chain is connected.',
-                    feature3Title: 'Power chain connected = easy deep shots',
-                    feature3Desc: 'Shooting power chain goes foot→knee→hip→shoulder→elbow→wrist, like a whip. The key for NBA players: load complete → sync power → smooth release, the whole chain flows as one.',
+                    headerCta: 'Start Free',
+                    title: 'Shoot like it\'s second nature.',
+                    subtitle: 'You love this game. But every release is a guess. Find the one flaw breaking your rhythm - and start shooting the way you always knew you could.',
+                    cta: 'Start Free',
+                    benefit1: '3 free',
+                    benefit2: 'No card to start',
+                    benefit3: '30 seconds',
+                    problemTitle: 'One game you\'re hot. The next, you\'re not.',
+                    problemExternal: 'Your shot is inconsistent - you can\'t find a rhythm you trust.',
+                    problemInternal: 'You love basketball, but every release is hesitation - a blind box you never win.',
+                    problemPhilosophical: 'Basketball is best when it\'s instinct. But if you\'re always fighting your own motion, you\'ll never get there.',
+                    failureTitle: 'The harder you train the wrong motion, the further you get from your shot.',
+                    failureDesc: 'Without finding the real flaw, every rep just deepens the wrong muscle memory. You\'re not staying still - you\'re moving away from the shooter you want to be.',
+                    guideEmpathy: 'You love this game. You deserve to play it with confidence - not fight your own shot every time you step on the court.',
+                    guideAuthority: 'AI biomechanics analysis - the same tech pro trainers use, now in your pocket.',
+                    planTitle: '3 steps to a shot you trust',
+                    planStep1Title: 'Record your shot',
+                    planStep1Desc: 'One clip, side angle, any phone',
+                    planStep2Title: 'AI finds the flaw',
+                    planStep2Desc: 'The exact flaw breaking your rhythm - measured, not guessed',
+                    planStep3Title: 'Fix it',
+                    planStep3Desc: 'Start shooting like it\'s second nature',
+                    compareTitle: 'Your form vs Curry',
+                    actionMicrocopy: 'Curry made 100+ reps a day. You just need one clip to start.',
+                    featuresTitle: 'The gaps we find',
+                    feature1Title: 'Your arms faster than your legs?',
+                    feature1Desc: 'Your arms start raising the ball while your legs are still bending. Power isn\'t connected, so the shot is weak. We check the knee angle at the dip point to tell you if your timing is right.',
+                    feature2Title: 'Your arms waiting for leg push?',
+                    feature2Desc: 'Your arms reach the highest hold but your legs aren\'t fully extended yet. Power transfer breaks, all arms. We check knee extension at the highest hold to see if the chain is connected.',
+                    curvesTitle: 'The gap is real. And it\'s measurable.',
+                    curvesSubtitle: 'Your eyes see a shot. We see 6 joint angles across 8 keyframes — the timing, the breaks, the invisible gaps that decide whether the ball goes in.',
+                    curvesCaption: 'Ideal shooting motion - 6 joint angles · 8 keyframes · 4 phases (Preparation -> Lifting -> Release -> Follow-through)',
                     frame1Label: 'Dip Point',
                     frame1Angle: 'Knee 115°',
                     frame2Label: 'Arm Rise',
@@ -5310,23 +5930,12 @@
                     frame3Angle: 'Knee 140°',
                     frame4Label: 'Release',
                     frame4Angle: 'Knee 170°',
-                    demoTitle: 'Power Coherence Detection Example',
-                    syncLabel: '🦵 Hand-Foot Sync Detection',
-                    disconnectLabel: '💪 Power Disconnection Detection',
                     demoSyncFrame1: 'Dip Point',
-                    demoSyncAngle1: 'Knee 162°',
-                    demoSyncFrame2: 'After Arm Rise',
-                    demoSyncAngle2: 'Knee 162°',
-                    demoSyncResult: 'Good',
-                    demoSyncNote: 'Knee angle change normal, hand-foot timing coordinated',
                     demoDisconnFrame1: 'Highest Hold',
-                    demoDisconnAngle1: 'Knee 146°',
                     demoDisconnFrame2: 'Release Point',
-                    demoDisconnAngle2: 'Knee 172°',
-                    demoDisconnResult: 'Moderate Issue',
-                    demoDisconnTip: 'Tip: Slow down your arm raise, wait for full leg extension before releasing, ensure power transfers smoothly from bottom to top',
-                    knowledgeText: 'Shooting isn\'t just about arms. Power transfers from <strong>feet→knees→hips→shoulders→elbows→wrists</strong>, like cracking a whip — if your hands move faster than the whip body, the power dissipates. Your problem isn\'t lack of strength, it\'s that power isn\'t connected.',
-                    knowledgeCta: 'Detect My Power Coherence',
+                    successTitle: 'Not grinding. Not guessing. Just hooping.',
+                    successDesc: 'You catch the ball - no thought, just rise and fire. Splash. Again. Splash. It\'s not luck anymore, it\'s who you are. People whisper "that guy can shoot." And you? You\'re just playing - finally, purely playing.',
+                    successCta: 'Start Hooping',
                     guideTitle: 'How to Film Your Shot',
                     guideSubtitle: 'Better footage means better analysis',
                     guideTip1Title: 'Shoot from the Side',
@@ -5435,13 +6044,19 @@
         function t(key) {
             const keys = key.split('.');
             let value = i18n[currentLang];
-            
+
             for (const k of keys) {
                 value = value[k];
                 if (!value) return key;
             }
-            
+
             return value;
+        }
+
+        // 关键帧名称辅助函数：phase key → 显示名称
+        function keyframeLabel(phase) {
+            const label = t('phases.' + phase);
+            return label === 'phases.' + phase ? phase.replace(/_/g, ' ') : label;
         }
 
         // 页面加载时应用语言和加载模板
@@ -5449,6 +6064,8 @@
             updateLanguage();
             loadTemplates();
             checkPaymentSuccess();
+            renderLandingDemoCurves();
+            renderPreviewCurve();
         });
 
         // ==================== 原有代码 ====================
@@ -5482,6 +6099,171 @@
         let compareMode = false;
         let compareData = null;
         let compareCurrentSide = 1;
+
+        // ==================== 模板管理（管理员） ====================
+        function tplEscape(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        function openTemplateManager() {
+            document.getElementById('templateModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            const vi = document.getElementById('templateVideoInput');
+            const ni = document.getElementById('templateNameInput');
+            const di = document.getElementById('templateDescInput');
+            vi.value = ''; ni.value = ''; di.value = '';
+            const rightRadio = document.querySelector('input[name="templateShootingHand"][value="right"]');
+            if (rightRadio) rightRadio.checked = true;
+            ni.placeholder = t('upload.templateNamePlaceholder');
+            di.placeholder = t('upload.templateDescPlaceholder');
+            const hint = document.getElementById('templateCreateHint');
+            hint.style.display = 'none'; hint.textContent = '';
+            renderTemplateManageList();
+        }
+
+        function closeTemplateManager() {
+            document.getElementById('templateModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        async function renderTemplateManageList() {
+            const listEl = document.getElementById('templateManageList');
+            listEl.innerHTML = `<div class="template-empty"><div class="template-empty-icon">⏳</div><div>${t('template.loading')}</div></div>`;
+            try {
+                const res = await fetch('/api/v1/templates/list');
+                const data = await res.json();
+                const templates = data.templates || [];
+                if (!templates.length) {
+                    listEl.innerHTML = `<div class="template-empty"><div class="template-empty-icon">📭</div><div>${t('template.noTemplates')}</div><div style="font-size:0.85rem;margin-top:8px;">${t('template.noTemplatesDesc')}</div></div>`;
+                    return;
+                }
+                listEl.innerHTML = templates.map(tpl => {
+                    const dateStr = tpl.created_at ? new Date(tpl.created_at).toLocaleDateString() : '';
+                    return `
+                    <div class="template-item">
+                        <div class="template-item-info">
+                            <div class="template-item-name">${tplEscape(tpl.name)}</div>
+                            <div class="template-item-desc">${tplEscape(tpl.description || '')}</div>
+                            <div class="template-item-meta">${tpl.key_frame_count || 0} ${t('template.keyFrameCount')}${tpl.has_curve_data ? ' · 📈' : ''}${dateStr ? ' · ' + tplEscape(dateStr) : ''}</div>
+                        </div>
+                        <div class="template-item-actions">
+                            <button class="template-view-btn" onclick="viewTemplate('${tpl.id}')" title="View">👁</button>
+                            <button class="template-delete-btn" onclick="deleteTemplate('${tpl.id}', this)" title="Delete">🗑</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                listEl.innerHTML = `<div class="template-empty"><div class="template-empty-icon">⚠️</div><div>${tplEscape(e.message)}</div></div>`;
+            }
+        }
+
+        async function createTemplate() {
+            const btn = document.getElementById('createTemplateBtn');
+            const hint = document.getElementById('templateCreateHint');
+            const fileInput = document.getElementById('templateVideoInput');
+            const nameInput = document.getElementById('templateNameInput');
+            const descInput = document.getElementById('templateDescInput');
+            const file = fileInput.files[0];
+            const name = nameInput.value.trim();
+            const description = descInput.value.trim();
+            const shootingHand = document.querySelector('input[name="templateShootingHand"]:checked').value;
+
+            if (!file) { showTemplateCreateHint(t('upload.videoFile') + '?', false); return; }
+            if (!name) { showTemplateCreateHint(t('upload.templateName') + '?', false); return; }
+
+            const headers = await getAuthHeaders();
+            if (!headers.Authorization) {
+                showTemplateCreateHint('Admin login required', false);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('name', name);
+            formData.append('description', description);
+            formData.append('shooting_hand', shootingHand);
+
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            const origHTML = btn.innerHTML;
+            btn.textContent = t('upload.creatingTemplate');
+            showTemplateCreateHint(t('template.loading') + ' (~20-60s)', true);
+
+            try {
+                const res = await fetch('/api/v1/templates/create', {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.success) {
+                    showTemplateCreateHint(t('template.createSuccess'), true);
+                    fileInput.value = ''; nameInput.value = ''; descInput.value = '';
+                    renderTemplateManageList();
+                    loadTemplates(); // 同步上传区下拉
+                    // 创建成功后展示模板关键帧效果
+                    if (data.template) {
+                        setTimeout(() => {
+                            closeTemplateManager();
+                            displayTemplateKeyFrames(data.template);
+                        }, 900);
+                    }
+                } else {
+                    showTemplateCreateHint(data.detail || 'Failed', false);
+                }
+            } catch (e) {
+                showTemplateCreateHint(e.message, false);
+            } finally {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.innerHTML = origHTML;
+            }
+        }
+
+        async function deleteTemplate(templateId, btnEl) {
+            const itemEl = btnEl.closest('.template-item');
+            const name = itemEl ? (itemEl.querySelector('.template-item-name')?.textContent || '') : '';
+            if (!confirm(`${t('template.deleteConfirm')} "${name}"?`)) return;
+            const headers = await getAuthHeaders();
+            btnEl.disabled = true;
+            try {
+                const res = await fetch(`/api/v1/templates/${templateId}`, { method: 'DELETE', headers });
+                if (res.ok) {
+                    renderTemplateManageList();
+                    loadTemplates();
+                } else {
+                    const data = await res.json().catch(() => ({}));
+                    alert(data.detail || t('template.deleteFailed'));
+                }
+            } catch (e) {
+                alert(e.message);
+            } finally {
+                btnEl.disabled = false;
+            }
+        }
+
+        async function viewTemplate(templateId) {
+            try {
+                const res = await fetch(`/api/v1/templates/${templateId}`);
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    alert(data.detail || 'Failed to load template');
+                    return;
+                }
+                const template = await res.json();
+                closeTemplateManager();
+                displayTemplateKeyFrames(template);
+            } catch (e) {
+                alert(e.message);
+            }
+        }
+
+        function showTemplateCreateHint(msg, isSuccess) {
+            const hint = document.getElementById('templateCreateHint');
+            hint.textContent = msg;
+            hint.style.color = isSuccess ? '#34d399' : '#ff6b6b';
+            hint.style.display = 'block';
+        }
 
         // ==================== 模板管理 ====================
         let availableTemplates = [];
@@ -5552,8 +6334,8 @@
             uploadArea.style.display = 'block';
             analyzeBtn.disabled = true;
             fileInput.value = '';
-            // templateSelectGroup hidden in v1
-            // document.getElementById('templateSelectGroup').style.display = 'block';
+            // templateSelectGroup: 移除文件时隐藏模板选择下拉框
+            document.getElementById('templateSelectGroup').style.display = 'none';
         }
 
         function handleFile(file) {
@@ -5587,6 +6369,8 @@
                     return;
                 }
                 analyzeBtn.disabled = false;
+                // 视频校验通过，显示模板选择下拉框
+                document.getElementById('templateSelectGroup').style.display = 'block';
             };
         }
 
@@ -5721,66 +6505,668 @@
             progressContainer.style.display = 'none';
         }
 
-        // 显示模板关键帧
+        // 显示模板关键帧 + 角度曲线（与分析结果界面同款样式）
         function displayTemplateKeyFrames(template) {
             emptyState.style.display = 'none';
             resultsContainer.style.display = 'block';
-            
-            // 转换模板数据为关键帧格式
-            const keyFrames = document.getElementById('keyFrames');
-            keyFrameImages = template.key_frames.map(kf => {
-                // 优先使用后端提供的 image_url（已指向 /template_images）
-                if (kf.image_url) {
-                    return { image_url: kf.image_url, phase: kf.phase };
+
+            const keyFramesEl = document.getElementById('keyFrames');
+            const keyFramesSection = document.getElementById('keyFramesSection');
+            const templateBadge = document.getElementById('keyframeTemplateBadge');
+            if (templateBadge) templateBadge.style.display = 'none';
+
+            // 构造与普通分析一致的关键帧数据（含 image_url / angles / phase / frame_number / timestamp）
+            const kfs = (template.key_frames || []).map(kf => {
+                let imageUrl = kf.image_url;
+                if (!imageUrl) {
+                    let p = kf.image_path || '';
+                    if (p.startsWith('templates/')) p = p.replace('templates/', '');
+                    if (p.startsWith('/')) p = p.slice(1);
+                    imageUrl = `/template_images/${p}`;
                 }
-                // 兼容旧数据：将 image_path 转换为 /template_images 路径
-                let p = kf.image_path || '';
-                if (p.startsWith('templates/')) p = p.replace('templates/', '');
-                if (p.startsWith('/')) p = p.slice(1);
-                return { image_url: `/template_images/${p}`, phase: kf.phase };
+                return { ...kf, image_url: imageUrl };
             });
-            
-            keyFrames.innerHTML = `
-                <div style="text-align: center; margin-bottom: 32px; padding: 24px; background: rgba(72, 219, 251, 0.1); border-radius: 16px; border: 1px solid rgba(72, 219, 251, 0.3);">
-                    <div style="font-size: 1.2rem; color: #00d26a; margin-bottom: 8px;">
-                        ✅ ${t('template.createSuccess')}
+            keyFrameImages = kfs.map(kf => ({ image_url: kf.image_url, phase: kf.phase }));
+            window._currentTemplateComparison = null; // 模板查看无对比
+
+            // 模板信息横幅
+            const banner = `
+                <div style="grid-column: 1 / -1; text-align: center; margin-bottom: 8px; padding: 20px 24px; background: rgba(72, 219, 251, 0.1); border-radius: 16px; border: 1px solid rgba(72, 219, 251, 0.3);">
+                    <div style="font-size: 0.8rem; color: #48dbfb; margin-bottom: 4px; letter-spacing: 0.5px;">${currentLang === 'zh-CN' ? '📋 模板预览' : '📋 Template Preview'}</div>
+                    <div style="font-size: 1.6rem; font-weight: 600;">${tplEscape(template.name)}</div>
+                    ${template.description ? `<div style="font-size: 0.95rem; color: rgba(255, 255, 255, 0.7); margin-top: 4px;">${tplEscape(template.description)}</div>` : ''}
+                </div>`;
+
+            // 复用普通分析的 renderKeyframeCard，按展示顺序排列
+            const orderedKfs = KEYFRAME_DISPLAY_ORDER
+                .map(phase => kfs.find(kf => kf.phase === phase))
+                .filter(Boolean);
+            if (orderedKfs.length > 0 && keyFramesSection) {
+                keyFramesSection.style.display = 'block';
+                keyFramesEl.innerHTML = banner + orderedKfs.map((kf, idx) => renderKeyframeCard(kf, idx, {})).join('');
+            } else if (keyFramesSection) {
+                keyFramesSection.style.display = 'none';
+            }
+
+            // 角度时序曲线：构造伪 result，frame_data_url 指向模板曲线端点
+            renderAngleCurvesSection({
+                key_frames: kfs,
+                frame_data_url: `/api/v1/templates/${template.id}/curves`,
+                template_comparison: null
+            });
+
+            // 隐藏模板没有的区块：标注视频、骨骼视频、发力连贯性、评分、建议、导出
+            const hideIds = ['videoResult', 'skeletonVideoResult'];
+            hideIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+            const coord = document.querySelector('.coordination-results-section'); if (coord) coord.style.display = 'none';
+            const exportBtn = document.getElementById('exportPdfBtn'); if (exportBtn) exportBtn.style.display = 'none';
+
+            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // ===== M4: 角度时序曲线 =====
+        const ANGLE_JOINTS = [
+            { key: 'elbow_angle',    label: 'Elbow',    color: '#48dbfb' },
+            { key: 'shoulder_angle', label: 'Shoulder', color: '#feca57' },
+            { key: 'knee_angle',     label: 'Knee',     color: '#ff6b6b' },
+            { key: 'hip_angle',      label: 'Hip',      color: '#a855f7' },
+            { key: 'trunk_angle',    label: 'Trunk',    color: '#1dd1a1' },
+            { key: 'wrist_angle',    label: 'Wrist',    color: '#ff9ff3' },
+        ];
+        const PHASE_COLORS = {
+            preparation:    'rgba(72, 219, 251, 0.08)',
+            lifting:        'rgba(254, 202, 87, 0.08)',
+            release:        'rgba(255, 107, 107, 0.10)',
+            follow_through: 'rgba(168, 85, 247, 0.08)',
+        };
+        // 新增关键帧标记配置（角度极值帧 → 曲线联动）
+        const KEYFRAME_MARKERS = [
+            { key: 'knee_min_frame',       color: '#ff6b6b' },
+            { key: 'elbow_min_frame',      color: '#48dbfb' },
+            { key: 'wrist_peak_frame',     color: '#ffffff' },
+            { key: 'follow_through_frame', color: '#888888' },
+        ];
+        let _curvesState = { data: null, visible: new Set(ANGLE_JOINTS.map(j => j.key)) };
+
+        async function renderAngleCurvesSection(result) {
+            const section = document.getElementById('curvesSection');
+            const curveComparison = result?.template_comparison?.curve_comparison;
+            if (!result || !result.frame_data_url) {
+                if (section) section.style.display = 'none';
+                return;
+            }
+            try {
+                const res = await fetch(result.frame_data_url + '?t=' + Date.now());
+                if (!res.ok) { section.style.display = 'none'; return; }
+                const frameData = await res.json();
+                if (!Array.isArray(frameData) || frameData.length === 0) {
+                    section.style.display = 'none';
+                    return;
+                }
+                _curvesState.data = frameData;
+                _curvesState.keyFrames = (result.key_frames || []).map(kf => ({
+                    frame: kf.frame_number,
+                    timestamp: kf.timestamp,
+                    phase: kf.phase,
+                }));
+                _curvesState.keyFrameImages = (result.key_frames || []).map(kf => ({
+                    phase: kf.phase,
+                    image_url: kf.image_url,
+                    frame_number: kf.frame_number,
+                    timestamp: kf.timestamp,
+                }));
+                _curvesState.curveComparison = curveComparison || null;
+                _curvesState.templateName = result?.template_comparison?.template_name || '';
+                section.style.display = 'block';
+                renderAngleCurves();
+            } catch (e) {
+                console.error('[M4] 曲线渲染失败:', e);
+                section.style.display = 'none';
+            }
+        }
+
+        function renderAngleCurves() {
+            const data = _curvesState.data;
+            if (!data || typeof d3 === 'undefined') return;
+
+            const comparison = _curvesState.curveComparison;
+            const isComparisonMode = !!comparison;
+            const wrap = document.querySelector('.curves-chart-wrap');
+            const isMobile = window.innerWidth < 600;
+            const width = Math.max(wrap.clientWidth, 320);
+            const height = isMobile ? 260 : 340;
+            const margin = { top: 16, right: 16, bottom: 36, left: 40 };
+            const innerW = width - margin.left - margin.right;
+            const innerH = height - margin.top - margin.bottom;
+
+            const svg = d3.select('#angleCurvesSvg').attr('viewBox', `0 0 ${width} ${height}`).attr('preserveAspectRatio', 'xMidYMid meet');
+            svg.selectAll('*').remove();
+            const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+            // X 轴：单曲线模式用真实时间，对比模式用拼接索引（0..n_total）
+            let xDomain;
+            if (isComparisonMode) {
+                const n = comparison.joints[0]?.user_curve?.length || 200;
+                xDomain = [0, n - 1];
+            } else {
+                xDomain = [0, d3.max(data, d => d.timestamp) || 1];
+            }
+            const x = d3.scaleLinear().domain(xDomain).range([0, innerW]);
+            const y = d3.scaleLinear().domain([0, 180]).range([innerH, 0]);
+
+            // 阶段背景色分区
+            if (isComparisonMode) {
+                // 对比模式：用 phase_marks（拼接曲线里的索引区间）
+                (comparison.phase_marks || []).forEach(mark => {
+                    g.append('rect')
+                        .attr('x', x(mark.start)).attr('y', 0)
+                        .attr('width', Math.max(0, x(mark.end) - x(mark.start))).attr('height', innerH)
+                        .attr('fill', PHASE_COLORS[mark.phase] || 'rgba(255,255,255,0.05)');
+                    if (x(mark.end) - x(mark.start) > 30) {
+                        g.append('text').text(mark.phase.replace('_', ' '))
+                            .attr('x', x((mark.start + mark.end) / 2)).attr('y', 12)
+                            .attr('text-anchor', 'middle')
+                            .attr('font-size', 9).attr('fill', 'rgba(255,255,255,0.5)');
+                    }
+                });
+            } else {
+                // 单曲线模式：用 frameData 的阶段时间区间
+                const phases = ['preparation', 'lifting', 'release', 'follow_through'];
+                phases.forEach(phase => {
+                    const frames = data.filter(d => d.phase === phase);
+                    if (!frames.length) return;
+                    const start = frames[0].timestamp;
+                    const end = frames[frames.length - 1].timestamp;
+                    g.append('rect')
+                        .attr('x', x(start)).attr('y', 0)
+                        .attr('width', Math.max(0, x(end) - x(start))).attr('height', innerH)
+                        .attr('fill', PHASE_COLORS[phase] || 'rgba(255,255,255,0.05)');
+                    if (x(end) - x(start) > 30) {
+                        g.append('text').text(phase.replace('_', ' '))
+                            .attr('x', x((start + end) / 2)).attr('y', 12)
+                            .attr('text-anchor', 'middle')
+                            .attr('font-size', 9).attr('fill', 'rgba(255,255,255,0.5)');
+                    }
+                });
+            }
+
+            // 关键帧竖线（仅单曲线模式有意义，对比模式时间轴已重采样）
+            if (!isComparisonMode) {
+                const allKeyFrames = _curvesState.keyFrames || [];
+                // 原有4帧：白色半透明虚线
+                const originalPhases = new Set(['sync_frame_1', 'sync_frame_2', 'max_hold_frame', 'release_frame']);
+                allKeyFrames.filter(kf => originalPhases.has(kf.phase)).forEach(kf => {
+                    g.append('line')
+                        .attr('x1', x(kf.timestamp)).attr('x2', x(kf.timestamp))
+                        .attr('y1', 0).attr('y2', innerH)
+                        .attr('stroke', 'rgba(255,255,255,0.25)').attr('stroke-dasharray', '3 3');
+                });
+                // 新增4帧：彩色实线 + 顶部标签
+                const markerPhases = new Set(KEYFRAME_MARKERS.map(m => m.key));
+                allKeyFrames.filter(kf => markerPhases.has(kf.phase)).forEach(kf => {
+                    const marker = KEYFRAME_MARKERS.find(m => m.key === kf.phase);
+                    if (!marker) return;
+                    // 去重：如果与已有虚线帧间隔 < 2帧，合并标签到虚线上
+                    const nearOriginal = allKeyFrames.find(okf => originalPhases.has(okf.phase) && Math.abs(okf.timestamp - kf.timestamp) < 0.1);
+                    const markerG = g.append('g').attr('class', 'keyframe-marker')
+                        .style('cursor', 'pointer')
+                        .on('click', () => {
+                            // 点击竖线 → 滚动到对应关键帧卡片并高亮
+                            const card = document.querySelector(`.key-frame-card[data-phase="${kf.phase}"], .compare-row[data-phase="${kf.phase}"]`);
+                            if (card) {
+                                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                card.classList.add('highlight');
+                                setTimeout(() => card.classList.remove('highlight'), 2000);
+                                // 如果有模板对比，自动展开
+                                if (window._currentTemplateComparison) {
+                                    onKeyframeCardClick(card, kf.phase);
+                                }
+                            }
+                        });
+                    if (!nearOriginal) {
+                        markerG.append('line')
+                            .attr('x1', x(kf.timestamp)).attr('x2', x(kf.timestamp))
+                            .attr('y1', 0).attr('y2', innerH)
+                            .attr('stroke', marker.color).attr('stroke-width', 1.5).attr('opacity', 0.7);
+                    }
+                    // 顶部标签
+                    const labelX = nearOriginal ? x(nearOriginal.timestamp) + 4 : x(kf.timestamp) + 3;
+                    markerG.append('text')
+                        .text(keyframeLabel(kf.phase))
+                        .attr('x', labelX).attr('y', innerH - 4)
+                        .attr('font-size', 9).attr('fill', marker.color).attr('opacity', 0.85)
+                        .attr('writing-mode', 'vertical-rl').attr('text-orientation', 'mixed');
+                });
+            }
+
+            // 曲线
+            const line = d3.line()
+                .x((d, i) => x(i))
+                .y(d => y(d))
+                .curve(d3.curveMonotoneX)
+                .defined(d => d !== null && d !== undefined);
+
+            ANGLE_JOINTS.forEach(joint => {
+                if (!_curvesState.visible.has(joint.key)) return;
+
+                if (isComparisonMode) {
+                    // 对比模式：用户实线 + 模板虚线
+                    const jointData = comparison.joints.find(j => j.name === joint.key);
+                    if (!jointData) return;
+                    g.append('path').datum(jointData.user_curve).attr('d', line)
+                        .attr('fill', 'none').attr('stroke', joint.color)
+                        .attr('stroke-width', 2.2).attr('opacity', 0.95);
+                    g.append('path').datum(jointData.template_curve).attr('d', line)
+                        .attr('fill', 'none').attr('stroke', joint.color)
+                        .attr('stroke-width', 1.8).attr('opacity', 0.6)
+                        .attr('stroke-dasharray', '5 4');
+                } else {
+                    // 单曲线模式：用户自己的曲线
+                    const series = data.map(d => ({
+                        timestamp: d.timestamp,
+                        value: d.angles ? d.angles[joint.key] : null,
+                    }));
+                    const timeLine = d3.line()
+                        .x(d => x(d.timestamp))
+                        .y(d => y(d.value))
+                        .curve(d3.curveMonotoneX)
+                        .defined(d => d.value !== null && d.value !== undefined);
+                    g.append('path').datum(series).attr('d', timeLine)
+                        .attr('fill', 'none').attr('stroke', joint.color)
+                        .attr('stroke-width', 2).attr('opacity', 0.9);
+                }
+            });
+
+            // 坐标轴
+            g.append('g').attr('transform', `translate(0,${innerH})`)
+                .call(d3.axisBottom(x).ticks(isMobile ? 4 : 6).tickFormat(d => isComparisonMode ? '' : d.toFixed(1) + 's'))
+                .selectAll('text').attr('fill', 'rgba(255,255,255,0.6)').attr('font-size', 10);
+            g.append('g').call(d3.axisLeft(y).ticks(5))
+                .selectAll('text').attr('fill', 'rgba(255,255,255,0.6)').attr('font-size', 10);
+            svg.selectAll('.domain, .tick line').attr('stroke', 'rgba(255,255,255,0.2)');
+
+            // 对比模式：图例 + 差异最大阶段高亮
+            renderCurvesControls();
+            if (isComparisonMode) renderComparisonLegend(comparison);
+        }
+
+        function renderComparisonLegend(comparison) {
+            // 在图例区显示：用户(实线) vs 模板名(虚线) + 每个关节的差异最大阶段
+            const svg = d3.select('#angleCurvesSvg');
+            const tmplName = _curvesState.templateName || 'Template';
+            // 顶部图例
+            const legendG = svg.append('g').attr('transform', `translate(${svg.attr('viewBox').split(' ')[2] - 200}, 12)`);
+            legendG.append('line').attr('x1', 0).attr('x2', 20).attr('y1', 6).attr('y2', 6)
+                .attr('stroke', '#fff').attr('stroke-width', 2.2).attr('opacity', 0.95);
+            legendG.append('text').text('You').attr('x', 26).attr('y', 9)
+                .attr('fill', 'rgba(255,255,255,0.7)').attr('font-size', 10);
+            legendG.append('line').attr('x1', 0).attr('x2', 20).attr('y1', 22).attr('y2', 22)
+                .attr('stroke', '#fff').attr('stroke-width', 1.8).attr('opacity', 0.6).attr('stroke-dasharray', '5 4');
+            legendG.append('text').text(tmplName.slice(0, 12)).attr('x', 26).attr('y', 25)
+                .attr('fill', 'rgba(255,255,255,0.7)').attr('font-size', 10);
+        }
+
+        function renderCurvesControls() {
+            const ctrl = document.getElementById('curvesControls');
+            if (!ctrl) return;
+            ctrl.innerHTML = ANGLE_JOINTS.map(j => {
+                const on = _curvesState.visible.has(j.key);
+                return `<button class="curve-toggle ${on ? '' : 'off'}" data-joint="${j.key}">
+                    <span class="swatch" style="background:${j.color}"></span>${j.label}
+                </button>`;
+            }).join('');
+            ctrl.querySelectorAll('.curve-toggle').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const k = btn.dataset.joint;
+                    if (_curvesState.visible.has(k)) _curvesState.visible.delete(k);
+                    else _curvesState.visible.add(k);
+                    renderAngleCurves();
+                });
+            });
+        }
+
+        // ===== 关键帧卡片 =====
+        const KEYFRAME_DISPLAY_ORDER = [
+            'knee_min_frame', 'sync_frame_1', 'elbow_min_frame', 'sync_frame_2',
+            'wrist_peak_frame', 'max_hold_frame', 'release_frame', 'follow_through_frame'
+        ];
+        // 每个关键帧的核心角度（显示在卡片上）
+        const KEYFRAME_CORE_ANGLE = {
+            knee_min_frame:       { key: 'knee_angle',  label: '膝' },
+            sync_frame_1:         { key: 'knee_angle',  label: '膝' },
+            elbow_min_frame:      { key: 'elbow_angle', label: '肘' },
+            sync_frame_2:         { key: 'knee_angle',  label: '膝' },
+            wrist_peak_frame:     { key: 'elbow_angle', label: '肘' },
+            max_hold_frame:       { key: 'elbow_angle', label: '肘' },
+            release_frame:        { key: 'elbow_angle', label: '肘' },
+            follow_through_frame: { key: 'elbow_angle', label: '肘' },
+        };
+        const ANGLE_DIFF_LABELS = {
+            knee_angle: '膝盖', elbow_angle: '肘部', shoulder_angle: '肩部',
+            trunk_angle: '躯干', wrist_angle: '手腕', hip_angle: '髋部'
+        };
+
+        function diffClass(diff) {
+            if (diff <= 5) return 'good';
+            if (diff <= 10) return 'warn';
+            return 'bad';
+        }
+        function diffIcon(diff) {
+            if (diff <= 5) return '✓';
+            if (diff <= 10) return '△';
+            return '✗';
+        }
+
+        function renderKeyframeCard(kf, idx, compMap) {
+            const name = keyframeLabel(kf.phase);
+            const core = KEYFRAME_CORE_ANGLE[kf.phase] || { key: 'elbow_angle', label: '肘' };
+            const angleVal = kf.angles ? kf.angles[core.key] : null;
+            const angleText = angleVal != null ? `${core.label} ${Math.round(angleVal)}°` : '';
+            const comp = compMap[kf.phase];
+            // 角度差异色标
+            let diffHtml = '';
+            if (comp && comp.angle_differences && comp.angle_differences[core.key] != null) {
+                const d = comp.angle_differences[core.key];
+                diffHtml = `<span class="key-frame-card-diff ${diffClass(d)}">${diffIcon(d)} ±${Math.round(d)}°</span>`;
+            }
+            return `
+                <div class="key-frame-card" data-phase="${kf.phase}" data-index="${idx}" onclick="onKeyframeCardClick(this, '${kf.phase}')">
+                    <img src="${kf.image_url}?t=${Date.now()}" alt="${name}" loading="lazy">
+                    <div class="key-frame-card-info">
+                        <span class="key-frame-card-name">${name}</span>
+                        ${diffHtml || `<span class="key-frame-card-angle">${angleText}</span>`}
                     </div>
-                    <div style="font-size: 1.8rem; font-weight: 600; margin-bottom: 8px;">
-                        ${template.name}
-                    </div>
-                    ${template.description ? `<div style="font-size: 1rem; color: rgba(255, 255, 255, 0.7);">${template.description}</div>` : ''}
-                    <div style="margin-top: 16px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; font-size: 0.9rem; color: rgba(255, 255, 255, 0.6);">
-                        💡 ${currentLang === 'zh-CN' ? '模板已保存，可在"对比模板"中选择使用' : 'Template saved, you can select it in "Compare Template"'}
-                    </div>
-                    <button onclick="resetUpload(); window.scrollTo({top: 0, behavior: 'smooth'});" 
-                            style="margin-top: 16px; padding: 12px 32px; background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%); color: white; border: none; border-radius: 12px; font-size: 1rem; cursor: pointer; font-weight: 600; box-shadow: 0 4px 15px rgba(72, 219, 251, 0.3); transition: all 0.3s;">
-                        ${currentLang === 'zh-CN' ? '🔄 创建新模板或分析投篮' : '🔄 Create New Template or Analyze'}
-                    </button>
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
-                    ${keyFrameImages.map((kf, index) => `
-                        <div class="key-frame" onclick="openLightbox(${index})">
-                            <img src="${kf.image_url}?t=${Date.now()}" alt="${t('phases.' + kf.phase)}">
-                            <div class="key-frame-label">
-                                <span class="phase-name">${t('phases.' + kf.phase)}</span>
-                                <span class="expand-hint">${t('results.clickToZoom')}</span>
-                            </div>
-                        </div>
-                    `).join('')}
                 </div>
             `;
-            
-            // 隐藏评分和建议部分（模板不需要这些）
-            const videoSection = document.getElementById('videoResult');
-            const coordinationSection = document.querySelector('.coordination-results-section');
-            const exportBtn = document.getElementById('exportPdfBtn');
+        }
 
-            if (videoSection) videoSection.style.display = 'none';
-            if (coordinationSection) coordinationSection.style.display = 'none';
-            if (exportBtn) exportBtn.style.display = 'none';
+        // 关键帧并排对比行：左用户图 / 右模板图，下方角度差异（有模板对比时使用）
+        function renderKeyframeCompareRow(kf, idx, comp, templateName) {
+            const name = keyframeLabel(kf.phase);
+            const tUrl = comp && comp.template_frame && comp.template_frame.image_url;
+            const tAngles = comp && comp.template_frame ? comp.template_frame.angles : null;
+            const diffs = comp && comp.angle_differences ? comp.angle_differences : null;
+            const rowTitle = `
+                <div class="compare-row-title" style="grid-column: 1 / -1; display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                    <span style="font-weight:700; color:#fff;">${name}</span>
+                    ${diffs && diffs[KEYFRAME_CORE_ANGLE[kf.phase]?.key] != null ?
+                        `<span class="key-frame-card-diff ${diffClass(diffs[KEYFRAME_CORE_ANGLE[kf.phase].key])}">${diffIcon(diffs[KEYFRAME_CORE_ANGLE[kf.phase].key])} ±${Math.round(diffs[KEYFRAME_CORE_ANGLE[kf.phase].key])}°</span>` : ''}
+                </div>`;
+            return `
+                <div class="compare-row" data-phase="${kf.phase}" style="display:contents;">
+                    ${rowTitle}
+                    <div class="compare-side user" onclick="onKeyframeCardClick(document.querySelector('.compare-row[data-phase=\\'${kf.phase}\\']'), '${kf.phase}')">
+                        <div class="compare-side-label user">${t('comparison.yourShot') || 'Your Shot'}</div>
+                        <img src="${kf.image_url}?t=${Date.now()}" alt="${name}" loading="lazy">
+                        ${renderCompareAngles(kf.angles, diffs, 'user')}
+                    </div>
+                    <div class="compare-side template" onclick="onKeyframeCardClick(document.querySelector('.compare-row[data-phase=\\'${kf.phase}\\']'), '${kf.phase}')">
+                        <div class="compare-side-label template">${tplEscape(templateName || (t('comparison.templateShot') || 'Template'))}</div>
+                        ${tUrl
+                            ? `<img src="${tUrl}?t=${Date.now()}" alt="${name}" loading="lazy">${renderCompareAngles(tAngles, diffs, 'template')}`
+                            : `<div class="compare-no-template" style="padding:40px 0;">${t('comparison.noPhase') || 'Template has no this phase'}</div>`}
+                    </div>
+                </div>
+            `;
+        }
 
-            // 滚动到结果区域
-            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+        // 当前展开的卡片 phase
+        let _expandedCardPhase = null;
+
+        // 曲线联动：闪烁对应竖线
+        function flashCurveMarker(phase) {
+            const svg = d3.select('#angleCurvesSvg');
+            svg.selectAll('.keyframe-marker').each(function() {
+                // d3 没有存 phase 信息在 DOM 上，通过标签文本匹配
+                const textEl = d3.select(this).select('text');
+                if (!textEl.empty() && textEl.text() === keyframeLabel(phase)) {
+                    const line = d3.select(this).select('line');
+                    if (!line.empty()) {
+                        const origOpacity = line.attr('opacity') || 0.7;
+                        line.attr('opacity', 1).attr('stroke-width', 3);
+                        setTimeout(() => line.attr('opacity', origOpacity).attr('stroke-width', 1.5), 1500);
+                    }
+                }
+            });
+        }
+
+        function onKeyframeCardClick(card, phase) {
+            const panel = document.getElementById('keyframeComparePanel');
+            if (!panel) return;
+
+            // 曲线联动：闪烁对应竖线
+            flashCurveMarker(phase);
+
+            // 如果已有模板对比数据，展开 inline 对比
+            const compMap = {};
+            if (keyFrameImages && window._currentTemplateComparison) {
+                window._currentTemplateComparison.comparisons.forEach(c => { compMap[c.phase] = c; });
+            }
+            const comp = compMap[phase];
+            // 如果点击的是已展开的卡片，收起
+            if (_expandedCardPhase === phase) {
+                panel.classList.remove('active');
+                panel.innerHTML = '';
+                _expandedCardPhase = null;
+                document.querySelectorAll('.key-frame-card, .compare-row').forEach(c => c.classList.remove('highlight'));
+                return;
+            }
+            // 高亮当前卡片
+            document.querySelectorAll('.key-frame-card').forEach(c => c.classList.remove('highlight'));
+            card.classList.add('highlight');
+            _expandedCardPhase = phase;
+            const name = keyframeLabel(phase);
+            const kf = keyFrameImages.find(k => k.phase === phase);
+            if (!kf) return;
+            let html = `<div class="compare-title">${name}</div>`;
+            if (comp && comp.template_frame) {
+                // 左右对比
+                html += `<div class="compare-grid">`;
+                // 用户侧
+                html += `<div class="compare-side user">
+                    <div class="compare-side-label user">${t('comparison.yourShot') || 'Your Shot'}</div>
+                    <img src="${kf.image_url}?t=${Date.now()}" alt="${name}">
+                    ${renderCompareAngles(kf.angles, comp.angle_differences, 'user')}
+                </div>`;
+                // 模板侧
+                html += `<div class="compare-side template">
+                    <div class="compare-side-label template">${window._currentTemplateComparison.template_name}</div>
+                    <img src="${comp.template_frame.image_url}?t=${Date.now()}" alt="${name}">
+                    ${renderCompareAngles(comp.template_frame.angles, comp.angle_differences, 'template')}
+                </div>`;
+                html += `</div>`;
+            } else {
+                // 无模板帧，只放大
+                html += `<div style="max-width:400px;margin:0 auto;">
+                    <img src="${kf.image_url}?t=${Date.now()}" alt="${name}" style="width:100%;border-radius:10px;">
+                    ${renderCompareAngles(kf.angles, null, 'user')}
+                </div>`;
+                if (comp && !comp.template_frame) {
+                    html += `<p class="compare-no-template">${t('comparison.noPhase') || 'Template has no this phase'}</p>`;
+                }
+            }
+            html += `<div class="compare-close"><button onclick="onKeyframeCardClick(document.querySelector('.key-frame-card[data-phase=\\'${phase}\\'], .compare-row[data-phase=\\'${phase}\\']'), '${phase}')">收起</button></div>`;
+            panel.innerHTML = html;
+            panel.classList.add('active');
+            // 滚动到面板
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function renderCompareAngles(angles, diffs, side) {
+            if (!angles) return '';
+            const keys = ['elbow_angle', 'knee_angle', 'shoulder_angle', 'hip_angle', 'trunk_angle', 'wrist_angle'];
+            let html = '<div class="compare-angles">';
+            keys.forEach(key => {
+                const val = angles[key];
+                if (val == null) return;
+                const label = ANGLE_DIFF_LABELS[key] || key;
+                let diffHtml = '';
+                if (diffs && diffs[key] != null) {
+                    const d = diffs[key];
+                    diffHtml = ` <span class="diff ${diffClass(d)}">${diffIcon(d)} ±${Math.round(d)}°</span>`;
+                }
+                html += `<div class="compare-angle-item">
+                    <div class="label">${label}</div>
+                    <div class="value">${Math.round(val)}°${diffHtml}</div>
+                </div>`;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        // ===== 落地页示例曲线（合成教科书数据）=====
+        // 6 关节在 4 阶段（preparation/lifting/release/follow_through）的理想角度变化，
+        // 每阶段 50 点，拼接成 200 点曲线。展示"教科书投篮"的发力链形态。
+        function _smoothstep(t) { return t * t * (3 - 2 * t); }
+        function _phaseCurve(start, end, n = 50) {
+            const out = [];
+            for (let i = 0; i < n; i++) {
+                out.push(start + (end - start) * _smoothstep(i / (n - 1)));
+            }
+            return out;
+        }
+        function generateIdealShotCurves() {
+            // [prep, lifting, release, follow_through] 各阶段 [start, end] 角度
+            const jointPhases = {
+                elbow_angle:    [[90, 90], [90, 120], [120, 170], [170, 158]],
+                shoulder_angle: [[30, 30], [30, 80], [80, 110], [110, 92]],
+                knee_angle:     [[130, 130], [130, 172], [172, 176], [176, 176]],
+                hip_angle:      [[150, 150], [150, 175], [175, 176], [176, 176]],
+                trunk_angle:    [[8, 10], [10, 11], [11, 12], [12, 10]],
+                wrist_angle:    [[80, 80], [80, 92], [92, 60], [60, 42]],
+            };
+            const curves = {};
+            for (const [joint, phases] of Object.entries(jointPhases)) {
+                const full = [];
+                for (const [s, e] of phases) full.push(..._phaseCurve(s, e));
+                curves[joint] = full; // 200 点
+            }
+            return curves;
+        }
+
+        function renderLandingDemoCurves() {
+            if (typeof d3 === 'undefined') return;
+            const svgEl = document.getElementById('landingCurvesSvg');
+            if (!svgEl) return;
+            const curves = generateIdealShotCurves();
+            const wrap = document.querySelector('.landing-curves-chart-wrap');
+            if (!wrap) return;
+            const isMobile = window.innerWidth < 600;
+            const width = Math.max(wrap.clientWidth, 320);
+            const height = isMobile ? 260 : 340;
+            const margin = { top: 16, right: 16, bottom: 36, left: 40 };
+            const innerW = width - margin.left - margin.right;
+            const innerH = height - margin.top - margin.bottom;
+            const n = 200;
+
+            const svg = d3.select('#landingCurvesSvg').attr('viewBox', `0 0 ${width} ${height}`).attr('preserveAspectRatio', 'xMidYMid meet');
+            svg.selectAll('*').remove();
+            const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+            const x = d3.scaleLinear().domain([0, n - 1]).range([0, innerW]);
+            const y = d3.scaleLinear().domain([0, 180]).range([innerH, 0]);
+
+            // 阶段背景
+            const phaseMarks = [
+                { phase: 'preparation',    start: 0,   end: 49 },
+                { phase: 'lifting',        start: 50,  end: 99 },
+                { phase: 'release',        start: 100, end: 149 },
+                { phase: 'follow_through', start: 150, end: 199 },
+            ];
+            phaseMarks.forEach(m => {
+                g.append('rect')
+                    .attr('x', x(m.start)).attr('y', 0)
+                    .attr('width', Math.max(0, x(m.end) - x(m.start))).attr('height', innerH)
+                    .attr('fill', PHASE_COLORS[m.phase] || 'rgba(255,255,255,0.05)');
+                if (x(m.end) - x(m.start) > 30) {
+                    g.append('text').text(m.phase.replace('_', ' '))
+                        .attr('x', x((m.start + m.end) / 2)).attr('y', 12)
+                        .attr('text-anchor', 'middle')
+                        .attr('font-size', 9).attr('fill', 'rgba(255,255,255,0.5)');
+                }
+            });
+
+            // 6 条曲线
+            const line = d3.line()
+                .x((d, i) => x(i))
+                .y(d => y(d))
+                .curve(d3.curveMonotoneX);
+            ANGLE_JOINTS.forEach(joint => {
+                g.append('path').datum(curves[joint.key]).attr('d', line)
+                    .attr('fill', 'none')
+                    .attr('stroke', joint.color)
+                    .attr('stroke-width', 2.2)
+                    .attr('opacity', 0.92);
+            });
+
+            // 坐标轴
+            g.append('g').attr('transform', `translate(0,${innerH})`)
+                .call(d3.axisBottom(x).ticks(isMobile ? 4 : 6).tickFormat(() => ''))
+                .selectAll('text').attr('fill', 'rgba(255,255,255,0.6)');
+            g.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d => d + '°'))
+                .selectAll('text').attr('fill', 'rgba(255,255,255,0.6)').attr('font-size', 10);
+            svg.selectAll('.domain, .tick line').attr('stroke', 'rgba(255,255,255,0.2)');
+
+            // 图例
+            const legend = document.getElementById('landingCurvesLegend');
+            if (legend) {
+                legend.innerHTML = ANGLE_JOINTS.map(j =>
+                    `<span class="curve-toggle"><span class="swatch" style="background:${j.color}"></span>${j.label}</span>`
+                ).join('');
+            }
+        }
+
+        function renderPreviewCurve() {
+            if (typeof d3 === 'undefined') return;
+            const svgEl = document.getElementById('previewCurveSvg');
+            if (!svgEl) return;
+            const curves = generateIdealShotCurves();
+            const width = 640;
+            const height = 120;
+            const margin = { top: 8, right: 12, bottom: 16, left: 30 };
+            const innerW = width - margin.left - margin.right;
+            const innerH = height - margin.top - margin.bottom;
+            const n = 200;
+
+            const svg = d3.select('#previewCurveSvg').attr('viewBox', `0 0 ${width} ${height}`).attr('preserveAspectRatio', 'xMidYMid meet');
+            svg.selectAll('*').remove();
+            const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+            const x = d3.scaleLinear().domain([0, n - 1]).range([0, innerW]);
+            const y = d3.scaleLinear().domain([0, 180]).range([innerH, 0]);
+
+            // Phase backgrounds
+            const phaseMarks = [
+                { phase: 'preparation', start: 0, end: 49 },
+                { phase: 'lifting', start: 50, end: 99 },
+                { phase: 'release', start: 100, end: 149 },
+                { phase: 'follow_through', start: 150, end: 199 },
+            ];
+            phaseMarks.forEach(m => {
+                g.append('rect')
+                    .attr('x', x(m.start)).attr('y', 0)
+                    .attr('width', Math.max(0, x(m.end) - x(m.start))).attr('height', innerH)
+                    .attr('fill', PHASE_COLORS[m.phase] || 'rgba(255,255,255,0.05)');
+            });
+
+            // Only show 3 key curves (elbow, knee, trunk) to keep preview clean
+            const previewJoints = ANGLE_JOINTS.filter(j => ['elbow_angle', 'knee_angle', 'trunk_angle'].includes(j.key));
+            const line = d3.line().x((d, i) => x(i)).y(d => y(d)).curve(d3.curveMonotoneX);
+            previewJoints.forEach(joint => {
+                g.append('path').datum(curves[joint.key]).attr('d', line)
+                    .attr('fill', 'none')
+                    .attr('stroke', joint.color)
+                    .attr('stroke-width', 1.8)
+                    .attr('opacity', 0.85);
+            });
+
+            // Minimal axes
+            g.append('g').attr('transform', `translate(0,${innerH})`)
+                .call(d3.axisBottom(x).ticks(4).tickFormat(() => ''))
+                .selectAll('text').attr('fill', 'rgba(255,255,255,0.4)');
+            g.append('g').call(d3.axisLeft(y).ticks(3).tickFormat(d => d + '°'))
+                .selectAll('text').attr('fill', 'rgba(255,255,255,0.4)').attr('font-size', 8);
+            svg.selectAll('.domain, .tick line').attr('stroke', 'rgba(255,255,255,0.12)');
         }
 
         function displayResults(result) {
@@ -5809,31 +7195,50 @@
             const hasComparison = result.template_comparison && result.template_comparison.comparisons;
             console.log('[DEBUG] hasComparison:', hasComparison);
 
-            // 关键帧 - 最突出
+            // 关键帧卡片
             const keyFrames = document.getElementById('keyFrames');
+            const keyFramesSection = document.getElementById('keyFramesSection');
+            const templateBadge = document.getElementById('keyframeTemplateBadge');
+            keyFrameImages = result.key_frames || [];
+            window._currentTemplateComparison = hasComparison ? result.template_comparison : null;
+
             if (result.key_frames && result.key_frames.length > 0) {
-                keyFrameImages = result.key_frames;
-                
-                if (hasComparison) {
-                    console.log('[DEBUG] 显示对比视图');
-                    // 显示对比视图
-                    keyFrames.innerHTML = renderTemplateComparison(result.template_comparison);
+                keyFramesSection.style.display = 'block';
+                // 模板对比标记
+                if (hasComparison && result.template_comparison.template_name) {
+                    templateBadge.textContent = '📊 ' + (t('comparison.compareWith') || 'Compare') + ': ' + result.template_comparison.template_name;
+                    templateBadge.style.display = 'inline-block';
                 } else {
-                    console.log('[DEBUG] 显示普通视图');
-                    // 显示普通视图
-                    keyFrames.innerHTML = result.key_frames.map((kf, index) => `
-                        <div class="key-frame" onclick="openLightbox(${index})">
-                            <img src="${kf.image_url}?t=${Date.now()}" alt="${t('phases.' + kf.phase)}">
-                            <div class="key-frame-label">
-                                <span class="phase-name">${t('phases.' + kf.phase)}</span>
-                                <span class="expand-hint">${t('results.clickToZoom')}</span>
-                            </div>
-                        </div>
-                    `).join('');
+                    templateBadge.style.display = 'none';
                 }
+                // 构建对比数据映射（phase → comparison entry）
+                const compMap = {};
+                if (hasComparison) {
+                    result.template_comparison.comparisons.forEach(c => { compMap[c.phase] = c; });
+                }
+                // 按展示顺序排列
+                const orderedKfs = KEYFRAME_DISPLAY_ORDER
+                    .map(phase => result.key_frames.find(kf => kf.phase === phase))
+                    .filter(Boolean);
+                if (hasComparison) {
+                    // 有模板对比：默认并排对比（左用户 / 右模板），每行两列
+                    const templateName = result.template_comparison.template_name;
+                    keyFrames.style.gridTemplateColumns = '1fr 1fr';
+                    keyFrames.innerHTML = orderedKfs.map((kf, idx) =>
+                        renderKeyframeCompareRow(kf, idx, compMap[kf.phase], templateName)
+                    ).join('');
+                } else {
+                    keyFrames.style.gridTemplateColumns = '';
+                    keyFrames.innerHTML = orderedKfs.map((kf, idx) => renderKeyframeCard(kf, idx, compMap)).join('');
+                }
+                // 插入展开的对比区域（点击放大用，初始隐藏）
+                keyFrames.insertAdjacentHTML('beforeend', '<div class="key-frame-compare" id="keyframeComparePanel" style="grid-column:1 / -1;"></div>');
             } else {
-                keyFrames.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">无关键帧数据</p>';
+                keyFramesSection.style.display = 'none';
             }
+
+            // M4: 角度时序曲线（按需 fetch frame_data.json）
+            renderAngleCurvesSection(result);
 
             // Annotated video
             const videoResult = document.getElementById('videoResult');
@@ -6261,13 +7666,24 @@
         // 图片放大功能
         function openLightbox(index) {
             if (!keyFrameImages || keyFrameImages.length === 0) return;
-            
+
             currentImageIndex = index;
-            
+
             lightboxImage.src = keyFrameImages[index].image_url + '?t=' + Date.now();
             lightboxCaption.textContent = t('phases.' + keyFrameImages[index].phase);
             lightbox.classList.add('active');
             document.body.style.overflow = 'hidden';
+        }
+
+        // 通过 phase key 打开 lightbox（供曲线标记和时间轴条使用）
+        function openLightboxAt(phaseKey) {
+            if (!keyFrameImages || keyFrameImages.length === 0) return;
+            // 先尝试精确匹配 phase
+            let idx = keyFrameImages.findIndex(kf => kf.phase === phaseKey);
+            // 如果传入的是索引数字，直接用
+            if (idx < 0 && typeof phaseKey === 'number') idx = phaseKey;
+            if (idx < 0) idx = 0;
+            openLightbox(idx);
         }
 
         function closeLightbox() {

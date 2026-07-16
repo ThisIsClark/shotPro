@@ -2,16 +2,18 @@
 Templates API Routes
 模板管理API路由
 """
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends
 from fastapi.responses import JSONResponse, FileResponse
 from pathlib import Path
 from typing import Optional, List
 import uuid
 import shutil
+import json
 
 from app.config import settings
 from app.models.template import TemplateManager, TemplateKeyFrame
 from app.services.analysis_service import AnalysisService, AnalysisConfig
+from app.api.deps import require_admin
 
 router = APIRouter(prefix="/api/v1/templates", tags=["templates"])
 
@@ -20,18 +22,51 @@ templates_dir = settings.base_dir / "templates"
 template_manager = TemplateManager(templates_dir)
 
 
+def _extract_phase_boundaries(frame_data: list) -> dict:
+    """
+    从 per-frame 时序数据推阶段边界，供 M3 曲线对比按阶段对齐用。
+
+    返回形如：
+        {
+            "preparation": {"start_frame": 0, "end_frame": 12, "start_time": 0.0, "end_time": 0.4},
+            "lifting": {...},
+            "release": {...},
+            "follow_through": {...}
+        }
+    只记录出现在 frame_data 里的阶段；unknown 阶段跳过。
+    """
+    boundaries: dict = {}
+    for fd in frame_data:
+        phase = fd.get("phase")
+        if not phase or phase == "unknown":
+            continue
+        if phase not in boundaries:
+            boundaries[phase] = {
+                "start_frame": fd["frame_number"],
+                "end_frame": fd["frame_number"],
+                "start_time": fd["timestamp"],
+                "end_time": fd["timestamp"],
+            }
+        else:
+            boundaries[phase]["end_frame"] = fd["frame_number"]
+            boundaries[phase]["end_time"] = fd["timestamp"]
+    return boundaries
+
+
 @router.post("/create")
 async def create_template(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     name: str = Form(...),
     description: str = Form(""),
-    shooting_hand: str = Form("right")
+    shooting_hand: str = Form("right"),
+    admin: dict = Depends(require_admin)
 ):
     """
-    创建投篮模板
-    
-    上传视频并创建模板，保存关键帧
+    创建投篮模板（仅管理员）
+
+    上传视频并创建模板，保存关键帧 + per-frame 曲线数据（angles.json + phases.json）。
+    需要管理员 JWT（Authorization: Bearer {token}）。
     """
     # 验证文件类型
     if not file.content_type or not file.content_type.startswith('video/'):
@@ -111,7 +146,29 @@ async def create_template(
                 print(f"[DEBUG 模板创建] ⚠️ 文件不存在，跳过: {temp_image_path}")
         
         print(f"[DEBUG 模板创建] 最终 key_frames 数量: {len(key_frames)}")
-        
+
+        # 持久化 per-frame 曲线数据（M2）：从分析结果目录拷 frame_data.json -> angles.json
+        has_curve_data = False
+        if result.frame_data_url:
+            src_frame_data = result_dir / "frame_data.json"
+            if src_frame_data.exists():
+                dst_angles = template_dir / "angles.json"
+                shutil.copy(src_frame_data, dst_angles)
+
+                # 推 phases.json：扫 frame_data 的 phase 字段，记录每个阶段的首尾帧
+                try:
+                    with open(src_frame_data, 'r', encoding='utf-8') as f:
+                        frame_data = json.load(f)
+                    phases = _extract_phase_boundaries(frame_data)
+                    with open(template_dir / "phases.json", 'w', encoding='utf-8') as f:
+                        json.dump(phases, f, ensure_ascii=False)
+                    has_curve_data = True
+                    print(f"[DEBUG 模板创建] 曲线数据已写入: angles.json + phases.json")
+                except Exception as e:
+                    print(f"[DEBUG 模板创建] ⚠️ phases.json 写入失败: {e}")
+                    # angles.json 已拷贝，仍标记为有曲线数据（phases 缺失时对比侧降级处理）
+                    has_curve_data = True
+
         # 创建模板
         template = template_manager.create_template(
             template_id=template_id,
@@ -121,7 +178,8 @@ async def create_template(
             video_info={
                 'filename': file.filename,
                 'shooting_hand': shooting_hand
-            }
+            },
+            has_curve_data=has_curve_data
         )
         
         # 后台任务：清理临时文件
@@ -211,8 +269,11 @@ async def get_template(template_id: str):
 
 
 @router.delete("/{template_id}")
-async def delete_template(template_id: str):
-    """删除模板"""
+async def delete_template(
+    template_id: str,
+    admin: dict = Depends(require_admin)
+):
+    """删除模板（仅管理员）"""
     success = template_manager.delete_template(template_id)
     
     if not success:
@@ -222,6 +283,19 @@ async def delete_template(template_id: str):
         'success': True,
         'message': 'Template deleted successfully'
     }
+
+
+@router.get("/{template_id}/curves")
+async def get_template_curves(template_id: str):
+    """获取模板的 per-frame 角度曲线数据（angles.json）。
+
+    返回可直接被前端时序曲线组件消费的 JSON 数组（与 frame_data.json 结构一致）。
+    用于模板「查看」界面展示角度曲线；无曲线数据时返回 404。
+    """
+    curves = template_manager.get_template_curves(template_id)
+    if not curves or not curves.get("angles"):
+        raise HTTPException(status_code=404, detail="Template has no curve data")
+    return curves["angles"]
 
 
 @router.get("/{template_id}/keyframe/{phase}")

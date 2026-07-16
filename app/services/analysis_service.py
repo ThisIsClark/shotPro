@@ -6,6 +6,7 @@ Analysis Service Module
 from __future__ import annotations
 
 import uuid
+import json
 import cv2
 import numpy as np
 from pathlib import Path
@@ -34,6 +35,7 @@ class AnalysisConfig:
     generate_evaluation: bool = True  # 是否生成评分和建议
     smooth_angles: bool = True
     smooth_window: int = 5
+    generate_frame_data: bool = True  # 是否持久化 per-frame 时序数据（供曲线图使用）
 
 
 @dataclass
@@ -67,6 +69,7 @@ class FullAnalysisResult:
     annotated_video_path: Optional[str] = None
     skeleton_video_path: Optional[str] = None  # 骨骼运动视频路径
     template_comparison: Optional[dict] = None  # 模板对比结果
+    frame_data_url: Optional[str] = None  # per-frame 时序数据 JSON 文件的访问 URL（供曲线图按需 fetch）
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> dict:
@@ -115,7 +118,9 @@ class FullAnalysisResult:
                 "description": issue.description,
                 "description_en": issue.description_en,
                 "suggestion": issue.suggestion,
-                "suggestion_en": issue.suggestion_en
+                "suggestion_en": issue.suggestion_en,
+                "skipped": issue.skipped,
+                "skip_reason": issue.skip_reason
             }
             for issue in self.coordination_issues
         ]
@@ -140,7 +145,8 @@ class FullAnalysisResult:
             "fps": self.video_info.fps,
             "duration": self.video_info.duration,
             "created_at": self.created_at,
-            "template_comparison": self.template_comparison
+            "template_comparison": self.template_comparison,
+            "frame_data_url": self.frame_data_url
         })
 
         return result
@@ -151,15 +157,19 @@ class AnalysisService:
 
     # 阶段名称映射（4帧版本 - 发力连贯性检测）
     PHASE_NAMES = {
-        ShootingPhase.SYNC_FRAME_1: "沉球点",
-        ShootingPhase.SYNC_FRAME_2: "手上升后",
-        ShootingPhase.MAX_HOLD_FRAME: "最高持球点",
-        ShootingPhase.RELEASE_FRAME: "出手点",
-        ShootingPhase.PREPARATION: "准备阶段",
-        ShootingPhase.LIFTING: "上升阶段",
-        ShootingPhase.RELEASE: "出手阶段",
-        ShootingPhase.FOLLOW_THROUGH: "跟随阶段",
-        ShootingPhase.UNKNOWN: "未知"
+        ShootingPhase.SYNC_FRAME_1: "Dip Point",
+        ShootingPhase.SYNC_FRAME_2: "Hand Rise",
+        ShootingPhase.MAX_HOLD_FRAME: "Max Hold",
+        ShootingPhase.RELEASE_FRAME: "Release",
+        ShootingPhase.KNEE_MIN_FRAME: "Deep Squat",
+        ShootingPhase.ELBOW_MIN_FRAME: "Elbow Tuck",
+        ShootingPhase.WRIST_PEAK_FRAME: "Wrist Peak",
+        ShootingPhase.FOLLOW_THROUGH_FRAME: "Follow-thru",
+        ShootingPhase.PREPARATION: "Preparation",
+        ShootingPhase.LIFTING: "Lifting",
+        ShootingPhase.RELEASE: "Release",
+        ShootingPhase.FOLLOW_THROUGH: "Follow-through",
+        ShootingPhase.UNKNOWN: "Unknown"
     }
     
     def __init__(self, config: Optional[AnalysisConfig] = None):
@@ -217,7 +227,6 @@ class AnalysisService:
         
         frame_data_list: list[FrameData] = []
         pose_results: dict[int, PoseResult] = {}
-        angles_history: list[ShootingAngles] = []
         frame_cache: dict[int, np.ndarray] = {}
 
         for processed_frame in self.video_processor.read_frames(video_path):
@@ -230,24 +239,11 @@ class AnalysisService:
             if pose_result:
                 pose_results[processed_frame.frame_number] = pose_result
                 
-                # 计算角度
+                # 计算角度（原始值，不在此处平滑——PhaseDetector内部会做平滑）
                 angles = self.angle_calculator.calculate_all_angles(
                     pose_result,
                     self.config.shooting_hand
                 )
-
-                # 平滑处理（如果角度存在）
-                smoothed = None
-                if angles:
-                    if self.config.smooth_angles and angles_history:
-                        angles_history.append(angles)
-                        smoothed = self.angle_calculator.smooth_angles(
-                            angles_history,
-                            self.config.smooth_window
-                        )
-                    else:
-                        angles_history.append(angles)
-                        smoothed = angles
 
                 # 获取手腕关键点（总是调用detect_phase以保存原始手腕Y值）
                 wrist_idx = (PoseLandmark.RIGHT_WRIST
@@ -257,20 +253,24 @@ class AnalysisService:
 
                 if wrist:
                     # 检测阶段（即使角度为None也调用，以保存手腕Y值用于关键帧检测）
+                    # 传入原始angles，PhaseDetector内部会做平滑处理
                     phase = self.phase_detector.detect_phase(
                         processed_frame.frame_number,
                         processed_frame.timestamp,
-                        smoothed,  # 可能为None
+                        angles,  # 原始值，可能为None
                         wrist,
                         pose_result.confidence
                     )
 
+                    # 从PhaseDetector获取平滑后的角度（避免双重平滑）
+                    smoothed_angles = self.phase_detector.frame_history[-1].angles if self.phase_detector.frame_history else None
+
                     # 保存帧数据（只在角度存在时保存完整数据）
-                    if smoothed:
+                    if smoothed_angles:
                         frame_data = FrameData(
                             frame_number=processed_frame.frame_number,
                             timestamp=processed_frame.timestamp,
-                            angles=smoothed,
+                            angles=smoothed_angles,
                             wrist_y=wrist.y,
                             phase=phase,
                             confidence=pose_result.confidence
@@ -297,9 +297,19 @@ class AnalysisService:
         key_frames: list[KeyFrameInfo] = []
 
         if self.config.generate_key_frames:
-            self._report_progress(progress_callback, "keyframes", 0, 4, "Generating keyframes...")
+            self._report_progress(progress_callback, "keyframes", 0, 8, "Generating keyframes...")
 
             key_frame_data = self.phase_detector.get_key_frames()
+
+            # 预先计算统一裁剪区域（8 帧取并集 bbox），所有关键帧共用 -> 构图统一、人物放大
+            # crop_info 保证骨骼/角度坐标重映射对齐，裁剪不会导致骨骼错位
+            crop_frame_nums = [
+                fd.frame_number for fd in key_frame_data.values()
+                if fd and fd.phase != ShootingPhase.UNKNOWN
+            ]
+            crop_info = self.video_processor.compute_person_crop_region(
+                pose_results, frame_cache, crop_frame_nums
+            )
 
             for i, (phase, frame_data) in enumerate(key_frame_data.items()):
                 if frame_data and phase != ShootingPhase.UNKNOWN:
@@ -313,12 +323,22 @@ class AnalysisService:
                         pose_result = pose_results.get(frame_data.frame_number)
 
                         if pose_result:
-                            # 直接在原始帧上绘制所有标注，不做裁剪，保证骨骼与身体完全对齐
+                            # 统一裁剪到人物区域（crop_info 已含坐标重映射，骨骼不会错位）
+                            if crop_info:
+                                draw_frame = frame[
+                                    crop_info['crop_y1']:crop_info['crop_y2'],
+                                    crop_info['crop_x1']:crop_info['crop_x2']
+                                ].copy()
+                                draw_crop_info = crop_info
+                            else:
+                                draw_frame, draw_crop_info = frame, None
+
                             annotated = self.pose_detector.draw_landmarks(
-                                frame,
+                                draw_frame,
                                 pose_result,
                                 highlight_shooting_arm=True,
-                                shooting_hand=self.config.shooting_hand
+                                shooting_hand=self.config.shooting_hand,
+                                crop_info=draw_crop_info
                             )
 
                             # 绘制角度
@@ -327,10 +347,11 @@ class AnalysisService:
                                     annotated,
                                     pose_result,
                                     frame_data.angles.to_dict(),
-                                    self.config.shooting_hand
+                                    self.config.shooting_hand,
+                                    crop_info=draw_crop_info
                                 )
 
-                            # 绘制阶段信息
+                            # 绘制阶段信息（画在裁剪后的帧上，尺寸已适配）
                             annotated = AnnotationRenderer.draw_phase_indicator(
                                 annotated,
                                 phase.value,
@@ -352,7 +373,7 @@ class AnalysisService:
                             angles=frame_data.angles
                         ))
 
-                self._report_progress(progress_callback, "keyframes", i + 1, 4, f"Generating keyframe {i + 1}/4")
+                self._report_progress(progress_callback, "keyframes", i + 1, 8, f"Generating keyframe {i + 1}/8")
 
             # 确保关键帧按照时间顺序排列（按frame_number排序）
             key_frames.sort(key=lambda kf: kf.frame_number)
@@ -512,6 +533,25 @@ class AnalysisService:
         # 完成
         self._report_progress(progress_callback, "done", 1, 1, "Analysis complete")
 
+        # 持久化 per-frame 时序数据（供曲线图使用）
+        frame_data_url = None
+        if self.config.generate_frame_data and frame_data_list:
+            frame_data_path = result_dir / "frame_data.json"
+            serialized = [
+                {
+                    "frame_number": fd.frame_number,
+                    "timestamp": fd.timestamp,
+                    "phase": fd.phase.value,
+                    "angles": fd.angles.to_dict() if fd.angles else None,
+                    "wrist_y": fd.wrist_y,
+                    "confidence": fd.confidence
+                }
+                for fd in frame_data_list
+            ]
+            with open(frame_data_path, 'w', encoding='utf-8') as f:
+                json.dump(serialized, f, ensure_ascii=False)
+            frame_data_url = f"/results/{task_id}/frame_data.json"
+
         return FullAnalysisResult(
             task_id=task_id,
             video_filename=video_path.name,
@@ -519,7 +559,8 @@ class AnalysisService:
             coordination_issues=coordination_issues,
             key_frames=key_frames,
             annotated_video_path=annotated_video_path,
-            skeleton_video_path=skeleton_video_path
+            skeleton_video_path=skeleton_video_path,
+            frame_data_url=frame_data_url
         )
     
     def _report_progress(

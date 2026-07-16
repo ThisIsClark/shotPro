@@ -2,7 +2,9 @@
 Export API Routes
 导出功能的API路由
 """
+import asyncio
 import json
+from functools import partial
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 from pathlib import Path
@@ -50,11 +52,11 @@ async def export_pdf(
 ):
     """
     导出分析结果为PDF
-    
+
     Args:
         task_id: 任务ID
         language: 语言选择 (zh-CN 或 en-US)
-    
+
     Returns:
         PDF文件
     """
@@ -65,20 +67,24 @@ async def export_pdf(
         # 创建PDF服务
         pdf_service = PDFExportService(output_dir=settings.results_dir)
 
-        # 生成PDF
-        pdf_path = pdf_service.generate_report(
-            task_id=task_id,
-            analysis_result=result,
-            language=language
+        # 在线程池中运行 CPU 密集型 PDF 生成，避免阻塞事件循环
+        pdf_path = await asyncio.get_event_loop().run_in_executor(
+            None,
+            partial(
+                pdf_service.generate_report,
+                task_id=task_id,
+                analysis_result=result,
+                language=language
+            )
         )
-        
+
         # 返回PDF文件
         return FileResponse(
             path=str(pdf_path),
             media_type='application/pdf',
             filename=f"shooting_analysis_{task_id}.pdf"
         )
-    
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -90,10 +96,10 @@ async def export_pdf(
 async def export_keyframes_images(task_id: str):
     """
     导出关键帧图片（单独的图片）
-    
+
     Args:
         task_id: 任务ID
-    
+
     Returns:
         ZIP文件包含所有关键帧
     """
@@ -104,25 +110,29 @@ async def export_keyframes_images(task_id: str):
         # 创建图片导出服务
         image_service = ImageExportService(output_dir=settings.results_dir)
 
-        # 生成关键帧ZIP
-        zip_path = image_service.export_key_frames(
-            task_id=task_id,
-            result=result
+        # 在线程池中运行 CPU 密集型图片生成
+        zip_path = await asyncio.get_event_loop().run_in_executor(
+            None,
+            partial(
+                image_service.export_key_frames,
+                task_id=task_id,
+                result=result
+            )
         )
-        
+
         if not zip_path or not zip_path.exists():
             raise HTTPException(
                 status_code=500,
                 detail="Failed to generate keyframes images"
             )
-        
+
         # 返回ZIP文件
         return FileResponse(
             path=str(zip_path),
             media_type='application/zip',
             filename=f"shooting_analysis_{task_id}_keyframes.zip"
         )
-    
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -134,11 +144,11 @@ async def export_keyframes_images(task_id: str):
 async def export_comparison_images(task_id: str, language: str = Query('zh-CN', regex='^(zh-CN|en-US)$')):
     """
     导出对比图片（并排对比）
-    
+
     Args:
         task_id: 任务ID
         language: 语言选择 (zh-CN 或 en-US)
-    
+
     Returns:
         ZIP文件包含所有对比图片
     """
@@ -149,33 +159,30 @@ async def export_comparison_images(task_id: str, language: str = Query('zh-CN', 
         # 创建图片导出服务
         image_service = ImageExportService(output_dir=settings.results_dir)
 
-        print(f"[DEBUG export_comparison_images] task_id: {task_id}")
-        print(f"[DEBUG export_comparison_images] result keys: {list(result.keys())}")
-        print(f"[DEBUG export_comparison_images] has template_comparison: {'template_comparison' in result}")
-
-        # 生成对比图片ZIP
-        zip_path = image_service.export_comparison_images(
-            task_id=task_id,
-            result=result,
-            language=language
+        # 在线程池中运行 CPU 密集型图片生成
+        zip_path = await asyncio.get_event_loop().run_in_executor(
+            None,
+            partial(
+                image_service.export_comparison_images,
+                task_id=task_id,
+                result=result,
+                language=language
+            )
         )
-        
-        print(f"[DEBUG export_comparison_images] zip_path: {zip_path}")
-        print(f"[DEBUG export_comparison_images] zip_path exists: {zip_path.exists() if zip_path else 'None'}")
-        
+
         if not zip_path or not zip_path.exists():
             raise HTTPException(
                 status_code=500,
                 detail="Failed to generate comparison images or no template comparison available"
             )
-        
+
         # 返回ZIP文件
         return FileResponse(
             path=str(zip_path),
             media_type='application/zip',
             filename=f"shooting_analysis_{task_id}_comparisons.zip"
         )
-    
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -187,11 +194,11 @@ async def export_comparison_images(task_id: str, language: str = Query('zh-CN', 
 async def export_all_images(task_id: str, language: str = Query('zh-CN', regex='^(zh-CN|en-US)$')):
     """
     导出所有图片（关键帧 + 对比图）
-    
+
     Args:
         task_id: 任务ID
         language: 语言选择 (zh-CN 或 en-US)
-    
+
     Returns:
         ZIP文件包含所有图片
     """
@@ -202,26 +209,30 @@ async def export_all_images(task_id: str, language: str = Query('zh-CN', regex='
         # 创建图片导出服务
         image_service = ImageExportService(output_dir=settings.results_dir)
 
-        # 生成所有图片ZIP
-        zip_path = image_service.export_all_images(
-            task_id=task_id,
-            result=result,
-            language=language
+        # 在线程池中运行 CPU 密集型图片生成
+        zip_path = await asyncio.get_event_loop().run_in_executor(
+            None,
+            partial(
+                image_service.export_all_images,
+                task_id=task_id,
+                result=result,
+                language=language
+            )
         )
-        
+
         if not zip_path or not zip_path.exists():
             raise HTTPException(
                 status_code=500,
                 detail="Failed to generate all images"
             )
-        
+
         # 返回ZIP文件
         return FileResponse(
             path=str(zip_path),
             media_type='application/zip',
             filename=f"shooting_analysis_{task_id}_all_images.zip"
         )
-    
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -248,11 +259,16 @@ async def export_share_card(task_id: str, language: str = Query('zh-CN', regex='
         # 创建图片导出服务
         image_service = ImageExportService(output_dir=settings.results_dir)
 
-        # 生成分享卡片
-        image_path = image_service.export_share_card(
-            task_id=task_id,
-            result=result,
-            language=language
+        # 在线程池中运行 CPU 密集型图片生成，避免阻塞事件循环
+        # share card 生成耗时较长（10-50s），必须 offload 到线程池
+        image_path = await asyncio.get_event_loop().run_in_executor(
+            None,
+            partial(
+                image_service.export_share_card,
+                task_id=task_id,
+                result=result,
+                language=language
+            )
         )
 
         if not image_path or not image_path.exists():

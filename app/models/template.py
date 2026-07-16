@@ -28,13 +28,14 @@ class Template:
     created_at: str = ""
     key_frames: List[TemplateKeyFrame] = None
     video_info: Optional[Dict] = None  # 原视频信息
-    
+    has_curve_data: bool = False  # 是否含 per-frame 曲线数据（angles.json + phases.json）
+
     def __post_init__(self):
         if not self.created_at:
             self.created_at = datetime.now().isoformat()
         if self.key_frames is None:
             self.key_frames = []
-    
+
     def to_dict(self) -> Dict:
         """转换为字典"""
         return {
@@ -52,9 +53,10 @@ class Template:
                 }
                 for kf in self.key_frames
             ],
-            'video_info': self.video_info
+            'video_info': self.video_info,
+            'has_curve_data': self.has_curve_data
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict) -> 'Template':
         """从字典创建"""
@@ -68,14 +70,15 @@ class Template:
             )
             for kf in data.get('key_frames', [])
         ]
-        
+
         return cls(
             id=data['id'],
             name=data['name'],
             description=data.get('description', ''),
             created_at=data.get('created_at', ''),
             key_frames=key_frames,
-            video_info=data.get('video_info')
+            video_info=data.get('video_info'),
+            has_curve_data=data.get('has_curve_data', False)
         )
 
 
@@ -119,18 +122,20 @@ class TemplateManager:
         name: str,
         key_frames: List[TemplateKeyFrame],
         description: str = "",
-        video_info: Optional[Dict] = None
+        video_info: Optional[Dict] = None,
+        has_curve_data: bool = False
     ) -> Template:
         """
         创建模板
-        
+
         Args:
             template_id: 模板ID
             name: 模板名称
             key_frames: 关键帧列表
             description: 描述
             video_info: 视频信息
-        
+            has_curve_data: 是否已写入 angles.json + phases.json（M2 曲线数据）
+
         Returns:
             创建的模板
         """
@@ -139,28 +144,30 @@ class TemplateManager:
             name=name,
             description=description,
             key_frames=key_frames,
-            video_info=video_info
+            video_info=video_info,
+            has_curve_data=has_curve_data
         )
-        
+
         # 创建模板目录
         template_dir = self.templates_dir / template_id
         template_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # 保存模板元数据
         metadata_file = template_dir / "metadata.json"
         with open(metadata_file, 'w', encoding='utf-8') as f:
             json.dump(template.to_dict(), f, ensure_ascii=False, indent=2)
-        
+
         # 更新索引
         index = self._load_index()
         index[template_id] = {
             'name': name,
             'description': description,
             'created_at': template.created_at,
-            'key_frame_count': len(key_frames)
+            'key_frame_count': len(key_frames),
+            'has_curve_data': has_curve_data
         }
         self._save_index(index)
-        
+
         return template
     
     def get_template(self, template_id: str) -> Optional[Template]:
@@ -214,7 +221,8 @@ class TemplateManager:
                 'name': info['name'],
                 'description': info.get('description', ''),
                 'created_at': info['created_at'],
-                'key_frame_count': info.get('key_frame_count', 0)
+                'key_frame_count': info.get('key_frame_count', 0),
+                'has_curve_data': info.get('has_curve_data', False)
             })
         
         # 按创建时间倒序排列
@@ -255,3 +263,32 @@ class TemplateManager:
     def get_template_dir(self, template_id: str) -> Path:
         """获取模板目录路径"""
         return self.templates_dir / template_id
+
+    def get_template_curves(self, template_id: str) -> Optional[Dict]:
+        """
+        按需加载模板的 per-frame 曲线数据（angles.json + phases.json）。
+
+        不在 get_template / list_templates 主路径加载，避免内存膨胀。
+        用于 M3 曲线对比。
+
+        Returns:
+            {"angles": [...], "phases": {...}} 或 None（模板不存在 / 无曲线数据）
+        """
+        template_dir = self.get_template_dir(template_id)
+        angles_file = template_dir / "angles.json"
+        phases_file = template_dir / "phases.json"
+
+        if not angles_file.exists():
+            return None
+
+        try:
+            with open(angles_file, 'r', encoding='utf-8') as f:
+                angles = json.load(f)
+            phases = None
+            if phases_file.exists():
+                with open(phases_file, 'r', encoding='utf-8') as f:
+                    phases = json.load(f)
+            return {"angles": angles, "phases": phases}
+        except Exception as e:
+            print(f"[TemplateManager] 加载曲线数据失败 {template_id}: {e}")
+            return None

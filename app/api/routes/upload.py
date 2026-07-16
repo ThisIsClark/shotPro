@@ -20,6 +20,7 @@ from ...services.storage_service import storage_service
 from ...services.supabase_client import is_supabase_enabled
 from ...services.audit_service import audit_service, AuditAction
 from ...models.template import TemplateManager
+from ...services.comparison_service import compare_curves
 from ..deps import get_current_user_optional, get_user_id
 
 router = APIRouter(prefix="/videos", tags=["videos"])
@@ -112,11 +113,13 @@ def cleanup_old_tasks(keep_count: int = MAX_TASKS) -> List[str]:
     return deleted_ids
 
 
-def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", shooting_style: str = "one_motion", template_id: str = None, generate_video: bool = False, generate_skeleton_video: bool = False, user_id: Optional[str] = None):
-    """运行分析任务（后台任务）- 支持数据库和内存两种模式"""
+def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", shooting_style: str = "one_motion", template_id: str = None, generate_video: bool = False, generate_skeleton_video: bool = False, user_id: Optional[str] = None, use_db: bool = False):
+    """运行分析任务（后台任务）- 支持数据库和内存两种模式
+
+    use_db 由 upload 流程根据用户类型决定传入：本地管理员走内存模式（False）。
+    """
     try:
         # 使用数据库更新状态（如果可用）
-        use_db = is_supabase_enabled() and db_service.is_available()
 
         if use_db:
             asyncio.run(db_service.update_analysis(task_id, status="processing", progress=0))
@@ -172,6 +175,28 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
                 }
                 print(f"[DEBUG] template_comparison 已添加到 result_dict")
                 print(f"[DEBUG] result_dict['template_comparison']['comparisons'] 长度: {len(result_dict['template_comparison']['comparisons'])}")
+
+                # M3: 曲线对比（仅当模板含曲线数据时）
+                if template.has_curve_data:
+                    print(f"[DEBUG] 模板含曲线数据，开始曲线对比")
+                    template_curves = template_manager.get_template_curves(template_id)
+                    if template_curves and result.frame_data_url:
+                        # 读取用户的 per-frame 时序数据
+                        user_frame_data_path = settings.results_dir / task_id / "frame_data.json"
+                        if user_frame_data_path.exists():
+                            import json as _json
+                            with open(user_frame_data_path, 'r', encoding='utf-8') as f:
+                                user_frame_data = _json.load(f)
+                            curve_comparison = compare_curves(user_frame_data, template_curves)
+                            if curve_comparison:
+                                result_dict["template_comparison"]["curve_comparison"] = curve_comparison
+                                print(f"[DEBUG] curve_comparison 已添加，joints: {len(curve_comparison['joints'])}")
+                            else:
+                                print(f"[DEBUG] ⚠️ compare_curves 返回 None（数据不足）")
+                        else:
+                            print(f"[DEBUG] ⚠️ 用户 frame_data.json 不存在: {user_frame_data_path}")
+                    else:
+                        print(f"[DEBUG] ⚠️ 模板曲线数据缺失或用户无 frame_data_url")
 
                 # 生成基于模板的改进建议
                 template_suggestions = _generate_template_based_suggestions(comparison_data)
@@ -582,9 +607,12 @@ async def upload_video(
     user_id = get_user_id(user)
 
     # 检查用户分析次数（订阅用户不限，本地管理员不限）
-    use_db = is_supabase_enabled() and db_service.is_available()
     is_local_user = user and user.get("is_local", False)
     is_subscribed = False
+
+    # 判断是否使用数据库：本地管理员（user_id 非 UUID，如 "admin"）走纯内存模式，
+    # 否则 Supabase 的 analyses.user_id(UUID) 列写入会失败，导致任务状态无处可查、前端卡死。
+    use_db = is_supabase_enabled() and db_service.is_available() and not is_local_user
 
     if use_db and user_id and not is_local_user:
         is_subscribed = await db_service.is_user_subscribed(user_id)
@@ -595,9 +623,6 @@ async def upload_video(
                     status_code=403,
                     detail="No credits remaining. Please subscribe or purchase more analyses to continue."
                 )
-
-    # 判断是否使用数据库
-    use_db = is_supabase_enabled() and db_service.is_available()
 
     # 生成任务 ID
     task_id = str(uuid.uuid4())
@@ -696,7 +721,8 @@ async def upload_video(
         template_id,
         generate_video,
         generate_skeleton_video,
-        user_id
+        user_id,
+        use_db
     )
 
     # 记录审计日志（分析开始）
