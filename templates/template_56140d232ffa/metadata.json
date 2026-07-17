@@ -1,0 +1,125 @@
+{
+  "id": "template_56140d232ffa",
+  "name": "Curry",
+  "description": "Curry shooting form",
+  "created_at": "2026-07-17T20:01:19.903394",
+  "key_frames": [
+    {
+      "phase": "sync_frame_1",
+      "frame_number": 9,
+      "timestamp": 0.3,
+      "image_path": "templates/template_56140d232ffa/sync_frame_1.jpg",
+      "angles": {
+        "elbow_angle": 110.28674939718766,
+        "shoulder_angle": 3.4846914303539704,
+        "knee_angle": 147.77661765028105,
+        "trunk_angle": 14.271353418278306,
+        "wrist_angle": 163.1625622257838,
+        "hip_angle": 141.91486877720195
+      }
+    },
+    {
+      "phase": "sync_frame_2",
+      "frame_number": 12,
+      "timestamp": 0.4,
+      "image_path": "templates/template_56140d232ffa/sync_frame_2.jpg",
+      "angles": {
+        "elbow_angle": 101.12384074419565,
+        "shoulder_angle": 5.760900475668196,
+        "knee_angle": 142.02853618754523,
+        "trunk_angle": 13.509615457728467,
+        "wrist_angle": 155.04344101653248,
+        "hip_angle": 139.97164303425185
+      }
+    },
+    {
+      "phase": "knee_min_frame",
+      "frame_number": 18,
+      "timestamp": 0.6,
+      "image_path": "templates/template_56140d232ffa/knee_min_frame.jpg",
+      "angles": {
+        "elbow_angle": 55.118019409628246,
+        "shoulder_angle": 16.859643130834353,
+        "knee_angle": 129.67455191078218,
+        "trunk_angle": 10.656972199197073,
+        "wrist_angle": 164.42228584776234,
+        "hip_angle": 140.97217457056917
+      }
+    },
+    {
+      "phase": "elbow_min_frame",
+      "frame_number": 27,
+      "timestamp": 0.9,
+      "image_path": "templates/template_56140d232ffa/elbow_min_frame.jpg",
+      "angles": {
+        "elbow_angle": 40.60182807094469,
+        "shoulder_angle": 35.809992889367585,
+        "knee_angle": 139.61232371353074,
+        "trunk_angle": 5.7323249198767225,
+        "wrist_angle": 166.76989445765108,
+        "hip_angle": 154.93228402126937
+      }
+    },
+    {
+      "phase": "max_hold_frame",
+      "frame_number": 38,
+      "timestamp": 1.2666666666666666,
+      "image_path": "templates/template_56140d232ffa/max_hold_frame.jpg",
+      "angles": {
+        "elbow_angle": 57.613821445463316,
+        "shoulder_angle": 77.2425674552378,
+        "knee_angle": 158.28839964845187,
+        "trunk_angle": 4.470445625827884,
+        "wrist_angle": 167.69795114761828,
+        "hip_angle": 165.73089202398006
+      }
+    },
+    {
+      "phase": "release_frame",
+      "frame_number": 39,
+      "timestamp": 1.3,
+      "image_path": "templates/template_56140d232ffa/release_frame.jpg",
+      "angles": {
+        "elbow_angle": 61.65499644590782,
+        "shoulder_angle": 82.4254695878634,
+        "knee_angle": 160.90912275596742,
+        "trunk_angle": 4.582165164905802,
+        "wrist_angle": 158.79394232187803,
+        "hip_angle": 167.1653012548576
+      }
+    },
+    {
+      "phase": "wrist_peak_frame",
+      "frame_number": 43,
+      "timestamp": 1.4333333333333333,
+      "image_path": "templates/template_56140d232ffa/wrist_peak_frame.jpg",
+      "angles": {
+        "elbow_angle": 89.62124969691205,
+        "shoulder_angle": 106.46473013801035,
+        "knee_angle": 170.46276539134584,
+        "trunk_angle": 2.6656203935768774,
+        "wrist_angle": 160.84479813040832,
+        "hip_angle": 173.7416461084603
+      }
+    },
+    {
+      "phase": "follow_through_frame",
+      "frame_number": 56,
+      "timestamp": 1.8666666666666667,
+      "image_path": "templates/template_56140d232ffa/follow_through_frame.jpg",
+      "angles": {
+        "elbow_angle": 174.69507522367786,
+        "shoulder_angle": 160.5277505598503,
+        "knee_angle": null,
+        "trunk_angle": 3.3819982468871004,
+        "wrist_angle": 165.81571215079057,
+        "hip_angle": null
+      }
+    }
+  ],
+  "video_info": {
+    "filename": "Curry-model.mp4",
+    "shooting_hand": "right"
+  },
+  "has_curve_data": true
+}

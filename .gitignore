@@ -6,6 +6,7 @@ venv/
 uploads/
 results/
 templates/template_*
+!templates/template_56140d232ffa/
 templates/index.json
 temp/
 modelVideo/
