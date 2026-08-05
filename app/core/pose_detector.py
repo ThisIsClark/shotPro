@@ -107,8 +107,29 @@ class PoseResult:
 
 # 模型文件路径
 MODEL_PATH = Path(__file__).parent.parent.parent / "models" / "pose_landmarker.task"
-# 使用固定版本，避免 latest 标签导致模型静默更新、检测结果不一致
-DEFAULT_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/0_2024-03-19/pose_landmarker_heavy.task"
+# 使用固定版本路径，避免 latest 标签导致模型静默更新、检测结果不一致
+# 注意：旧路径 0_2024-03-19 已从 Google 存储桶移除（返回 404），现使用 /1/ 版本
+DEFAULT_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/1/pose_landmarker_heavy.task"
+# 下载后校验阈值：模型约 30MB，低于此值说明很可能是错误页（如 404 HTML）被误存为模型
+_MODEL_MIN_SIZE_BYTES = 1_000_000
+
+
+def _download_from(url: str) -> bool:
+    """尝试从指定 URL 下载模型；成功且文件大小合理返回 True，否则清理并返回 False。"""
+    try:
+        urllib.request.urlretrieve(url, str(MODEL_PATH))
+    except Exception as e:
+        print(f"[MediaPipe] Failed to download from {url}: {e}")
+        if MODEL_PATH.exists():
+            MODEL_PATH.unlink()
+        return False
+    size = MODEL_PATH.stat().st_size if MODEL_PATH.exists() else 0
+    if size < _MODEL_MIN_SIZE_BYTES:
+        print(f"[MediaPipe] Downloaded file too small ({size} bytes) from {url}, discarding")
+        MODEL_PATH.unlink(missing_ok=True)
+        return False
+    print(f"[MediaPipe] Model saved to {MODEL_PATH} ({size} bytes)")
+    return True
 
 
 def download_model():
@@ -117,23 +138,22 @@ def download_model():
 
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    # 优先使用配置的固定模型 URL
-    model_url = settings.pose_model_url or DEFAULT_MODEL_URL
-
     if not MODEL_PATH.exists():
-        print(f"[MediaPipe] Downloading model from {model_url}")
-        try:
-            urllib.request.urlretrieve(model_url, str(MODEL_PATH))
-            print(f"[MediaPipe] Model saved to {MODEL_PATH}")
-        except Exception as e:
-            print(f"[MediaPipe] Failed to download from {model_url}: {e}")
-            # 回退到默认 URL
-            if model_url != DEFAULT_MODEL_URL:
-                print(f"[MediaPipe] Falling back to default URL")
-                urllib.request.urlretrieve(DEFAULT_MODEL_URL, str(MODEL_PATH))
-                print(f"[MediaPipe] Model saved to {MODEL_PATH}")
-            else:
-                raise
+        # 候选 URL：优先使用配置的 URL，再回退到默认 URL
+        candidates = []
+        if settings.pose_model_url:
+            candidates.append(settings.pose_model_url)
+        if DEFAULT_MODEL_URL not in candidates:
+            candidates.append(DEFAULT_MODEL_URL)
+
+        for url in candidates:
+            print(f"[MediaPipe] Downloading model from {url}")
+            if _download_from(url):
+                break
+        else:
+            raise RuntimeError(
+                f"[MediaPipe] Failed to download pose model from any candidate URL: {candidates}"
+            )
 
     # 打印模型文件信息，便于调试
     if MODEL_PATH.exists():
