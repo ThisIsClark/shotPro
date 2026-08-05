@@ -359,6 +359,134 @@
         }
         .db-banner.show { display: block; }
 
+        /* Funnel */
+        .funnel-container { margin-bottom: 32px; }
+        .funnel-step {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 4px;
+        }
+        .funnel-bar-wrap {
+            flex: 1;
+            position: relative;
+            height: 44px;
+        }
+        .funnel-bar {
+            height: 100%;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #fff;
+            min-width: 60px;
+            transition: width 0.4s ease;
+        }
+        .funnel-bar.step-page_view { background: #6366f1; }
+        .funnel-bar.step-register_attempt { background: #8b5cf6; }
+        .funnel-bar.step-register_success { background: #a855f7; }
+        .funnel-bar.step-login_success { background: #3b82f6; }
+        .funnel-bar.step-analysis_started { background: #06b6d4; }
+        .funnel-bar.step-payment_attempt { background: #f59e0b; }
+        .funnel-bar.step-payment_success { background: #10b981; }
+        .funnel-label {
+            width: 140px;
+            flex-shrink: 0;
+            text-align: right;
+            font-size: 0.78rem;
+            color: #8b8fa3;
+            font-weight: 500;
+        }
+        .funnel-count {
+            width: 60px;
+            flex-shrink: 0;
+            text-align: right;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #e1e4ea;
+        }
+        .funnel-conversion {
+            width: 70px;
+            flex-shrink: 0;
+            text-align: right;
+            font-size: 0.75rem;
+            color: #5a5e72;
+        }
+        .funnel-conversion .rate { color: #fbbf24; font-weight: 600; }
+        .funnel-total {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: #1a1d27;
+            border: 1px solid #2a2d3a;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            color: #8b8fa3;
+        }
+        .funnel-total strong { color: #34d399; font-size: 1rem; }
+
+        /* IP behavior chain */
+        .ip-chain {
+            background: #1a1d27;
+            border: 1px solid #2a2d3a;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .ip-chain-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .ip-chain-header h3 { font-size: 0.9rem; font-weight: 600; }
+        .ip-chain-header .ip-label { color: #818cf8; font-family: monospace; font-size: 0.85rem; }
+        .chain-event {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 8px 0;
+            position: relative;
+        }
+        .chain-event:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 28px;
+            bottom: -8px;
+            width: 2px;
+            background: #2a2d3a;
+        }
+        .chain-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .chain-dot.dot-page_view { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+        .chain-dot.dot-register_attempt { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+        .chain-dot.dot-register_success { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+        .chain-dot.dot-register_failed { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .chain-dot.dot-login_attempt { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .chain-dot.dot-login_success { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .chain-dot.dot-login_failed { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .chain-dot.dot-analysis_started { background: rgba(6, 182, 212, 0.2); color: #22d3ee; }
+        .chain-dot.dot-analysis_completed { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .chain-dot.dot-payment_attempt { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        .chain-dot.dot-payment_success { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .chain-dot.dot-payment_failed { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .chain-dot.dot-button_click { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+        .chain-dot.dot-other { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+        .chain-info { flex: 1; }
+        .chain-action { font-size: 0.82rem; font-weight: 600; color: #e1e4ea; }
+        .chain-details { font-size: 0.75rem; color: #5a5e72; margin-top: 2px; }
+        .chain-time { font-size: 0.72rem; color: #5a5e72; flex-shrink: 0; margin-top: 3px; }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar { width: 60px; padding: 16px 0; }
@@ -420,6 +548,10 @@
         <div class="nav-item" data-page="audit" onclick="switchPage('audit')">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             <span>Audit Logs</span>
+        </div>
+        <div class="nav-item" data-page="behavior" onclick="switchPage('behavior')">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            <span>用户行为</span>
         </div>
         <div class="sidebar-footer">
             <button class="btn-logout" onclick="handleLogout()">
@@ -571,11 +703,30 @@
                     <div class="filters">
                         <select class="filter-select" id="auditActionFilter" onchange="loadAuditLogs()">
                             <option value="">All Actions</option>
-                            <option value="analysis_started">Analysis Started</option>
-                            <option value="analysis_completed">Analysis Completed</option>
-                            <option value="analysis_failed">Analysis Failed</option>
-                            <option value="login">Login</option>
-                            <option value="register">Register</option>
+                            <optgroup label="Behavior Tracking">
+                                <option value="page_view">Page View</option>
+                                <option value="register_attempt">Register Attempt</option>
+                                <option value="register_success">Register Success</option>
+                                <option value="register_failed">Register Failed</option>
+                                <option value="login_attempt">Login Attempt</option>
+                                <option value="login_success">Login Success</option>
+                                <option value="login_failed">Login Failed</option>
+                                <option value="button_click">Button Click</option>
+                            </optgroup>
+                            <optgroup label="Analysis">
+                                <option value="analysis_started">Analysis Started</option>
+                                <option value="analysis_completed">Analysis Completed</option>
+                                <option value="analysis_failed">Analysis Failed</option>
+                            </optgroup>
+                            <optgroup label="Payment">
+                                <option value="payment_attempt">Payment Attempt</option>
+                                <option value="payment_success">Payment Success</option>
+                                <option value="payment_failed">Payment Failed</option>
+                            </optgroup>
+                            <optgroup label="Legacy">
+                                <option value="login">Login (legacy)</option>
+                                <option value="register">Register (legacy)</option>
+                            </optgroup>
                         </select>
                         <select class="filter-select" id="auditDaysFilter" onchange="loadAuditLogs()">
                             <option value="7">Last 7 days</option>
@@ -589,6 +740,80 @@
                     <tbody id="auditTable"></tbody>
                 </table>
                 <div class="pagination" id="auditPagination"></div>
+            </div>
+        </div>
+
+        <!-- User Behavior -->
+        <div id="page-behavior" class="page-section">
+            <div class="page-header">
+                <h1>用户行为</h1>
+                <p>用户行为漏斗与行为链路追踪：访问 → 注册 → 登录 → 分析 → 付费</p>
+            </div>
+
+            <!-- Funnel Overview -->
+            <div class="funnel-container" id="funnelContainer">
+                <div class="data-table-wrap" style="padding: 20px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                        <h3 style="font-size: 0.9rem; font-weight: 600;">漏斗概览</h3>
+                        <div class="filters">
+                            <select class="filter-select" id="funnelDaysFilter" onchange="loadFunnelStats()">
+                                <option value="7">Last 7 days</option>
+                                <option value="14">Last 14 days</option>
+                                <option value="30">Last 30 days</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="funnelChart"></div>
+                    <div id="funnelTotal" class="funnel-total" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- Recent Behavior Stream -->
+            <div class="data-table-wrap" style="margin-bottom: 24px;">
+                <div class="table-toolbar">
+                    <h3>最近行为流</h3>
+                    <div class="filters">
+                        <select class="filter-select" id="behaviorActionFilter" onchange="loadBehaviorStream()">
+                            <option value="">All Actions</option>
+                            <option value="page_view">Page View</option>
+                            <option value="register_attempt">Register Attempt</option>
+                            <option value="register_success">Register Success</option>
+                            <option value="register_failed">Register Failed</option>
+                            <option value="login_attempt">Login Attempt</option>
+                            <option value="login_success">Login Success</option>
+                            <option value="login_failed">Login Failed</option>
+                            <option value="analysis_started">Analysis Started</option>
+                            <option value="analysis_completed">Analysis Completed</option>
+                            <option value="payment_attempt">Payment Attempt</option>
+                            <option value="payment_success">Payment Success</option>
+                            <option value="payment_failed">Payment Failed</option>
+                            <option value="button_click">Button Click</option>
+                        </select>
+                        <input type="text" class="filter-input" id="behaviorIpFilter" placeholder="Filter by IP..." onkeydown="if(event.key==='Enter')loadBehaviorStream()">
+                        <select class="filter-select" id="behaviorDaysFilter" onchange="loadBehaviorStream()">
+                            <option value="7">Last 7 days</option>
+                            <option value="14">Last 14 days</option>
+                            <option value="30">Last 30 days</option>
+                        </select>
+                    </div>
+                </div>
+                <table>
+                    <thead><tr><th>Action</th><th>User</th><th>IP</th><th>Details</th><th>Time</th></tr></thead>
+                    <tbody id="behaviorTable"></tbody>
+                </table>
+                <div class="pagination" id="behaviorPagination"></div>
+            </div>
+
+            <!-- IP Behavior Chain (shown when clicking an IP) -->
+            <div id="ipChainSection" style="display: none;">
+                <div class="ip-chain">
+                    <div class="ip-chain-header">
+                        <h3>IP 行为链</h3>
+                        <span class="ip-label" id="ipChainLabel"></span>
+                        <button class="btn-sm" onclick="closeIpChain()">Close</button>
+                    </div>
+                    <div id="ipChainEvents"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -617,7 +842,7 @@
 // ===== State =====
 let authToken = localStorage.getItem('admin_token') || '';
 let currentPage = 'dashboard';
-let paginationState = { users: 0, analyses: 0, payments: 0, audit: 0, subscriptions: 0 };
+let paginationState = { users: 0, analyses: 0, payments: 0, audit: 0, subscriptions: 0, behavior: 0 };
 
 // ===== Auth =====
 async function handleLogin() {
@@ -724,7 +949,8 @@ function switchPage(page) {
         analyses: loadAnalyses,
         payments: loadPayments,
         subscriptions: loadSubscriptions,
-        audit: loadAuditLogs
+        audit: loadAuditLogs,
+        behavior: loadBehaviorPage
     };
     if (loaders[page]) loaders[page]();
 }
@@ -1035,6 +1261,146 @@ async function loadAuditLogs() {
     }
 }
 
+// ===== User Behavior Page =====
+async function loadBehaviorPage() {
+    loadFunnelStats();
+    loadBehaviorStream();
+}
+
+async function loadFunnelStats() {
+    const days = document.getElementById('funnelDaysFilter').value;
+    try {
+        const data = await apiFetch(`/funnel-stats?days=${days}`);
+        const chart = document.getElementById('funnelChart');
+        const totalEl = document.getElementById('funnelTotal');
+
+        if (!data.funnel || data.funnel.length === 0 || !data.db_available) {
+            chart.innerHTML = '<div class="empty-state"><p>No funnel data available</p></div>';
+            totalEl.style.display = 'none';
+            return;
+        }
+
+        const maxCount = Math.max(...data.funnel.map(s => s.count), 1);
+        chart.innerHTML = data.funnel.map(step => {
+            const widthPct = Math.max((step.count / maxCount) * 100, 8);
+            const convHtml = step.conversion_from_prev !== null
+                ? `<span class="rate">${step.conversion_from_prev}%</span> from prev`
+                : '<span style="color:#5a5e72">—</span>';
+            return `
+                <div class="funnel-step">
+                    <div class="funnel-label">${step.label}</div>
+                    <div class="funnel-bar-wrap">
+                        <div class="funnel-bar step-${step.key}" style="width: ${widthPct}%">
+                            ${step.count > 0 ? step.count : ''}
+                        </div>
+                    </div>
+                    <div class="funnel-count">${step.count}</div>
+                    <div class="funnel-conversion">${convHtml}</div>
+                </div>
+            `;
+        }).join('');
+
+        if (data.total_conversion !== null) {
+            totalEl.style.display = 'block';
+            totalEl.innerHTML = `Overall conversion (Page View → Payment): <strong>${data.total_conversion}%</strong> &nbsp;|&nbsp; Total logs in period: ${data.total_logs}`;
+        } else {
+            totalEl.style.display = 'none';
+        }
+    } catch (e) {
+        console.error('Funnel stats failed:', e);
+    }
+}
+
+async function loadBehaviorStream() {
+    const action = document.getElementById('behaviorActionFilter').value;
+    const ip = document.getElementById('behaviorIpFilter').value.trim();
+    const days = document.getElementById('behaviorDaysFilter').value;
+    const offset = paginationState.behavior || 0;
+    try {
+        let path = `/audit-logs?limit=100&offset=${offset}&days=${days}`;
+        if (action) path += `&action=${action}`;
+        if (ip) path += `&ip_address=${encodeURIComponent(ip)}`;
+        const data = await apiFetch(path);
+        const tbody = document.getElementById('behaviorTable');
+        if (!data.logs || data.logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No behavior data found</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.logs.map(log => `
+            <tr>
+                <td><span class="badge ${actionBadgeClass(log.action)}">${log.action}</span></td>
+                <td title="${log.user_id || ''}">${truncate(log.user_email || log.user_id || '-', 20)}</td>
+                <td>
+                    ${log.ip_address
+                        ? `<a href="#" onclick="openIpChain('${log.ip_address}'); return false;" style="color: #818cf8; font-family: monospace; font-size: 0.78rem; text-decoration: none;" title="View behavior chain for this IP">${log.ip_address}</a>`
+                        : '-'
+                    }
+                </td>
+                <td title="${JSON.stringify(log.details || {})}">${truncate(JSON.stringify(log.details || {}), 40)}</td>
+                <td>${formatTime(log.created_at)}</td>
+            </tr>
+        `).join('');
+        renderPagination('behaviorPagination', 'behavior', data.count, 100, offset);
+    } catch (e) {
+        console.error('Behavior stream failed:', e);
+    }
+}
+
+async function openIpChain(ip) {
+    const section = document.getElementById('ipChainSection');
+    const label = document.getElementById('ipChainLabel');
+    const events = document.getElementById('ipChainEvents');
+
+    label.textContent = ip;
+    events.innerHTML = '<div style="padding: 20px; color: #5a5e72; font-size: 0.82rem;">Loading...</div>';
+    section.style.display = 'block';
+    section.scrollIntoView({ behavior: 'smooth' });
+
+    try {
+        const data = await apiFetch(`/ip-behavior/${encodeURIComponent(ip)}?days=30`);
+        if (!data.logs || data.logs.length === 0) {
+            events.innerHTML = '<div style="padding: 20px; color: #5a5e72; font-size: 0.82rem;">No events found for this IP</div>';
+            return;
+        }
+
+        events.innerHTML = data.logs.map(log => {
+            const dotClass = `dot-${log.action}` in getDotClassMap() ? `dot-${log.action}` : 'dot-other';
+            const details = log.details || {};
+            const detailStr = Object.entries(details).map(([k, v]) => `${k}: ${v}`).join(', ');
+            return `
+                <div class="chain-event">
+                    <div class="chain-dot ${dotClass}">●</div>
+                    <div class="chain-info">
+                        <div class="chain-action">${log.action}</div>
+                        <div class="chain-details">
+                            ${log.user_email || log.user_id || 'anonymous'}
+                            ${detailStr ? ' | ' + truncate(detailStr, 60) : ''}
+                        </div>
+                    </div>
+                    <div class="chain-time">${formatTime(log.created_at)}</div>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        events.innerHTML = '<div style="padding: 20px; color: #fb7185; font-size: 0.82rem;">Failed to load IP behavior</div>';
+        console.error('IP behavior failed:', e);
+    }
+}
+
+function getDotClassMap() {
+    return {
+        'page_view': 1, 'register_attempt': 1, 'register_success': 1, 'register_failed': 1,
+        'login_attempt': 1, 'login_success': 1, 'login_failed': 1,
+        'analysis_started': 1, 'analysis_completed': 1,
+        'payment_attempt': 1, 'payment_success': 1, 'payment_failed': 1,
+        'button_click': 1,
+    };
+}
+
+function closeIpChain() {
+    document.getElementById('ipChainSection').style.display = 'none';
+}
+
 // ===== Helpers =====
 function truncate(str, len) {
     if (!str) return '-';
@@ -1055,10 +1421,14 @@ function statusBadgeClass(status) {
 }
 
 function actionBadgeClass(action) {
-    if (action?.includes('completed')) return 'badge-green';
-    if (action?.includes('failed')) return 'badge-red';
-    if (action?.includes('started')) return 'badge-blue';
-    if (action?.includes('login') || action?.includes('register')) return 'badge-yellow';
+    if (!action) return 'badge-gray';
+    if (action.includes('completed') || action.includes('success')) return 'badge-green';
+    if (action.includes('failed')) return 'badge-red';
+    if (action.includes('started') || action.includes('attempt')) return 'badge-blue';
+    if (action.includes('login') || action.includes('register')) return 'badge-yellow';
+    if (action.includes('page_view')) return 'badge-blue';
+    if (action.includes('button_click')) return 'badge-gray';
+    if (action.includes('payment')) return 'badge-amber';
     return 'badge-gray';
 }
 
@@ -1078,7 +1448,7 @@ function renderPagination(containerId, key, total, pageSize, currentOffset) {
 function goPage(key, offset) {
     if (offset < 0) offset = 0;
     paginationState[key] = offset;
-    const loaders = { users: loadUsers, analyses: loadAnalyses, payments: loadPayments, subscriptions: loadSubscriptions, audit: loadAuditLogs };
+    const loaders = { users: loadUsers, analyses: loadAnalyses, payments: loadPayments, subscriptions: loadSubscriptions, audit: loadAuditLogs, behavior: loadBehaviorStream };
     if (loaders[key]) loaders[key]();
 }
 

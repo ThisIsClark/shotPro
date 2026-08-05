@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse
 from .config import settings
 from .api.routes import upload, health, export, templates
 from .api.routes import auth, users, admin, payment
+from .api.routes import audit
 from .services.local_auth_service import local_auth_service
 from .services.db_init_service import init_database
 
@@ -142,6 +143,7 @@ app.include_router(export.router, prefix="/api/v1")
 app.include_router(templates.router)
 app.include_router(admin.router, prefix="/api/v1")  # 管理员路由
 app.include_router(payment.router, prefix="/api/v1")  # 付款路由
+app.include_router(audit.router, prefix="/api/v1")  # 用户行为追踪路由
 # Webhook 兼容路由：Creem 后台默认调 /api/payment/webhook，需要同时支持 /api/v1/payment/webhook
 app.include_router(payment.router, prefix="/api")  # 付款路由兼容（webhook 用）
 

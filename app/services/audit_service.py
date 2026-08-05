@@ -4,7 +4,7 @@ Audit Service Module
 """
 
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 
 from .supabase_client import get_supabase_client, is_supabase_enabled
@@ -22,6 +22,19 @@ class AuditAction(str, Enum):
     LOGIN = "login"
     LOGOUT = "logout"
     REGISTER = "register"
+    # 用户行为追踪（前端上报 + 后端付费埋点）
+    PAGE_VIEW = "page_view"
+    REGISTER_ATTEMPT = "register_attempt"
+    REGISTER_SUCCESS = "register_success"
+    REGISTER_FAILED = "register_failed"
+    LOGIN_ATTEMPT = "login_attempt"
+    LOGIN_SUCCESS = "login_success"
+    LOGIN_FAILED = "login_failed"
+    LOGOUT_ACTION = "logout_action"
+    BUTTON_CLICK = "button_click"
+    PAYMENT_ATTEMPT = "payment_attempt"
+    PAYMENT_SUCCESS = "payment_success"
+    PAYMENT_FAILED = "payment_failed"
 
 
 class AuditService:
@@ -203,8 +216,6 @@ class AuditService:
             print(f"[Audit] Get stats failed: {e}")
             return {}
 
-
-from datetime import timedelta
 
 # 单例实例
 audit_service = AuditService()

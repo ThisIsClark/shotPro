@@ -414,11 +414,12 @@ async def get_audit_logs(
     offset: int = Query(0, ge=0),
     user_id: Optional[str] = None,
     action: Optional[str] = None,
+    ip_address: Optional[str] = None,
     days: Optional[int] = Query(7, ge=1, le=30)
 ):
-    """获取审计日志列表"""
+    """获取审计日志列表（支持按 IP 筛选）"""
     if not audit_service.is_available():
-        return {"logs": [], "count": 0, "filters": {"user_id": user_id, "action": action, "days": days}, "db_available": False}
+        return {"logs": [], "count": 0, "filters": {"user_id": user_id, "action": action, "ip_address": ip_address, "days": days}, "db_available": False}
 
     start_date = datetime.utcnow() - timedelta(days=days)
     try:
@@ -429,15 +430,18 @@ async def get_audit_logs(
             action=action,
             start_date=start_date
         )
+        # IP 筛选（audit_service.get_logs 不支持 ip 筛选，在内存过滤）
+        if ip_address:
+            logs = [l for l in logs if l.get("ip_address") == ip_address]
         return {
             "logs": logs,
             "count": len(logs),
-            "filters": {"user_id": user_id, "action": action, "days": days},
+            "filters": {"user_id": user_id, "action": action, "ip_address": ip_address, "days": days},
             "db_available": True
         }
     except Exception as e:
         print(f"[Admin] Audit logs failed: {e}")
-        return {"logs": [], "count": 0, "filters": {"user_id": user_id, "action": action, "days": days}, "db_available": False}
+        return {"logs": [], "count": 0, "filters": {"user_id": user_id, "action": action, "ip_address": ip_address, "days": days}, "db_available": False}
 
 
 @router.get("/audit-stats")
@@ -457,6 +461,81 @@ async def get_audit_stats(
         return {}
 
 
+@router.get("/funnel-stats")
+async def get_funnel_stats(
+    admin: dict = Depends(require_admin),
+    days: int = Query(7, ge=1, le=30)
+):
+    """
+    获取用户行为漏斗统计。
+
+    漏斗步骤：page_view → register_attempt → register_success → login_success → analysis_started → payment_attempt → payment_success
+    返回每步计数 + 转化率。
+    """
+    if not audit_service.is_available():
+        return {"funnel": [], "db_available": False}
+
+    start_date = datetime.utcnow() - timedelta(days=days)
+    try:
+        # 获取时间范围内所有日志
+        logs = await audit_service.get_logs(
+            limit=5000,
+            offset=0,
+            start_date=start_date
+        )
+
+        # 按动作聚合计数
+        action_counts = {}
+        for log in logs:
+            action = log.get("action", "unknown")
+            action_counts[action] = action_counts.get(action, 0) + 1
+
+        # 漏斗步骤定义
+        funnel_steps = [
+            {"key": "page_view", "label": "Page View", "action": "page_view"},
+            {"key": "register_attempt", "label": "Register Attempt", "action": "register_attempt"},
+            {"key": "register_success", "label": "Register Success", "action": "register_success"},
+            {"key": "login_success", "label": "Login Success", "action": "login_success"},
+            {"key": "analysis_started", "label": "Analysis Started", "action": "analysis_started"},
+            {"key": "payment_attempt", "label": "Payment Attempt", "action": "payment_attempt"},
+            {"key": "payment_success", "label": "Payment Success", "action": "payment_success"},
+        ]
+
+        funnel = []
+        prev_count = None
+        for step in funnel_steps:
+            count = action_counts.get(step["action"], 0)
+            conversion_rate = None
+            if prev_count is not None and prev_count > 0:
+                conversion_rate = round((count / prev_count) * 100, 1)
+            funnel.append({
+                "key": step["key"],
+                "label": step["label"],
+                "count": count,
+                "conversion_from_prev": conversion_rate,
+            })
+            prev_count = count
+
+        # 总体转化率（page_view → payment_success）
+        total_conversion = None
+        first_count = funnel[0]["count"]
+        last_count = funnel[-1]["count"]
+        if first_count > 0:
+            total_conversion = round((last_count / first_count) * 100, 2)
+
+        return {
+            "funnel": funnel,
+            "total_conversion": total_conversion,
+            "period_days": days,
+            "total_logs": len(logs),
+            "action_counts": action_counts,
+            "db_available": True,
+        }
+    except Exception as e:
+        print(f"[Admin] Funnel stats failed: {e}")
+        return {"funnel": [], "db_available": False}
+
+
 @router.get("/user-stats/{user_id}")
 async def get_user_stats(
     user_id: str,
@@ -472,3 +551,41 @@ async def get_user_stats(
     except Exception as e:
         print(f"[Admin] User stats failed: {e}")
         return {}
+
+
+@router.get("/ip-behavior/{ip_address}")
+async def get_ip_behavior(
+    ip_address: str,
+    admin: dict = Depends(require_admin),
+    days: int = Query(30, ge=1, le=90)
+):
+    """
+    获取单个 IP 的完整行为链。
+
+    按 IP 串联同一访客的多次行为（访问→注册→登录→...），
+    用于追踪未登录用户的完整行为路径。
+    """
+    if not audit_service.is_available():
+        return {"logs": [], "ip_address": ip_address, "db_available": False}
+
+    start_date = datetime.utcnow() - timedelta(days=days)
+    try:
+        logs = await audit_service.get_logs(
+            limit=500,
+            offset=0,
+            start_date=start_date
+        )
+        # 按 IP 过滤，按时间正序排列（行为链顺序）
+        ip_logs = [l for l in logs if l.get("ip_address") == ip_address]
+        ip_logs.sort(key=lambda x: x.get("created_at", ""))
+
+        return {
+            "logs": ip_logs,
+            "ip_address": ip_address,
+            "total_events": len(ip_logs),
+            "period_days": days,
+            "db_available": True,
+        }
+    except Exception as e:
+        print(f"[Admin] IP behavior failed: {e}")
+        return {"logs": [], "ip_address": ip_address, "db_available": False}

@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from ..deps import get_current_user_optional, get_current_user_required
 from ...services.creem_service import creem_service
 from ...services.db_service import db_service
+from ...services.audit_service import audit_service, AuditAction
 
 router = APIRouter(prefix="/payment", tags=["payment"])
 
@@ -109,6 +110,17 @@ async def create_subscription(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Login required to subscribe",
         )
+
+    # 付费漏斗：发起订阅
+    await audit_service.log(
+        action=AuditAction.PAYMENT_ATTEMPT,
+        user_id=user_id,
+        user_email=user_email,
+        resource_type="subscription",
+        details={"billing_period": request.billing_period},
+        ip_address=(req.headers.get("x-forwarded-for", "").split(",")[0].strip() or (req.client.host if req.client else None)),
+        user_agent=req.headers.get("user-agent")
+    )
 
     if not creem_service.is_subscription_configured:
         raise HTTPException(
@@ -329,6 +341,13 @@ async def _handle_subscription_active(event: dict):
             current_period_end=current_period_end,
         )
         print(f"[Creem Webhook] Subscription activated for user {user_id}, plan={plan}")
+        # 付费漏斗：订阅成功
+        await audit_service.log(
+            action=AuditAction.PAYMENT_SUCCESS,
+            user_id=user_id,
+            resource_type="subscription",
+            details={"plan": plan, "creem_subscription_id": creem_subscription_id}
+        )
 
 
 async def _handle_subscription_paid(event: dict):
@@ -374,6 +393,12 @@ async def _handle_subscription_expired(event: dict):
     if db_service.is_available():
         await db_service.expire_user_subscription(user_id)
         print(f"[Creem Webhook] Subscription expired for user {user_id}")
+        await audit_service.log(
+            action=AuditAction.PAYMENT_FAILED,
+            user_id=user_id,
+            resource_type="subscription",
+            details={"reason": "expired"}
+        )
 
 
 async def _handle_subscription_canceled(event: dict):
@@ -389,6 +414,12 @@ async def _handle_subscription_canceled(event: dict):
     if db_service.is_available():
         await db_service.cancel_user_subscription(user_id, immediate=True)
         print(f"[Creem Webhook] Subscription canceled for user {user_id}")
+        await audit_service.log(
+            action=AuditAction.PAYMENT_FAILED,
+            user_id=user_id,
+            resource_type="subscription",
+            details={"reason": "canceled"}
+        )
 
 
 async def _handle_subscription_scheduled_cancel(event: dict):

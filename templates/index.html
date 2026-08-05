@@ -5091,11 +5091,13 @@
 
                 let result;
                 if (isAuthModeLogin) {
+                    trackEvent('login_attempt', { email });
                     result = await supabaseClient.auth.signInWithPassword({
                         email,
                         password
                     });
                 } else {
+                    trackEvent('register_attempt', { email });
                     result = await supabaseClient.auth.signUp({
                         email,
                         password
@@ -5104,20 +5106,30 @@
 
                 if (result.error) {
                     showAuthError(result.error.message);
+                    trackEvent(isAuthModeLogin ? 'login_failed' : 'register_failed', {
+                        email,
+                        error: result.error.message
+                    });
                 } else {
                     if (isAuthModeLogin) {
                         showAuthSuccess('Login successful!');
                         currentUser = result.data.user;
+                        trackEvent('login_success', { email });
                         setTimeout(() => {
                             closeAuthModal();
                             showLoggedInState(email, false);  // Supabase 用户不是管理员
                         }, 1000);
                     } else {
                         showAuthSuccess('Registration successful! Please check your email for verification');
+                        trackEvent('register_success', { email });
                     }
                 }
             } catch (err) {
                 showAuthError('Operation failed: ' + err.message);
+                trackEvent(isAuthModeLogin ? 'login_failed' : 'register_failed', {
+                    email,
+                    error: err.message
+                });
             }
 
             btn.disabled = false;
@@ -5139,6 +5151,7 @@
                 if (supabaseClient) {
                     await supabaseClient.auth.signOut();
                 }
+                trackEvent('logout_action', { email: currentUser?.email });
                 currentUser = null;
                 showLoginButton();
             } catch (e) {
@@ -5159,6 +5172,22 @@
                 return session?.access_token || null;
             } catch (e) {
                 return null;
+            }
+        }
+
+        // 用户行为埋点上报（fire-and-forget，失败不影响主流程）
+        async function trackEvent(action, details = {}) {
+            try {
+                const headers = await getAuthHeaders();
+                headers['Content-Type'] = 'application/json';
+                fetch('/api/v1/audit/event', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ action, details }),
+                    keepalive: true  // 页面卸载时也能发出去
+                });
+            } catch (e) {
+                // 埋点失败静默处理
             }
         }
 
@@ -6066,6 +6095,7 @@
             checkPaymentSuccess();
             renderLandingDemoCurves();
             renderPreviewCurve();
+            trackEvent('page_view', { page: 'home' });
         });
 
         // ==================== 原有代码 ====================
@@ -6377,6 +6407,7 @@
         // Analyze button
         analyzeBtn.addEventListener('click', async () => {
             if (!selectedFile) return;
+            trackEvent('button_click', { button: 'analyze' });
 
             // 检查分析次数
             if (currentUser && !creditsUnlimited) {
@@ -7172,6 +7203,7 @@
         function displayResults(result) {
             emptyState.style.display = 'none';
             resultsContainer.style.display = 'block';
+            trackEvent('page_view', { page: 'analysis_result' });
 
             // 确保所有分析相关的部分都显示（可能在创建模板时被隐藏了）
             const videoSection = document.getElementById('videoResult');
