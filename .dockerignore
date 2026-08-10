@@ -36,6 +36,9 @@ test_*.py
 vercel.json
 
 # Exclude user-uploaded template data, but keep the default Curry template
-templates/template_*/
-!templates/template_56140d232ffa/
-templates/*.json
+# NOTE: Docker ignores ! exceptions under excluded parent dirs, so we must
+# exclude at file level (not directory level) for ! to work.
+templates/template_*/**/*
+!templates/template_56140d232ffa/**/*
+# index.json is needed at runtime for template listing
+!templates/index.json
