@@ -6863,18 +6863,24 @@
         ];
         // 每个关键帧的核心角度（显示在卡片上）
         const KEYFRAME_CORE_ANGLE = {
-            knee_min_frame:       { key: 'knee_angle',  label: '膝' },
-            sync_frame_1:         { key: 'knee_angle',  label: '膝' },
-            elbow_min_frame:      { key: 'elbow_angle', label: '肘' },
-            sync_frame_2:         { key: 'knee_angle',  label: '膝' },
-            wrist_peak_frame:     { key: 'elbow_angle', label: '肘' },
-            max_hold_frame:       { key: 'elbow_angle', label: '肘' },
-            release_frame:        { key: 'elbow_angle', label: '肘' },
-            follow_through_frame: { key: 'elbow_angle', label: '肘' },
+            knee_min_frame:       { key: 'knee_angle',  label: { 'zh-CN': '膝', 'en-US': 'Knee' } },
+            sync_frame_1:         { key: 'knee_angle',  label: { 'zh-CN': '膝', 'en-US': 'Knee' } },
+            elbow_min_frame:      { key: 'elbow_angle', label: { 'zh-CN': '肘', 'en-US': 'Elbow' } },
+            sync_frame_2:         { key: 'knee_angle',  label: { 'zh-CN': '膝', 'en-US': 'Knee' } },
+            wrist_peak_frame:     { key: 'elbow_angle', label: { 'zh-CN': '肘', 'en-US': 'Elbow' } },
+            max_hold_frame:       { key: 'elbow_angle', label: { 'zh-CN': '肘', 'en-US': 'Elbow' } },
+            release_frame:        { key: 'elbow_angle', label: { 'zh-CN': '肘', 'en-US': 'Elbow' } },
+            follow_through_frame: { key: 'elbow_angle', label: { 'zh-CN': '肘', 'en-US': 'Elbow' } },
         };
         const ANGLE_DIFF_LABELS = {
-            knee_angle: '膝盖', elbow_angle: '肘部', shoulder_angle: '肩部',
-            trunk_angle: '躯干', wrist_angle: '手腕', hip_angle: '髋部'
+            'zh-CN': {
+                knee_angle: '膝盖', elbow_angle: '肘部', shoulder_angle: '肩部',
+                trunk_angle: '躯干', wrist_angle: '手腕', hip_angle: '髋部'
+            },
+            'en-US': {
+                knee_angle: 'Knee', elbow_angle: 'Elbow', shoulder_angle: 'Shoulder',
+                trunk_angle: 'Trunk', wrist_angle: 'Wrist', hip_angle: 'Hip'
+            }
         };
 
         function diffClass(diff) {
@@ -6890,9 +6896,10 @@
 
         function renderKeyframeCard(kf, idx, compMap) {
             const name = keyframeLabel(kf.phase);
-            const core = KEYFRAME_CORE_ANGLE[kf.phase] || { key: 'elbow_angle', label: '肘' };
+            const core = KEYFRAME_CORE_ANGLE[kf.phase] || { key: 'elbow_angle', label: { 'zh-CN': '肘', 'en-US': 'Elbow' } };
             const angleVal = kf.angles ? kf.angles[core.key] : null;
-            const angleText = angleVal != null ? `${core.label} ${Math.round(angleVal)}°` : '';
+            const coreLabel = core.label[currentLang] || core.label['en-US'];
+            const angleText = angleVal != null ? `${coreLabel} ${Math.round(angleVal)}°` : '';
             const comp = compMap[kf.phase];
             // 角度差异色标
             let diffHtml = '';
@@ -7026,11 +7033,12 @@
         function renderCompareAngles(angles, diffs, side) {
             if (!angles) return '';
             const keys = ['elbow_angle', 'knee_angle', 'shoulder_angle', 'hip_angle', 'trunk_angle', 'wrist_angle'];
+            const labels = ANGLE_DIFF_LABELS[currentLang] || ANGLE_DIFF_LABELS['en-US'];
             let html = '<div class="compare-angles">';
             keys.forEach(key => {
                 const val = angles[key];
                 if (val == null) return;
-                const label = ANGLE_DIFF_LABELS[key] || key;
+                const label = labels[key] || key;
                 let diffHtml = '';
                 if (diffs && diffs[key] != null) {
                     const d = diffs[key];
@@ -7572,18 +7580,28 @@
             if (!angles) return '';
             
             const angleLabels = {
-                'knee_angle': '膝盖',
-                'elbow_angle': '肘部',
-                'shoulder_angle': '肩部',
-                'trunk_angle': '躯干',
-                'wrist_angle': '手腕'
+                'zh-CN': {
+                    'knee_angle': '膝盖',
+                    'elbow_angle': '肘部',
+                    'shoulder_angle': '肩部',
+                    'trunk_angle': '躯干',
+                    'wrist_angle': '手腕'
+                },
+                'en-US': {
+                    'knee_angle': 'Knee',
+                    'elbow_angle': 'Elbow',
+                    'shoulder_angle': 'Shoulder',
+                    'trunk_angle': 'Trunk',
+                    'wrist_angle': 'Wrist'
+                }
             };
-            
+            const labels = angleLabels[currentLang] || angleLabels['en-US'];
+
             let html = '<div style="margin-top: 12px; font-size: 0.85rem; color: rgba(255, 255, 255, 0.7); line-height: 1.6;">';
-            
+
             for (const [key, value] of Object.entries(angles)) {
-                if (value !== null && angleLabels[key]) {
-                    html += `<div>${angleLabels[key]}: ${Math.round(value)}°</div>`;
+                if (value !== null && labels[key]) {
+                    html += `<div>${labels[key]}: ${Math.round(value)}°</div>`;
                 }
             }
             
