@@ -5177,6 +5177,14 @@
 
         // 用户行为埋点上报（fire-and-forget，失败不影响主流程）
         async function trackEvent(action, details = {}) {
+            // 本地调试环境一律不上报：本地进程连的可能是线上同一个库，灌进漏斗会污染真实数据
+            const host = location.hostname;
+            if (host === 'localhost' || host === '127.0.0.1') return;
+
+            // 自己的浏览器设过标记则不上报，避免开发者访问污染漏斗
+            // 标记设置方式：访问 /?self=1 一次即永久生效（按浏览器存，换 WiFi 不影响）
+            if (localStorage.getItem('skip_tracking') === '1') return;
+
             try {
                 const headers = await getAuthHeaders();
                 headers['Content-Type'] = 'application/json';
@@ -6090,6 +6098,12 @@
 
         // 页面加载时应用语言和加载模板
         document.addEventListener('DOMContentLoaded', () => {
+            // /?self=1：开发者用此浏览器访问一次，写入本地标记，以后此浏览器不再上报埋点
+            if (new URLSearchParams(location.search).get('self') === '1') {
+                localStorage.setItem('skip_tracking', '1');
+                console.log('[tracking] self-skip marker set; this browser is now excluded from the funnel.');
+            }
+
             updateLanguage();
             loadTemplates();
             checkPaymentSuccess();
