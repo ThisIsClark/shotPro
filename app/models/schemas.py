@@ -73,11 +73,15 @@ class Point3D(BaseModel):
 
 
 class JointAngles(BaseModel):
-    """关节角度"""
-    elbow_angle: float = Field(..., description="肘部角度 (肩-肘-腕)")
-    shoulder_angle: float = Field(..., description="肩部角度 (髋-肩-肘)")
-    knee_angle: float = Field(..., description="膝盖角度 (髋-膝-踝)")
-    trunk_angle: float = Field(..., description="躯干倾斜角度")
+    """关节角度。
+
+    各角度按关键点可见性独立计算：持球时球体会遮挡肘/腕等关节，
+    被遮挡的角度为 None（前端与导出均已处理 null）。
+    """
+    elbow_angle: Optional[float] = Field(None, description="肘部角度 (肩-肘-腕)")
+    shoulder_angle: Optional[float] = Field(None, description="肩部角度 (髋-肩-肘)")
+    knee_angle: Optional[float] = Field(None, description="膝盖角度 (髋-膝-踝)")
+    trunk_angle: Optional[float] = Field(None, description="躯干倾斜角度")
     wrist_angle: Optional[float] = Field(None, description="手腕角度 (肘-腕-食指)")
 
 

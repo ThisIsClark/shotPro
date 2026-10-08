@@ -12,13 +12,18 @@ from .pose_detector import Landmark, PoseResult, PoseLandmark
 
 @dataclass
 class ShootingAngles:
-    """投篮相关角度（无默认值的字段必须放在有默认值字段之前）"""
-    elbow_angle: float          # 肘部角度 (肩-肘-腕)
-    shoulder_angle: float       # 肩部角度 (髋-肩-肘)
-    trunk_angle: float          # 躯干倾斜角度 (相对垂直线)
-    knee_angle: Optional[float] = None   # 膝盖角度 (髋-膝-踝)，下半身不可见时为 None
-    wrist_angle: Optional[float] = None  # 手腕角度 (肘-腕-食指)
-    hip_angle: Optional[float] = None   # 髋部角度 (肩-髋-膝)
+    """投篮相关角度。
+
+    所有角度字段均为 Optional：持球时球体会遮挡肘/腕等关节，MediaPipe 的
+    visibility 会降到 0.2~0.5，但其他关节（如膝）仍然可靠。各角度按自身
+    关键点可见性独立计算，被遮挡的角度为 None，由下游平滑/关键帧逻辑处理。
+    """
+    elbow_angle: Optional[float] = None     # 肘部角度 (肩-肘-腕)
+    shoulder_angle: Optional[float] = None  # 肩部角度 (髋-肩-肘)
+    trunk_angle: Optional[float] = None     # 躯干倾斜角度 (相对垂直线)
+    knee_angle: Optional[float] = None       # 膝盖角度 (髋-膝-踝)，下半身不可见时为 None
+    wrist_angle: Optional[float] = None     # 手腕角度 (肘-腕-食指)
+    hip_angle: Optional[float] = None        # 髋部角度 (肩-髋-膝)
     
     def to_dict(self) -> dict:
         """转换为字典"""
@@ -298,41 +303,50 @@ class AngleCalculator:
         knee = pose_result.get_landmark(knee_idx)
         ankle = pose_result.get_landmark(ankle_idx)
         
-        # 可见性阈值
-        min_visibility = 0.5
-        
-        # 检查核心上半身关键点（肩、肘、腕必须可见）
-        upper_body_visible = (
-            shoulder and shoulder.visibility >= min_visibility and
-            elbow and elbow.visibility >= min_visibility and
-            wrist and wrist.visibility >= min_visibility and
-            hip and hip.visibility >= min_visibility
-        )
-        
-        # 如果上半身不可见，无法分析投篮动作
-        if not upper_body_visible:
+        # 可见性阈值。
+        # MediaPipe 的 visibility 对"被球体遮挡"的关节标得很低（常降到 0.1~0.5），
+        # 即使位置估计仍可用且整体姿态置信度很高。0.5 的一刀切门控会把
+        # 持球下蹲段的膝角曲线整段杀掉，导致沉球/蹬伸时序无从分析，故降为 0.3。
+        min_visibility = 0.3
+
+        def visible(lm) -> bool:
+            return lm is not None and lm.visibility >= min_visibility
+
+        # 锚点：肩、髋不可见时无法分析（躯干/肩角/膝角的公共顶点）
+        if not (visible(shoulder) and visible(hip)):
             return None
-        
-        # 部分计算角度（根据可见性）
-        elbow_angle = self.calculate_elbow_angle(shoulder, elbow, wrist)
-        shoulder_angle = self.calculate_shoulder_angle(hip, shoulder, elbow)
+
+        # 各角度按自身关键点可见性独立计算（不再一刀切丢弃整帧）：
+        # 投篮持球时肘/腕常被球遮挡，缺失的角度交给下游平滑窗口兜底
+        elbow_angle = None
+        if visible(elbow) and visible(wrist):
+            elbow_angle = self.calculate_elbow_angle(shoulder, elbow, wrist)
+
+        shoulder_angle = None
+        if visible(elbow):
+            shoulder_angle = self.calculate_shoulder_angle(hip, shoulder, elbow)
+
         trunk_angle = self.calculate_trunk_angle(shoulder, hip)
-        
-        # 膝盖角度：需要hip, knee, ankle都可见
+
+        # 膝盖角度：需要knee, ankle可见
         knee_angle = None
-        if (knee and knee.visibility >= min_visibility and 
-            ankle and ankle.visibility >= min_visibility):
+        if visible(knee) and visible(ankle):
             knee_angle = self.calculate_knee_angle(hip, knee, ankle)
-        
+
         # 髋部角度：需要knee可见
         hip_angle = None
-        if knee and knee.visibility >= min_visibility:
+        if visible(knee):
             hip_angle = self.calculate_hip_angle(shoulder, hip, knee)
-        
+
         # 手腕角度：需要index可见
         wrist_angle = None
-        if index and index.visibility >= min_visibility:
+        if visible(index):
             wrist_angle = self.calculate_wrist_angle(elbow, wrist, index)
+
+        # 全部角度都缺失时视为无效帧（正常情况下 trunk_angle 一定存在）
+        if all(v is None for v in (elbow_angle, shoulder_angle, trunk_angle,
+                                   knee_angle, hip_angle, wrist_angle)):
+            return None
         
         return ShootingAngles(
             elbow_angle=elbow_angle,

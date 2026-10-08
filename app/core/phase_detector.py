@@ -150,20 +150,16 @@ class PhaseDetector:
         if len(self.angles_history) > window_size:
             self.angles_history = self.angles_history[-window_size:]
 
-        # 计算移动平均（过滤None值）
-        def avg(values):
-            valid = [v for v in values if v is not None]
-            return sum(valid) / len(valid) if valid else 0.0
-
+        # 计算移动平均（过滤None值；全None时返回None而非0，避免制造假角度）
         def avg_or_none(values):
             valid = [v for v in values if v is not None]
             return sum(valid) / len(valid) if valid else None
 
         return ShootingAngles(
-            elbow_angle=avg([a.elbow_angle for a in self.angles_history]),
-            shoulder_angle=avg([a.shoulder_angle for a in self.angles_history]),
+            elbow_angle=avg_or_none([a.elbow_angle for a in self.angles_history]),
+            shoulder_angle=avg_or_none([a.shoulder_angle for a in self.angles_history]),
             knee_angle=avg_or_none([a.knee_angle for a in self.angles_history]),
-            trunk_angle=avg([a.trunk_angle for a in self.angles_history]),
+            trunk_angle=avg_or_none([a.trunk_angle for a in self.angles_history]),
             wrist_angle=current_angles.wrist_angle,
             hip_angle=avg_or_none([a.hip_angle for a in self.angles_history])
         )
@@ -278,13 +274,13 @@ class PhaseDetector:
         is_shoulder_raising = False
         if len(self.angles_history) >= 3:
             recent_angles = self.angles_history[-3:]
-            # 肘部角度趋势（增大=手臂展开）
-            elbow_vals = [a.elbow_angle for a in recent_angles if a is not None]
+            # 肘部角度趋势（增大=手臂展开；elbow_angle 可能因遮挡为 None）
+            elbow_vals = [a.elbow_angle for a in recent_angles if a is not None and a.elbow_angle is not None]
             if len(elbow_vals) >= 2:
                 is_elbow_extending = (elbow_vals[-1] - elbow_vals[0]) > 2.0  # 3帧内增大2°以上
 
             # 肩部角度趋势（增大=手臂抬起）
-            shoulder_vals = [a.shoulder_angle for a in recent_angles if a is not None]
+            shoulder_vals = [a.shoulder_angle for a in recent_angles if a is not None and a.shoulder_angle is not None]
             if len(shoulder_vals) >= 2:
                 is_shoulder_raising = (shoulder_vals[-1] - shoulder_vals[0]) > 2.0  # 3帧内增大2°以上
 
@@ -322,9 +318,9 @@ class PhaseDetector:
             # 即使手腕暂时稳定，也认为是跟随阶段
             return ShootingPhase.FOLLOW_THROUGH
         
-        # 出手阶段判断（降低条件要求）
-        elbow_extended = angles.elbow_angle >= th.release_min_elbow_angle
-        shoulder_raised = angles.shoulder_angle >= th.release_min_shoulder_angle
+        # 出手阶段判断（降低条件要求；elbow/shoulder 可能因遮挡为 None）
+        elbow_extended = angles.elbow_angle is not None and angles.elbow_angle >= th.release_min_elbow_angle
+        shoulder_raised = angles.shoulder_angle is not None and angles.shoulder_angle >= th.release_min_shoulder_angle
         
         # 增加出手速度判断
         is_releasing = False
@@ -383,7 +379,7 @@ class PhaseDetector:
                 return ShootingPhase.RELEASE
             else:
                 # 手腕稳定但手臂抬起，可能是上升或出手
-                if angles.elbow_angle > 110:
+                if angles.elbow_angle is not None and angles.elbow_angle > 110:
                     return ShootingPhase.RELEASE
                 return ShootingPhase.LIFTING
 
@@ -558,24 +554,62 @@ class PhaseDetector:
 
         sync_frame_1 = None
         if len(frames_before_peak) >= 5:
-            # 在最高点之前找手腕Y值最大点（物理最低点）作为沉球候选
-            # 注意：要找手腕先下降后上升的转折点（使用原始值）
-            for i in range(3, len(frames_before_peak) - 2):
-                prev2 = frames_before_peak[i - 2]
-                prev1 = frames_before_peak[i - 1]
-                curr = frames_before_peak[i]
-                next1 = frames_before_peak[i + 1]
-                next2 = frames_before_peak[i + 2]
+            # 主检测：持续上升起点法。
+            # 沉球点 = 手腕开始持续上升前的最低点。判据：从该点起 5 帧内手腕
+            # 显著升高（Y 值减小超过 0.03），且该点是邻域内的局部最低平台。
+            # 相比旧版"连续递增再递减"的严格模式匹配，对 MediaPipe 的
+            # ±0.01 锯齿噪声免疫（噪声会让旧模式永远匹配不上）。
+            RISE_LOOKAHEAD = 5    # 向前看的帧数
+            RISE_THRESHOLD = 0.03  # 视为"持续上升"的Y值变化量
+            REVERSAL_WINDOW = 15   # 无回升检查的窗口（帧）
+            REVERSAL_TOLERANCE = 0.01  # 允许的回升幅度
 
-                # 检查是否是"沉球后上升"的模式（使用原始值）
-                # 特征：Y值先增大(手腕下降)，然后减小(手腕上升)
-                if get_wrist_y(prev2) < get_wrist_y(prev1) and get_wrist_y(prev1) <= get_wrist_y(curr):
-                    # 找到了下降到最低的区域
-                    if get_wrist_y(curr) > get_wrist_y(next1):
-                        # 确认开始上升了
-                        sync_frame_1 = curr
-                        print(f"[PhaseDetector] 找到沉球转折点: frame#{curr.frame_number}, wrist_y={get_wrist_y(curr):.4f}")
-                        break
+            for i in range(2, len(frames_before_peak)):
+                curr = frames_before_peak[i]
+                lookahead = frames_before_peak[i + 1: i + 1 + RISE_LOOKAHEAD]
+                if len(lookahead) < 2:
+                    break
+                # 未来帧内手腕最小Y值（物理最高点），上升量 = 当前Y - 未来最小Y
+                future_min_y = min(get_wrist_y(f) for f in lookahead)
+                rise_amount = get_wrist_y(curr) - future_min_y
+                if rise_amount < RISE_THRESHOLD:
+                    continue
+                # 当前点是 [i-2, i] 邻域内的最低平台（Y 值最大，容忍噪声抖动）
+                window = frames_before_peak[max(0, i - 2): i + 1]
+                if get_wrist_y(curr) < max(get_wrist_y(f) for f in window) - 0.005:
+                    continue
+                # 无回升检查：真正的起球之后，手腕不会落回沉球点附近。
+                # 用于过滤追踪噪声/开场抖动制造的假"低点+短暂上升"——
+                # 假信号后手腕会回升，真起球一去不返。
+                # 要求"连续2帧回升"才算真回升：MediaPipe 的单帧尖峰
+                # （如遮挡导致的 y 值瞬间跳变）不构成回升证据。
+                reversal_frames = frames_before_peak[i + 1: i + 1 + REVERSAL_WINDOW]
+                above = [get_wrist_y(f) > get_wrist_y(curr) + REVERSAL_TOLERANCE
+                         for f in reversal_frames]
+                if any(above[k] and above[k + 1] for k in range(len(above) - 1)):
+                    continue
+                sync_frame_1 = curr
+                print(f"[PhaseDetector] 沉球点（持续上升起点）: frame#{curr.frame_number}, "
+                      f"wrist_y={get_wrist_y(curr):.4f}, rise={rise_amount:.4f}")
+                break
+
+            # 旧版主检测（手腕转折点模式）作为次级兜底：主检测失败时尝试
+            if sync_frame_1 is None:
+                for i in range(3, len(frames_before_peak) - 2):
+                    prev2 = frames_before_peak[i - 2]
+                    prev1 = frames_before_peak[i - 1]
+                    curr = frames_before_peak[i]
+                    next1 = frames_before_peak[i + 1]
+
+                    # 检查是否是"沉球后上升"的模式（使用原始值）
+                    # 特征：Y值先增大(手腕下降)，然后减小(手腕上升)
+                    if get_wrist_y(prev2) < get_wrist_y(prev1) and get_wrist_y(prev1) <= get_wrist_y(curr):
+                        # 找到了下降到最低的区域
+                        if get_wrist_y(curr) > get_wrist_y(next1):
+                            # 确认开始上升了
+                            sync_frame_1 = curr
+                            print(f"[PhaseDetector] 找到沉球转折点: frame#{curr.frame_number}, wrist_y={get_wrist_y(curr):.4f}")
+                            break
 
             # 如果手腕转折点未找到，改用膝盖角度转折作为备用信号
             # 膝盖从弯曲转为伸展的那一刻 = 蓄力完成、力量开始释放
@@ -617,9 +651,10 @@ class PhaseDetector:
 
         if sync_frame_1 and sync_frame_1.angles:
             knee_str = f"{sync_frame_1.angles.knee_angle:.1f}" if sync_frame_1.angles.knee_angle else "N/A"
+            elbow_str = f"{sync_frame_1.angles.elbow_angle:.1f}" if sync_frame_1.angles.elbow_angle else "N/A"
             print(f"[PhaseDetector] SYNC_FRAME_1 keyframe: frame#{sync_frame_1.frame_number}, "
                   f"wrist_y={get_wrist_y(sync_frame_1):.4f}, "
-                  f"elbow={sync_frame_1.angles.elbow_angle:.1f}°, "
+                  f"elbow={elbow_str}°, "
                   f"knee={knee_str}°")
 
         # ===== 2. 检测手上升后 (SYNC_FRAME_2) =====
@@ -660,10 +695,10 @@ class PhaseDetector:
             if abs(f.frame_number - true_peak_fn) <= 5
         ]
 
-        # 先找肘角未伸展的帧（<160°）
+        # 先找肘角未伸展的帧（<160°；肘角可能因遮挡为 None）
         frames_with_unextended_elbow = [
             f for f in peak_near_frames
-            if f.angles and f.angles.elbow_angle < 160
+            if f.angles and f.angles.elbow_angle is not None and f.angles.elbow_angle < 160
         ]
 
         if frames_with_unextended_elbow:
@@ -686,9 +721,10 @@ class PhaseDetector:
 
         if max_hold_frame and max_hold_frame.angles:
             knee_str = f"{max_hold_frame.angles.knee_angle:.1f}" if max_hold_frame.angles.knee_angle else "N/A"
+            elbow_str = f"{max_hold_frame.angles.elbow_angle:.1f}" if max_hold_frame.angles.elbow_angle else "N/A"
             print(f"[PhaseDetector] MAX_HOLD_FRAME keyframe: frame#{max_hold_frame.frame_number}, "
                   f"wrist_y={max_hold_frame.wrist_y:.4f}, "
-                  f"elbow={max_hold_frame.angles.elbow_angle:.1f}°, "
+                  f"elbow={elbow_str}°, "
                   f"knee={knee_str}°")
 
         # ===== 4. 检测出手点 (RELEASE_FRAME) =====
@@ -703,58 +739,72 @@ class PhaseDetector:
         if max_hold_frame:
             hold_elbow = max_hold_frame.angles.elbow_angle if max_hold_frame.angles else None
 
-            # 搜索范围：MAX_HOLD_FRAME 之后的出手过程
+            # 搜索范围：MAX_HOLD_FRAME 之后的出手过程（肘角必须有效）
             frames_after_hold = [
                 f for f in valid_frames
                 if f.frame_number > max_hold_frame.frame_number
                 and f.frame_number <= max_hold_frame.frame_number + 15
                 and f.angles is not None
+                and f.angles.elbow_angle is not None
             ]
 
             if len(frames_after_hold) >= 3 and hold_elbow is not None:
-                # 计算每帧的肘角伸展速率
-                elbow_rates = []
-                for i in range(1, len(frames_after_hold)):
-                    prev_f = frames_after_hold[i - 1]
-                    curr_f = frames_after_hold[i]
-                    frame_gap = curr_f.frame_number - prev_f.frame_number
-                    if frame_gap > 0:
-                        rate = (curr_f.angles.elbow_angle - prev_f.angles.elbow_angle) / frame_gap
-                        elbow_rates.append({
-                            'frame': curr_f,
-                            'prev_frame': prev_f,
-                            'rate': rate,
-                        })
+                # 策略0（优先）：MAX_HOLD 后肘角首次接近完全伸展（>=160°）= 球离手时刻。
+                # 出手的本质是伸臂完成、球离开手，这比"伸展减速区"更直接，也避免
+                # 把完全伸展后的 MediaPipe 抖动（170~180°来回跳）误判为减速区。
+                extended_frames = [
+                    f for f in frames_after_hold
+                    if f.angles.elbow_angle >= self.thresholds.release_min_elbow_angle + 10
+                ]
+                if extended_frames:
+                    release_frame = extended_frames[0]
+                    print(f"[PhaseDetector] 出手点（肘角首次完全伸展）: frame#{release_frame.frame_number}, "
+                          f"elbow={release_frame.angles.elbow_angle:.1f}°")
 
-                if elbow_rates:
-                    # 策略1：找肘角伸展减速区
-                    sorted_by_rate = sorted(elbow_rates, key=lambda r: r['rate'])
-                    slowest = sorted_by_rate[0]
+                # 策略1（兜底）：肘角伸展减速区（肘角始终未达完全伸展时使用）
+                if release_frame is None:
+                    # 计算每帧的肘角伸展速率
+                    elbow_rates = []
+                    for i in range(1, len(frames_after_hold)):
+                        prev_f = frames_after_hold[i - 1]
+                        curr_f = frames_after_hold[i]
+                        frame_gap = curr_f.frame_number - prev_f.frame_number
+                        if frame_gap > 0:
+                            rate = (curr_f.angles.elbow_angle - prev_f.angles.elbow_angle) / frame_gap
+                            elbow_rates.append({
+                                'frame': curr_f,
+                                'prev_frame': prev_f,
+                                'rate': rate,
+                            })
 
-                    if slowest['rate'] < 1.5:
-                        # 有明显减速：RELEASE_FRAME 取减速结束后恢复伸展的帧
-                        slowest_idx = elbow_rates.index(slowest)
-                        for j in range(slowest_idx + 1, len(elbow_rates)):
-                            if elbow_rates[j]['rate'] > 2.0:
-                                release_frame = elbow_rates[j]['prev_frame']
-                                print(f"[PhaseDetector] 出手点（减速后恢复帧）: frame#{release_frame.frame_number}, "
-                                      f"elbow={release_frame.angles.elbow_angle:.1f}°, "
-                                      f"slowest_rate={slowest['rate']:.2f}°/frame at frame#{slowest['frame'].frame_number}")
-                                break
+                    if elbow_rates:
+                        sorted_by_rate = sorted(elbow_rates, key=lambda r: r['rate'])
+                        slowest = sorted_by_rate[0]
 
-                        # 如果减速之后没有恢复的帧，用减速后的下一帧
-                        if release_frame is None and slowest_idx + 1 < len(elbow_rates):
-                            release_frame = elbow_rates[slowest_idx + 1]['prev_frame']
-                            print(f"[PhaseDetector] 出手点（减速后最近帧）: frame#{release_frame.frame_number}, "
-                                  f"elbow={release_frame.angles.elbow_angle:.1f}°")
+                        if slowest['rate'] < 1.5:
+                            # 有明显减速：RELEASE_FRAME 取减速结束后恢复伸展的帧
+                            slowest_idx = elbow_rates.index(slowest)
+                            for j in range(slowest_idx + 1, len(elbow_rates)):
+                                if elbow_rates[j]['rate'] > 2.0:
+                                    release_frame = elbow_rates[j]['prev_frame']
+                                    print(f"[PhaseDetector] 出手点（减速后恢复帧）: frame#{release_frame.frame_number}, "
+                                          f"elbow={release_frame.angles.elbow_angle:.1f}°, "
+                                          f"slowest_rate={slowest['rate']:.2f}°/frame at frame#{slowest['frame'].frame_number}")
+                                    break
 
-                # 策略2：没有减速区，取 MAX_HOLD_FRAME 之后肘角差异最小的帧
-                if release_frame is None and frames_after_hold:
-                    frames_after_hold.sort(key=lambda f: abs(f.angles.elbow_angle - hold_elbow))
-                    release_frame = frames_after_hold[0]
-                    print(f"[PhaseDetector] 出手点（最小肘角差异）: frame#{release_frame.frame_number}, "
-                          f"hold_elbow={hold_elbow:.1f}°, release_elbow={release_frame.angles.elbow_angle:.1f}°, "
-                          f"elbow_diff={abs(release_frame.angles.elbow_angle - hold_elbow):.1f}°")
+                            # 如果减速之后没有恢复的帧，用减速后的下一帧
+                            if release_frame is None and slowest_idx + 1 < len(elbow_rates):
+                                release_frame = elbow_rates[slowest_idx + 1]['prev_frame']
+                                print(f"[PhaseDetector] 出手点（减速后最近帧）: frame#{release_frame.frame_number}, "
+                                      f"elbow={release_frame.angles.elbow_angle:.1f}°")
+
+                    # 策略2：没有减速区，取 MAX_HOLD_FRAME 之后肘角差异最小的帧
+                    if release_frame is None and frames_after_hold:
+                        frames_after_hold.sort(key=lambda f: abs(f.angles.elbow_angle - hold_elbow))
+                        release_frame = frames_after_hold[0]
+                        print(f"[PhaseDetector] 出手点（最小肘角差异）: frame#{release_frame.frame_number}, "
+                              f"hold_elbow={hold_elbow:.1f}°, release_elbow={release_frame.angles.elbow_angle:.1f}°, "
+                              f"elbow_diff={abs(release_frame.angles.elbow_angle - hold_elbow):.1f}°")
 
         # 最终回退：手腕最高点
         if release_frame is None:
@@ -765,9 +815,10 @@ class PhaseDetector:
 
         if release_frame and release_frame.angles:
             knee_str = f"{release_frame.angles.knee_angle:.1f}" if release_frame.angles.knee_angle else "N/A"
+            elbow_str = f"{release_frame.angles.elbow_angle:.1f}" if release_frame.angles.elbow_angle else "N/A"
             print(f"[PhaseDetector] RELEASE_FRAME keyframe: frame#{release_frame.frame_number}, "
                   f"wrist_y={release_frame.wrist_y:.4f}, "
-                  f"elbow={release_frame.angles.elbow_angle:.1f}°, "
+                  f"elbow={elbow_str}°, "
                   f"knee={knee_str}°")
 
         # ===== 5. 检测最低蹲点 (KNEE_MIN_FRAME) =====
