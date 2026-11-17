@@ -1,0 +1,19 @@
+{
+  "id": "template_lillard_practice_20261112",
+  "name": "Damian Lillard \u00b7 Practice jumper \u00b7 Oblique view",
+  "description": "Single practice jumper, right-handed, oblique rear-side camera. Compare only similar views and shot types; angles are not universal targets.",
+  "clip": "artifacts/template-sources/lillard-reference.mp4",
+  "source_url": "https://www.youtube.com/watch?v=bTf3fUYqb2k",
+  "start": 16.55,
+  "end": 18.05,
+  "view": "oblique rear-side",
+  "playback": "appears normal speed; source capture rate unverified",
+  "crop": [
+    240,
+    0,
+    960,
+    1080
+  ],
+  "visually_reviewed": true,
+  "review_notes": "Reviewed source sequence and all 8 generated keyframes. Oblique reference only; not a universal angle target."
+}

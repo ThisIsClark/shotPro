@@ -29,3 +29,31 @@ verify_*.py
 visualize_skeleton.py
 test_jpeg_yellow.py
 templates/index.html.bak
+
+# Keep the pilot's regression coverage despite the legacy test_*.py exclusion
+!tests/feedback/test_workflow.py
+
+# Reusable public-site and authentication-flow regression tests
+!tests/web/test_*.py
+
+# Required by the reusable verification runner
+!test_keyframe_timing.py
+
+# Anonymous-trial regressions and the CI verification entry points
+!tests/trial/test_*.py
+!scripts/verify_site.py
+!scripts/verify_live_site.py
+!tests/templates/test_*.py
+!scripts/verify_trial_video.py
+!tests/testing/test_*.py
+
+# Local agent settings and generated verification/debug output
+.claude/
+artifacts/
+debug_*.png
+
+# Ship the regression suites and curated reference templates with v2
+!tests/admin/test_*.py
+!templates/template_booker_local_20261112/
+!templates/template_lillard_practice_20261112/
+!templates/template_ray_practice_20261112/

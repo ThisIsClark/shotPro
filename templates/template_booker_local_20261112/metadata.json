@@ -1,0 +1,116 @@
+{
+  "id": "template_booker_local_20261112",
+  "name": "Devin Booker · Practice jumper · Side-oblique view",
+  "description": "Existing user-supplied Booker reference clip. Side-oblique view; source speed and original publisher unverified. Pose reference only, not an ideal-angle or release-time target.",
+  "created_at": "2026-11-12T09:06:05.268998",
+  "key_frames": [
+    {
+      "phase": "sync_frame_1",
+      "frame_number": 20,
+      "timestamp": 0.6666666666666666,
+      "image_path": "templates/template_booker_local_20261112/sync_frame_1.jpg",
+      "angles": {
+        "elbow_angle": 103.92370662186543,
+        "shoulder_angle": 4.261219198543721,
+        "knee_angle": 151.95667061158906,
+        "trunk_angle": 33.9575963255749,
+        "wrist_angle": 133.14394663026326,
+        "hip_angle": 132.16178428257118
+      }
+    },
+    {
+      "phase": "sync_frame_2",
+      "frame_number": 22,
+      "timestamp": 0.7333333333333333,
+      "image_path": "templates/template_booker_local_20261112/sync_frame_2.jpg",
+      "angles": {
+        "elbow_angle": 104.99889080055887,
+        "shoulder_angle": 6.228616546484778,
+        "knee_angle": 143.68062545470153,
+        "trunk_angle": 14.495868919642126,
+        "wrist_angle": 122.49769580209279,
+        "hip_angle": 146.95041579658772
+      }
+    },
+    {
+      "phase": "knee_min_frame",
+      "frame_number": 23,
+      "timestamp": 0.7666666666666667,
+      "image_path": "templates/template_booker_local_20261112/knee_min_frame.jpg",
+      "angles": {
+        "elbow_angle": 106.68618163857141,
+        "shoulder_angle": 9.411513176173361,
+        "knee_angle": 140.00890720198845,
+        "trunk_angle": 7.955039629722805,
+        "wrist_angle": 143.6706475739293,
+        "hip_angle": 152.9584750398165
+      }
+    },
+    {
+      "phase": "elbow_min_frame",
+      "frame_number": 25,
+      "timestamp": 0.8333333333333334,
+      "image_path": "templates/template_booker_local_20261112/elbow_min_frame.jpg",
+      "angles": {
+        "elbow_angle": 88.23157005040659,
+        "shoulder_angle": 20.788942978830075,
+        "knee_angle": 134.82758439473946,
+        "trunk_angle": 5.762157925154879,
+        "wrist_angle": 157.05517983707122,
+        "hip_angle": 154.136596987818
+      }
+    },
+    {
+      "phase": "max_hold_frame",
+      "frame_number": 34,
+      "timestamp": 1.1333333333333333,
+      "image_path": "templates/template_booker_local_20261112/max_hold_frame.jpg",
+      "angles": {
+        "elbow_angle": 126.62656683082932,
+        "shoulder_angle": 125.12798840717656,
+        "knee_angle": 175.7815526022703,
+        "trunk_angle": 1.2303183908871833,
+        "wrist_angle": 171.9276694151208,
+        "hip_angle": 177.48327927404054
+      }
+    },
+    {
+      "phase": "release_frame",
+      "frame_number": 35,
+      "timestamp": 1.1666666666666667,
+      "image_path": "templates/template_booker_local_20261112/release_frame.jpg",
+      "angles": {
+        "elbow_angle": 140.13954868911983,
+        "shoulder_angle": 134.00001428437213,
+        "knee_angle": 177.27291924452794,
+        "trunk_angle": 1.5584833207682613,
+        "wrist_angle": 176.8250331736394,
+        "hip_angle": 176.5965631396502
+      }
+    },
+    {
+      "phase": "wrist_peak_frame",
+      "frame_number": 37,
+      "timestamp": 1.2333333333333334,
+      "image_path": "templates/template_booker_local_20261112/wrist_peak_frame.jpg",
+      "angles": {
+        "elbow_angle": 158.05253218563055,
+        "shoulder_angle": 148.2524071872605,
+        "knee_angle": 176.63050357141105,
+        "trunk_angle": 1.3091774483292595,
+        "wrist_angle": 172.32241417776459,
+        "hip_angle": 176.79526166405464
+      }
+    }
+  ],
+  "video_info": {
+    "filename": "Booker-model.mp4",
+    "shooting_hand": "right",
+    "source_url": "local:modelVideo/Booker-model.mp4",
+    "view": "side-oblique",
+    "playback": "unverified",
+    "source_start": 0,
+    "source_end": 1.83
+  },
+  "has_curve_data": true
+}

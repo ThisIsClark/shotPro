@@ -1,0 +1,116 @@
+{
+  "id": "template_ray_practice_20261112",
+  "name": "Ray Allen · Catch-and-shoot · Oblique view",
+  "description": "Practice catch-and-shoot reference from an edited breakdown. Oblique camera; playback speed unverified. Use for pose comparison, not absolute release-speed targets.",
+  "created_at": "2026-11-12T00:20:23.446309",
+  "key_frames": [
+    {
+      "phase": "sync_frame_1",
+      "frame_number": 19,
+      "timestamp": 0.6333333333333333,
+      "image_path": "templates/template_ray_practice_20261112/sync_frame_1.jpg",
+      "angles": {
+        "elbow_angle": 160.04614282043704,
+        "shoulder_angle": 22.47922159829024,
+        "knee_angle": 133.4564680186831,
+        "trunk_angle": 20.519645170600025,
+        "wrist_angle": 174.13727748320423,
+        "hip_angle": 132.0949353530968
+      }
+    },
+    {
+      "phase": "knee_min_frame",
+      "frame_number": 21,
+      "timestamp": 0.7,
+      "image_path": "templates/template_ray_practice_20261112/knee_min_frame.jpg",
+      "angles": {
+        "elbow_angle": 163.3728827770157,
+        "shoulder_angle": 26.45763795196422,
+        "knee_angle": 116.06055786385154,
+        "trunk_angle": 21.453503585921663,
+        "wrist_angle": null,
+        "hip_angle": 121.26735617107451
+      }
+    },
+    {
+      "phase": "sync_frame_2",
+      "frame_number": 22,
+      "timestamp": 0.7333333333333333,
+      "image_path": "templates/template_ray_practice_20261112/sync_frame_2.jpg",
+      "angles": {
+        "elbow_angle": 164.15018520055034,
+        "shoulder_angle": 28.486641660104446,
+        "knee_angle": 113.18024836472586,
+        "trunk_angle": 20.3998976046178,
+        "wrist_angle": 162.18813468791188,
+        "hip_angle": 120.93691077200548
+      }
+    },
+    {
+      "phase": "max_hold_frame",
+      "frame_number": 27,
+      "timestamp": 0.9,
+      "image_path": "templates/template_ray_practice_20261112/max_hold_frame.jpg",
+      "angles": {
+        "elbow_angle": 82.43309430681222,
+        "shoulder_angle": 108.22198602533788,
+        "knee_angle": 126.89682999631869,
+        "trunk_angle": 7.2192184620827735,
+        "wrist_angle": 171.9714132006325,
+        "hip_angle": 145.31949217090647
+      }
+    },
+    {
+      "phase": "elbow_min_frame",
+      "frame_number": 27,
+      "timestamp": 0.9,
+      "image_path": "templates/template_ray_practice_20261112/elbow_min_frame.jpg",
+      "angles": {
+        "elbow_angle": 82.43309430681222,
+        "shoulder_angle": 108.22198602533788,
+        "knee_angle": 126.89682999631869,
+        "trunk_angle": 7.2192184620827735,
+        "wrist_angle": 171.9714132006325,
+        "hip_angle": 145.31949217090647
+      }
+    },
+    {
+      "phase": "wrist_peak_frame",
+      "frame_number": 34,
+      "timestamp": 1.1333333333333333,
+      "image_path": "templates/template_ray_practice_20261112/wrist_peak_frame.jpg",
+      "angles": {
+        "elbow_angle": null,
+        "shoulder_angle": null,
+        "knee_angle": 167.3008648585757,
+        "trunk_angle": 2.1522566517083868,
+        "wrist_angle": 156.06518700112352,
+        "hip_angle": 176.24173484933414
+      }
+    },
+    {
+      "phase": "release_frame",
+      "frame_number": 36,
+      "timestamp": 1.2,
+      "image_path": "templates/template_ray_practice_20261112/release_frame.jpg",
+      "angles": {
+        "elbow_angle": 169.48217058490448,
+        "shoulder_angle": 132.25557159008596,
+        "knee_angle": 176.27303825467206,
+        "trunk_angle": 1.1777111886133353,
+        "wrist_angle": 168.22284880856722,
+        "hip_angle": 177.27915644391845
+      }
+    }
+  ],
+  "video_info": {
+    "filename": "ray-reference.mp4",
+    "shooting_hand": "right",
+    "source_url": "https://www.youtube.com/watch?v=zg70EYtsooo",
+    "view": "oblique front-side",
+    "playback": "edited footage; speed unverified",
+    "source_start": 1049.55,
+    "source_end": 1051.65
+  },
+  "has_curve_data": true
+}

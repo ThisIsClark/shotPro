@@ -5,5 +5,26 @@
     "created_at": "2026-07-17T20:01:19.903394",
     "key_frame_count": 8,
     "has_curve_data": true
+  },
+  "template_lillard_practice_20261112": {
+    "name": "Damian Lillard · Practice jumper · Oblique view",
+    "description": "Single practice jumper, right-handed, oblique rear-side camera. Compare only similar views and shot types; angles are not universal targets.",
+    "created_at": "2026-11-12T00:20:15.330400",
+    "key_frame_count": 8,
+    "has_curve_data": true
+  },
+  "template_ray_practice_20261112": {
+    "name": "Ray Allen · Catch-and-shoot · Oblique view",
+    "description": "Practice catch-and-shoot reference from an edited breakdown. Oblique camera; playback speed unverified. Use for pose comparison, not absolute release-speed targets.",
+    "created_at": "2026-11-12T00:20:23.446309",
+    "key_frame_count": 7,
+    "has_curve_data": true
+  },
+  "template_booker_local_20261112": {
+    "name": "Devin Booker · Practice jumper · Side-oblique view",
+    "description": "Existing user-supplied Booker reference clip. Side-oblique view; source speed and original publisher unverified. Pose reference only, not an ideal-angle or release-time target.",
+    "created_at": "2026-11-12T09:06:05.268998",
+    "key_frame_count": 7,
+    "has_curve_data": true
   }
 }

@@ -11,6 +11,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # 安装系统依赖 (MediaPipe 和 OpenCV 需要)
 # MediaPipe 需要 OpenGL ES 和 EGL 库
 RUN apt-get update && apt-get install -y \
+    ffmpeg \
     libglib2.0-0 \
     libsm6 \
     libxext6 \

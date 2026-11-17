@@ -6,7 +6,7 @@ Admin Routes
 from typing import Optional
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..deps import get_current_user_required
 from ...services.audit_service import audit_service, AuditAction
@@ -27,7 +27,7 @@ def require_admin(user: dict = Depends(get_current_user_required)) -> dict:
 
 class AdjustCreditsRequest(BaseModel):
     amount: int  # 正数增加，负数扣减
-    reason: str = ""
+    reason: str = Field(default="", max_length=500)
 
 
 # ===== Dashboard =====
@@ -265,6 +265,12 @@ async def adjust_user_credits(
     if request.amount == 0:
         raise HTTPException(status_code=400, detail="Amount cannot be zero")
 
+    from ...services.admin_metrics import database
+    before_balance = await db_service.get_user_credits(user_id)
+    if before_balance < 0:
+        raise HTTPException(404, "User not found")
+    if not request.reason.strip():
+        raise HTTPException(400, "A reason is required")
     try:
         if request.amount > 0:
             new_remaining = await db_service.increment_user_credits(user_id, request.amount)
@@ -278,6 +284,12 @@ async def adjust_user_credits(
                 "updated_at": datetime.utcnow().isoformat()
             }).eq("user_id", user_id).execute()
 
+        if new_remaining < 0:
+            raise HTTPException(503, "Credit adjustment failed")
+        import time
+        with database() as db:
+            db.execute('INSERT INTO credit_changes VALUES (?,?,?,?,?,?)',
+                       (time.time(), admin.get('id'), user_id, before_balance, new_remaining, request.reason[:500]))
         return {
             "success": True,
             "user_id": user_id,
@@ -472,68 +484,18 @@ async def get_funnel_stats(
     漏斗步骤：page_view → register_attempt → register_success → login_success → analysis_started → payment_attempt → payment_success
     返回每步计数 + 转化率。
     """
-    if not audit_service.is_available():
-        return {"funnel": [], "db_available": False}
-
-    start_date = datetime.utcnow() - timedelta(days=days)
-    try:
-        # 获取时间范围内所有日志
-        logs = await audit_service.get_logs(
-            limit=5000,
-            offset=0,
-            start_date=start_date
-        )
-
-        # 按动作聚合计数
-        action_counts = {}
-        for log in logs:
-            action = log.get("action", "unknown")
-            action_counts[action] = action_counts.get(action, 0) + 1
-
-        # 漏斗步骤定义
-        funnel_steps = [
-            {"key": "page_view", "label": "Page View", "action": "page_view"},
-            {"key": "register_attempt", "label": "Register Attempt", "action": "register_attempt"},
-            {"key": "register_success", "label": "Register Success", "action": "register_success"},
-            {"key": "login_success", "label": "Login Success", "action": "login_success"},
-            {"key": "analysis_started", "label": "Analysis Started", "action": "analysis_started"},
-            {"key": "payment_attempt", "label": "Payment Attempt", "action": "payment_attempt"},
-            {"key": "payment_success", "label": "Payment Success", "action": "payment_success"},
-        ]
-
-        funnel = []
-        prev_count = None
-        for step in funnel_steps:
-            count = action_counts.get(step["action"], 0)
-            conversion_rate = None
-            if prev_count is not None and prev_count > 0:
-                conversion_rate = round((count / prev_count) * 100, 1)
-            funnel.append({
-                "key": step["key"],
-                "label": step["label"],
-                "count": count,
-                "conversion_from_prev": conversion_rate,
-            })
-            prev_count = count
-
-        # 总体转化率（page_view → payment_success）
-        total_conversion = None
-        first_count = funnel[0]["count"]
-        last_count = funnel[-1]["count"]
-        if first_count > 0:
-            total_conversion = round((last_count / first_count) * 100, 2)
-
-        return {
-            "funnel": funnel,
-            "total_conversion": total_conversion,
-            "period_days": days,
-            "total_logs": len(logs),
-            "action_counts": action_counts,
-            "db_available": True,
-        }
-    except Exception as e:
-        print(f"[Admin] Funnel stats failed: {e}")
-        return {"funnel": [], "db_available": False}
+    from ...services.admin_metrics import snapshot
+    metrics = snapshot(days)
+    funnel = []
+    previous = None
+    for index, step in enumerate(metrics['funnel']):
+        count = step['count']
+        funnel.append(dict(step, key=str(index), conversion_from_prev=round(100*count/previous, 1) if previous else None))
+        previous = count
+    first = funnel[0]['count']
+    return {'funnel': funnel, 'db_available': True, 'period_days': days,
+            'total_conversion': round(100*funnel[-1]['count']/first, 1) if first else None,
+            'total_logs': first, 'action_counts': {}}
 
 
 @router.get("/user-stats/{user_id}")
@@ -589,3 +551,38 @@ async def get_ip_behavior(
     except Exception as e:
         print(f"[Admin] IP behavior failed: {e}")
         return {"logs": [], "ip_address": ip_address, "db_available": False}
+
+
+@router.get("/operations")
+async def operations(days: int = Query(7, ge=1, le=90), admin: dict = Depends(require_admin)):
+    from ...services.admin_metrics import snapshot
+    from ...services.admin_insights import overview
+    return {**snapshot(days), **overview(days)}
+
+
+@router.get('/analyses/{task_id}/detail')
+async def analysis_detail(task_id: str, admin: dict = Depends(require_admin)):
+    from ...services.admin_insights import task_detail
+    return task_detail(task_id)
+
+@router.get('/analyses/{task_id}/media/{index}')
+async def analysis_media(task_id: str, index: int, admin: dict = Depends(require_admin)):
+    import json
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+    from ...services.admin_insights import task_detail, result_file
+    data = task_detail(task_id)
+    if not data['media_available']: raise HTTPException(404, 'Media expired or unavailable')
+    path = result_file(task_id)
+    frames = json.loads(path.read_text()).get('key_frames', [])
+    if index < 0 or index >= len(frames): raise HTTPException(404, 'Frame not found')
+    filename = Path(frames[index].get('image_url') or '').name
+    image = (path.parent / filename).resolve()
+    if not filename or image.parent != path.parent or image.suffix.lower() not in ('.png','.jpg','.jpeg') or not image.is_file():
+        raise HTTPException(404, 'Frame image unavailable')
+    return FileResponse(image, headers={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
+
+@router.get('/users/{user_id}/detail')
+async def account_detail(user_id: str, admin: dict = Depends(require_admin)):
+    from ...services.admin_insights import user_detail
+    return await user_detail(user_id)

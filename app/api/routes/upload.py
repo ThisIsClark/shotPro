@@ -10,7 +10,7 @@ import asyncio
 from pathlib import Path
 from datetime import datetime
 from typing import List, Optional
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Depends, Request
 
 from ...config import settings
 from ...models.schemas import UploadResponse, TaskStatus, TaskStatusResponse
@@ -22,6 +22,8 @@ from ...services.audit_service import audit_service, AuditAction
 from ...models.template import TemplateManager
 from ...services.comparison_service import compare_curves
 from ..deps import get_current_user_optional, get_user_id
+from ...services.feedback_service import feedback_store
+from ...services.trial_service import trial_store
 
 router = APIRouter(prefix="/videos", tags=["videos"])
 
@@ -89,6 +91,8 @@ def cleanup_old_tasks(keep_count: int = MAX_TASKS) -> List[str]:
     deleted_ids = []
 
     for task_id, task in tasks_to_delete:
+        if trial_store.get(task_id):
+            continue  # Durable report retention is independent of the old 10-task cache.
         try:
             # 删除上传的视频
             video_path = Path(task.get("video_path", ""))
@@ -119,6 +123,9 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
     use_db 由 upload 流程根据用户类型决定传入：本地管理员走内存模式（False）。
     """
     try:
+        if feedback_store.get(task_id):
+            feedback_store.change(task_id, lambda r: r.update(analysis_state="processing"))
+            feedback_store.prepare_playback(task_id)
         # 使用数据库更新状态（如果可用）
 
         if use_db:
@@ -209,12 +216,15 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
             else:
                 print(f"[DEBUG] 模板未找到: {template_id}")
 
+        if not result_dict.get("key_frames"):
+            raise ValueError("No usable shooting keyframes detected. Please try another video.")
+
         # 持久化结果到磁盘（先写文件，再更新状态，避免前端读到空结果）
         result_dir = settings.results_dir / task_id
         result_file = result_dir / "result.json"
 
         # 上传关键帧图片到 Supabase Storage（如果可用）
-        if storage_service.is_available():
+        if storage_service.is_available() and not trial_store.get(task_id):
             print(f"[Storage] Uploading key frames for task {task_id}")
             for kf in result_dict.get("key_frames", []):
                 local_image_path = kf.get("image_url", "")
@@ -279,6 +289,15 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
             task_store[task_id]["message"] = "Analysis complete"
             task_store[task_id]["result"] = result_dict
 
+        from ...services.admin_metrics import quality
+        quality(task_id, frames=len(result_dict.get("key_frames", [])))
+        from ...services.admin_insights import task_metadata
+        task_metadata(task_id, frames=result_dict.get("key_frames", []))
+        trial_store.finish(task_id, True)
+
+        # Preserve a private snapshot for feedback before legacy cleanup.
+        feedback_store.snapshot(task_id, result_dict, result_dir)
+
         # ===== 分析完成后删除原始视频（节省存储空间）=====
         # 删除本地视频文件
         try:
@@ -289,7 +308,12 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
             print(f"[CLEANUP] 删除本地视频失败: {cleanup_error}")
 
     except Exception as e:
+        from ...services.admin_metrics import quality
+        quality(task_id, error=type(e).__name__ + ': ' + str(e))
+        trial_store.finish(task_id, False)
         error_msg = str(e)
+        if feedback_store.get(task_id):
+            feedback_store.change(task_id, lambda r: r.update(analysis_state="failed", error="Automatic analysis failed. Your video is saved for human review."))
         print(f"[Analysis] Analysis failed: {error_msg}")
 
         if use_db:
@@ -562,12 +586,14 @@ def _generate_template_based_suggestions(comparison_data):
 @router.post("/upload", response_model=UploadResponse)
 async def upload_video(
     background_tasks: BackgroundTasks,
+    request: Request,
     file: UploadFile = File(...),
     shooting_hand: str = "right",
     shooting_style: str = "one_motion",
     template_id: str = None,
     generate_video: bool = False,
     generate_skeleton_video: bool = False,
+    retain_for_feedback: bool = False,
     user: Optional[dict] = Depends(get_current_user_optional)
 ):
     """
@@ -584,6 +610,8 @@ async def upload_video(
 
     返回 task_id，可用于查询分析状态和结果
     """
+    if request.headers.get("authorization") and not user:
+        raise HTTPException(401, "Your session expired. Please sign in again.")
     # 验证文件
     validate_video_file(file)
 
@@ -606,13 +634,20 @@ async def upload_video(
     # 获取用户 ID（可选）
     user_id = get_user_id(user)
 
+    visitor_id = trial_store.visitor(request) if not user else None
+    if not user and trial_store.remaining(visitor_id) == 0:
+        raise HTTPException(403, "Your free trial is used or in progress. Sign in to continue.")
+
     # 检查用户分析次数（订阅用户不限，本地管理员不限）
     is_local_user = user and user.get("is_local", False)
     is_subscribed = False
 
     # 判断是否使用数据库：本地管理员（user_id 非 UUID，如 "admin"）走纯内存模式，
     # 否则 Supabase 的 analyses.user_id(UUID) 列写入会失败，导致任务状态无处可查、前端卡死。
-    use_db = is_supabase_enabled() and db_service.is_available() and not is_local_user
+    use_db = bool(user_id) and is_supabase_enabled() and db_service.is_available() and not is_local_user
+
+    if user_id and not is_local_user and not use_db:
+        raise HTTPException(503, "Could not check your credits. Please try again later.")
 
     if use_db and user_id and not is_local_user:
         is_subscribed = await db_service.is_user_subscribed(user_id)
@@ -640,6 +675,8 @@ async def upload_video(
             generate_video=generate_video,
             generate_skeleton_video=generate_skeleton_video
         )
+        if not db_record:
+            raise HTTPException(503, "Could not save your analysis. Please try again.")
         if db_record:
             print(f"[DB] Created analysis record with ID: {task_id}")
 
@@ -664,6 +701,7 @@ async def upload_video(
     if use_db:
         await db_service.update_analysis(task_id, result_path=str(video_path))
 
+    duration = 0
     # 检查视频时长
     try:
         import cv2
@@ -674,7 +712,7 @@ async def upload_video(
             cap.release()
             if fps > 0 and frame_count > 0:
                 duration = frame_count / fps
-                if duration > settings.max_video_duration_seconds:
+                if duration > (min(10, settings.max_video_duration_seconds) if not user else settings.max_video_duration_seconds):
                     video_path.unlink()
                     if use_db:
                         await db_service.delete_analysis(task_id)
@@ -686,6 +724,28 @@ async def upload_video(
         raise
     except Exception as e:
         print(f"[Upload] 视频时长检查失败（忽略）: {e}")
+
+    if duration <= 0:
+        video_path.unlink(missing_ok=True)
+        if use_db:
+            await db_service.delete_analysis(task_id)
+        raise HTTPException(400, "Cannot read this video. Please upload a valid video.")
+    try:
+        trial_store.reserve(task_id, visitor_id, user_id, file.filename or 'Video',
+                            trial_store.sign(request.client.host if request.client else 'unknown'))
+    except HTTPException:
+        video_path.unlink(missing_ok=True)
+        if use_db:
+            await db_service.delete_analysis(task_id)
+        raise
+
+    from ...services.admin_insights import task_metadata
+    task_metadata(task_id, metadata={'shooting_hand':shooting_hand, 'shooting_style':shooting_style,
+                                    'template_id':template_id, 'duration':duration, 'file_size_mb':file_size_mb})
+    # Keep an explicitly requested private copy, independent of legacy cleanup.
+    if retain_for_feedback and user:
+        feedback_store.capture(task_id, user, video_path, file.filename or "Video", locals().get("duration", 0))
+        feedback_store.change(task_id, lambda r: r.update(shooting_hand=shooting_hand))
 
     # 扣减分析次数（订阅用户不扣减，本地管理员不扣减）
     if use_db and user_id and not is_local_user and not is_subscribed:
@@ -750,8 +810,22 @@ async def upload_video(
     )
 
 
+async def authorize_report(task_id, request, user):
+    if trial_store.authorize(task_id, request, user):
+        return
+    record = await db_service.get_analysis(task_id) if db_service.is_available() else None
+    if not user or not ((record and record.get('user_id') == user['id']) or user.get('role') == 'admin'):
+        raise HTTPException(404, 'Report not found.')
+
+
 @router.get("/tasks/{task_id}/status", response_model=TaskStatusResponse)
-async def get_task_status(task_id: str):
+async def get_task_status(task_id: str, request: Request, user=Depends(get_current_user_optional)):
+    await authorize_report(task_id, request, user)
+    persisted = trial_store.get(task_id)
+    if persisted and persisted['state'] == 'failed':
+        return TaskStatusResponse(task_id=task_id, status=TaskStatus.FAILED, progress=0,
+                                  message='Analysis did not complete. Please try another video.',
+                                  error='Analysis failed or timed out.')
     """
     获取分析任务状态
 
@@ -773,6 +847,11 @@ async def get_task_status(task_id: str):
             )
 
     # 内存 fallback
+    if task_id not in task_store and trial_store.get(task_id):
+        record = trial_store.get(task_id)
+        return TaskStatusResponse(task_id=task_id, status=record['state'],
+                                  progress=100 if record['state']=='completed' else 0,
+                                  message=record['state'])
     if task_id not in task_store:
         raise HTTPException(status_code=404, detail="任务不存在")
 
@@ -789,7 +868,8 @@ async def get_task_status(task_id: str):
 
 
 @router.get("/tasks/{task_id}/result")
-async def get_task_result(task_id: str):
+async def get_task_result(task_id: str, request: Request, user=Depends(get_current_user_optional)):
+    await authorize_report(task_id, request, user)
     """
     获取分析结果
 
@@ -814,9 +894,14 @@ async def get_task_result(task_id: str):
         if result_file.exists():
             status_info = {"status": "completed"}
 
+    if not status_info and trial_store.get(task_id):
+        status_info = {"status": trial_store.get(task_id)["state"]}
     if not status_info:
         raise HTTPException(status_code=404, detail="任务不存在")
 
+    persisted = trial_store.get(task_id)
+    if persisted and persisted["state"] in ("failed", "processing"):
+        status_info = {"status": persisted["state"], "error": "Analysis did not complete. Please try another video."}
     # 检查状态
     task_status = status_info.get("status", "pending")
 
@@ -851,12 +936,19 @@ async def get_task_result(task_id: str):
 
 
 @router.delete("/tasks/{task_id}")
-async def delete_task(task_id: str):
+async def delete_task(task_id: str, request: Request, user=Depends(get_current_user_optional)):
+    await authorize_report(task_id, request, user)
+    persisted = trial_store.get(task_id)
+    if persisted and persisted['state'] == 'processing':
+        raise HTTPException(409, 'Wait for analysis to finish before deleting this report.')
     """
     删除任务及相关文件
 
     - **task_id**: 任务ID
     """
+    retained = feedback_store.get(task_id)
+    if retained and retained["state"] != "deleted":
+        raise HTTPException(409, "Delete this video from Training to remove its feedback and private media too.")
     use_db = is_supabase_enabled() and db_service.is_available()
 
     # 获取任务信息
@@ -870,6 +962,8 @@ async def delete_task(task_id: str):
     if not task_info and task_id in task_store:
         task_info = task_store[task_id]
 
+    if not task_info and trial_store.get(task_id):
+        task_info = {"video_path": str(settings.upload_dir / (task_id + ".mp4"))}
     if not task_info:
         raise HTTPException(status_code=404, detail="任务不存在")
 
@@ -891,6 +985,7 @@ async def delete_task(task_id: str):
     if task_id in task_store:
         del task_store[task_id]
 
+    trial_store.delete(task_id)
     return {"message": "任务已删除", "task_id": task_id}
 
 
@@ -906,70 +1001,25 @@ async def get_analysis_history(
     - **limit**: 返回数量（默认20）
     - **offset**: 偏移量（默认0）
     """
-    use_db = is_supabase_enabled() and db_service.is_available()
-    user_id = get_user_id(user)
-
-    if use_db and user_id:
-        # 数据库模式：查询指定用户的历史
-        analyses = await db_service.get_user_analyses(
-            user_id=user_id, limit=limit, offset=offset
-        )
-        result = []
-        for a in analyses:
-            issues_count = 0
-            issues_detected = 0
-            # 尝试从磁盘读取 issues 摘要
-            task_id = a.get("id", "")
-            result_file = settings.results_dir / task_id / "result.json"
-            if result_file.exists():
-                try:
-                    import json
-                    with open(result_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    issues = data.get("coordination_issues", [])
-                    issues_count = len(issues)
-                    issues_detected = sum(1 for i in issues if i.get("detected"))
-                except:
-                    pass
-
-            result.append({
-                "task_id": task_id,
-                "video_filename": a.get("video_filename", "unknown"),
-                "status": a.get("status", "unknown"),
-                "created_at": a.get("created_at", ""),
-                "duration": a.get("duration"),
-                "issues_count": issues_count,
-                "issues_detected": issues_detected,
-            })
-        return result
-
-    # 本地模式：扫描 results_dir
-    history = []
-    if settings.results_dir.exists():
-        for task_dir in sorted(settings.results_dir.iterdir(), reverse=True):
-            if not task_dir.is_dir():
+    if not user:
+        raise HTTPException(401, 'Sign in to view your saved reports.')
+    import json
+    rows = {r['id']: {'task_id': r['id'], 'video_filename': r['filename'],
+                     'status': r['state'], 'created_at': datetime.fromtimestamp(r['created']).isoformat()}
+            for r in trial_store.history(user['id'])}
+    if db_service.is_available() and not user.get('is_local'):
+        for r in await db_service.get_user_analyses(user_id=user['id'], limit=100, offset=0):
+            tracked = trial_store.get(r['id'])
+            if tracked and tracked['state'] == 'deleted':
                 continue
-            result_file = task_dir / "result.json"
-            if not result_file.exists():
-                continue
-
-            try:
-                import json
-                with open(result_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-
-                issues = data.get("coordination_issues", [])
-                history.append({
-                    "task_id": task_dir.name,
-                    "video_filename": data.get("video_filename", "unknown"),
-                    "status": "completed",
-                    "created_at": data.get("created_at", ""),
-                    "duration": data.get("duration"),
-                    "issues_count": len(issues),
-                    "issues_detected": sum(1 for i in issues if i.get("detected")),
-                })
-            except:
-                continue
-
-    # 分页
-    return history[offset:offset + limit]
+            if r['id'] not in rows:
+                rows[r['id']] = dict(task_id=r['id'], video_filename=r.get('video_filename', 'Video'),
+                                    status=r['status'], created_at=r.get('created_at', ''))
+    for row in rows.values():
+        result_file = settings.results_dir / row['task_id'] / 'result.json'
+        if result_file.exists():
+            data = json.loads(result_file.read_text())
+            issues = data.get('coordination_issues', [])
+            row.update(duration=data.get('duration'), issues_count=len(issues),
+                       issues_detected=sum(bool(i.get('detected')) for i in issues))
+    return sorted(rows.values(), key=lambda r: r['created_at'], reverse=True)[max(0,offset):max(0,offset)+min(100,max(1,limit))]

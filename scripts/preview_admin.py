@@ -1,0 +1,18 @@
+"""Build a standalone admin UI fixture with synthetic data only (no network/data reads)."""
+import json
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+labels=['访问','选择视频','开始分析','分析完成','查看结果','保存到账户','再次分析']
+counts=[120,30,24,21,18,7,3]
+ops={'total':24,'completed':21,'failed':2,'processing':1,'anonymous_started':18,'saved_trials':7,'repeat_accounts':3,'average_seconds':18.4,'measured_durations':21,'feedback':{'responses':9,'helpful':7,'accurate':8},'funnel':[{'label':x,'count':v} for x,v in zip(['Visitors','Started a trial','Completed a trial','Saved to account'],[120,18,16,7])],'channels':[{'source':'reddit','visitors':120,'started':18,'completed':16,'saved':7}],'recent':[{'id':'demo-task','filename':'sample.mov','type':'Trial','state':'completed','frames':5,'error':None}],'credit_changes':[],
+'journey':[{'label':x,'count':v,'conversion':round(100*v/counts[i-1],1) if i else None} for i,(x,v) in enumerate(zip(labels,counts))], 'registration_submitted':6,'registered_after_view':5,'comparison_accounts':2,'sources':[{'name':'reddit','counts':counts}],'landings':[{'name':'/guides/basketball-shooting-form','counts':counts}],'campaigns':[{'name':'reddit-18-makes','counts':counts}],'quality_measured':21,'missing_summary':[{'phase':'sync_frame_1','label':'Dip point','count':3}],'anomalies':[{'id':'demo-task','owner':'demo-user','filename':'sample.mov','state':'completed','missing':['sync_frame_1'],'stalled':False}],'anomaly_count':1,'accounts':[{'id':'demo-user','analyses':3}]}
+task={'id':'demo-task','filename':'sample.mov','state':'completed','created':1794740000,'elapsed_seconds':18.4,'owner':'demo-user','error':None,'missing_phases':[{'phase':'sync_frame_1','label':'Dip point'}],'diagnostic_note':'Missing means insufficient evidence in this clip; it is not a form fault.','metadata':{'template_id':'curry','shooting_hand':'right','duration':3.2},'frames':[{'phase':'release_frame','timestamp':1.2,'frame_number':36,'angles':{'knee_angle':163,'elbow_angle':165}}],'feedback':{'helpful':1,'accurate':0},'media_available':False}
+user={'id':'demo-user','profile':{'email':'demo@example.test'},'coverage':'示例数据；完整路径事件保存 90 天。','errors':{},'reports':[{'id':'demo-task'}],'timeline':[{'created':1794740000,'action':'visit','details':{'source':'reddit','landing':'/guides/basketball-shooting-form'},'task':None},{'created':1794740060,'action':'analysis','details':{'filename':'sample.mov','state':'completed'},'task':'demo-task'},{'created':1794740200,'action':'registered','details':{'source':'auth_provider'},'task':None},{'created':1794740300,'action':'quality_feedback','details':{'helpful':True,'accurate':False},'task':'demo-task'}],'cloud':{'user_credits':[{'credits_remaining':2,'total_granted':3}],'user_subscriptions':[],'payment_checkouts':[]},'reviews':[{'id':'demo-retest','state':'waiting','goal':'consistency','parent':{'id':'demo-task'},'practice':{'sessions':3},'versions':[]}]}
+html=(ROOT/'templates/admin.html').read_text()
+fixture='const previewFixtures='+json.dumps({'ops':ops,'task':task,'user':user})+'; apiFetch = async path => path.startsWith("/operations") ? previewFixtures.ops : path.startsWith("/users/") ? previewFixtures.user : previewFixtures.task; window.addEventListener("load",showAdmin);'
+html=html.replace('checkAuth();',fixture).replace('<h1>运营与分析质量</h1>','<h1>运营与分析质量 · 示例数据</h1>')
+for name in ('admin-details','admin-operations'):
+    html=html.replace('<script src="/static/'+name+'.js"></script>','<script>'+(ROOT/'static'/f'{name}.js').read_text()+'</script>')
+folder=ROOT/'artifacts/admin-preview';folder.mkdir(exist_ok=True,parents=True)
+(folder/'index.html').write_text(html)
+print(folder/'index.html')

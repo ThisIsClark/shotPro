@@ -36,6 +36,7 @@ class AnalysisConfig:
     smooth_angles: bool = True
     smooth_window: int = 5
     generate_frame_data: bool = True  # 是否持久化 per-frame 时序数据（供曲线图使用）
+    output_dir: Optional[Path] = None  # Private output root; append to preserve positional compatibility
 
 
 @dataclass
@@ -212,7 +213,7 @@ class AnalysisService:
         task_id = task_id or str(uuid.uuid4())
         
         # 创建结果目录
-        result_dir = settings.results_dir / task_id
+        result_dir = (self.config.output_dir or settings.results_dir) / task_id
         result_dir.mkdir(parents=True, exist_ok=True)
         
         # 重置状态

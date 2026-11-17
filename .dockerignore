@@ -42,3 +42,14 @@ templates/template_*/**/*
 !templates/template_56140d232ffa/**/*
 # index.json is needed at runtime for template listing
 !templates/index.json
+
+# Private pilot records and local validation artifacts must never enter an image
+data/
+artifacts/
+
+# Curated references listed in the shipped template index
+!templates/template_booker_local_20261112/**/*
+!templates/template_lillard_practice_20261112/**/*
+!templates/template_ray_practice_20261112/**/*
+.claude/
+debug_*.png

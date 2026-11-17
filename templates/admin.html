@@ -525,9 +525,10 @@
             <h2>Shot Admin</h2>
             <span>Management Console</span>
         </div>
+        <div class="nav-item" data-page="operations" onclick="switchPage('operations')"><span>运营与分析质量</span></div>
         <div class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard')">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-            <span>Dashboard</span>
+            <span>Legacy account overview</span>
         </div>
         <div class="nav-item" data-page="users" onclick="switchPage('users')">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/></svg>
@@ -563,6 +564,15 @@
 
     <!-- Main Content -->
     <div class="main-content">
+        <section id="page-operations" class="page-section">
+          <h1>运营与分析质量</h1>
+          <p>覆盖本机持久卷上的匿名与账户分析。历史云端记录请查看 Legacy account overview。</p>
+          <select id="opsDays" class="filter-select" onchange="loadOperations()"><option value="7">最近 7 天</option><option value="30">最近 30 天</option><option value="90">最近 90 天</option></select>
+          <button class="btn-sm" onclick="loadOperations()">刷新</button>
+          <div style="margin-top:16px"><label>用户 ID <input id="opsUserSearch" placeholder="输入用户 ID 查看完整记录"></label><button class="btn-sm" onclick="openUserDetail(document.getElementById('opsUserSearch').value.trim())">查看用户</button></div>
+          <div id="opsContent" style="margin-top:24px"></div>
+        </section>
+
 
         <!-- DB Unavailable Banner -->
         <div id="dbBanner" class="db-banner">
@@ -830,7 +840,7 @@
         <label>Adjust Amount (positive = add, negative = deduct)</label>
         <input type="number" id="modalAmount" placeholder="e.g. 5 or -3">
         <label>Reason</label>
-        <input type="text" id="modalReason" placeholder="Optional reason">
+        <input type="text" id="modalReason" placeholder="Required: explain this adjustment" maxlength="500">
         <div class="modal-actions">
             <button class="btn-sm" onclick="closeCreditsModal()">Cancel</button>
             <button class="btn-sm primary" onclick="submitCreditsAdjust()">Confirm</button>
@@ -895,7 +905,7 @@ function handleLogout() {
 function showAdmin() {
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('adminLayout').classList.add('active');
-    loadDashboard();
+    switchPage('operations');
 }
 
 // Auto-login if token exists
@@ -931,6 +941,7 @@ async function apiFetch(path, options = {}) {
         handleLogout();
         throw new Error('Unauthorized');
     }
+    if (!res.ok) throw new Error('Request failed (' + res.status + ')');
     return res.json();
 }
 
@@ -944,6 +955,7 @@ function switchPage(page) {
         el.classList.toggle('active', el.id === `page-${page}`);
     });
     const loaders = {
+        operations: loadOperations,
         dashboard: loadDashboard,
         users: loadUsers,
         analyses: loadAnalyses,
@@ -971,7 +983,7 @@ async function loadDashboard() {
         const grid = document.getElementById('dashboardStats');
         grid.innerHTML = `
             <div class="stat-card accent-indigo">
-                <div class="label">Total Analyses</div>
+                <div class="label">Cloud Analyses (legacy)</div>
                 <div class="value">${stats.total_analyses || 0}</div>
                 <div class="sub">${stats.recent_analyses_7d || 0} in last 7 days</div>
             </div>
@@ -985,7 +997,7 @@ async function loadDashboard() {
                 <div class="value">${stats.failed_analyses || 0}</div>
             </div>
             <div class="stat-card accent-amber">
-                <div class="label">Total Users</div>
+                <div class="label">Accounts with credits</div>
                 <div class="value">${stats.total_users || 0}</div>
                 <div class="sub">+${stats.new_users_7d || 0} this week, +${stats.new_users_30d || 0} this month</div>
             </div>
@@ -1038,9 +1050,9 @@ async function loadDashboard() {
         }
         tbody.innerHTML = data.logs.map(log => `
             <tr>
-                <td><span class="badge ${actionBadgeClass(log.action)}">${log.action}</span></td>
-                <td title="${log.user_id || ''}">${truncate(log.user_email || log.user_id || '-', 24)}</td>
-                <td>${log.resource_type || '-'}</td>
+                <td><span class="badge ${actionBadgeClass(log.action)}">${escapeText(log.action)}</span></td>
+                <td title="${escapeText(log.user_id || '')}">${truncate(log.user_email || log.user_id || '-', 24)}</td>
+                <td>${escapeText(log.resource_type || '-')}</td>
                 <td>${formatTime(log.created_at)}</td>
             </tr>
         `).join('');
@@ -1066,13 +1078,13 @@ async function loadUsers() {
         }
         tbody.innerHTML = data.users.map(u => `
             <tr>
-                <td title="${u.user_id}">${u.email || truncate(u.user_id, 16)}</td>
+                <td title="${escapeText(u.user_id)}">${escapeText(u.email || truncate(u.user_id, 16))}</td>
                 <td>${subscriptionBadge(u)}</td>
-                <td><span class="badge ${u.credits_remaining === 999 ? 'badge-blue' : u.credits_remaining > 0 ? 'badge-green' : 'badge-red'}">${u.credits_remaining === 999 ? 'Unlimited' : u.credits_remaining}</span></td>
-                <td>${u.completed_analyses}/${u.total_analyses}</td>
+                <td><span class="badge ${escapeText(u.credits_remaining === 999 ? 'badge-blue' : u.credits_remaining > 0 ? 'badge-green' : 'badge-red')}">${escapeText(u.credits_remaining === 999 ? 'Unlimited' : u.credits_remaining)}</span></td>
+                <td>${escapeText(u.completed_analyses)}/${escapeText(u.total_analyses)}</td>
                 <td>${formatTime(u.created_at)}</td>
                 <td>${formatTime(u.last_activity)}</td>
-                <td><button class="btn-sm" onclick="openCreditsModal('${u.user_id}', ${u.credits_remaining})">Credits</button></td>
+                <td><button class="btn-sm" data-user-detail="${escapeText(u.user_id)}">详情</button> <button class="btn-sm" data-credit-user="${escapeText(u.user_id)}" data-balance="${escapeText(u.credits_remaining)}">Credits</button></td>
             </tr>
         `).join('');
         renderPagination('usersPagination', 'users', data.total, 50, offset);
@@ -1112,6 +1124,7 @@ async function submitCreditsAdjust() {
     const amount = parseInt(document.getElementById('modalAmount').value);
     const reason = document.getElementById('modalReason').value;
 
+    if (!reason.trim()) { showToast("Please enter a reason", "error"); return; }
     if (!amount || amount === 0) {
         showToast('Please enter a non-zero amount', 'error');
         return;
@@ -1151,11 +1164,11 @@ async function loadAnalyses() {
         }
         tbody.innerHTML = data.analyses.map(a => `
             <tr>
-                <td title="${a.id}">${truncate(a.id, 12)}</td>
-                <td title="${a.user_id || ''}">${truncate(a.user_id || '-', 16)}</td>
-                <td title="${a.video_filename || ''}">${truncate(a.video_filename || '-', 20)}</td>
-                <td><span class="badge ${statusBadgeClass(a.status)}">${a.status}</span></td>
-                <td>${a.shooting_hand || '-'}</td>
+                <td title="${escapeText(a.id)}">${truncate(a.id, 12)}</td>
+                <td title="${escapeText(a.user_id || '')}">${truncate(a.user_id || '-', 16)}</td>
+                <td title="${escapeText(a.video_filename || '')}">${truncate(a.video_filename || '-', 20)}</td>
+                <td><span class="badge ${statusBadgeClass(a.status)}">${escapeText(a.status)}</span></td>
+                <td>${escapeText(a.shooting_hand || '-')}</td>
                 <td>${formatTime(a.created_at)}</td>
             </tr>
         `).join('');
@@ -1177,8 +1190,8 @@ async function loadPayments() {
         }
         tbody.innerHTML = data.payments.map(p => `
             <tr>
-                <td title="${p.checkout_id}">${truncate(p.checkout_id, 24)}</td>
-                <td title="${p.user_id || ''}">${truncate(p.user_id || '-', 20)}</td>
+                <td title="${escapeText(p.checkout_id)}">${truncate(p.checkout_id, 24)}</td>
+                <td title="${escapeText(p.user_id || '')}">${truncate(p.user_id || '-', 20)}</td>
                 <td>${formatTime(p.processed_at)}</td>
             </tr>
         `).join('');
@@ -1203,9 +1216,9 @@ async function loadSubscriptions() {
         }
         tbody.innerHTML = data.subscriptions.map(s => `
             <tr>
-                <td title="${s.user_id || ''}">${s.email || truncate(s.user_id || '-', 20)}</td>
+                <td title="${escapeText(s.user_id || '')}">${escapeText(s.email || truncate(s.user_id || '-', 20))}</td>
                 <td>${planLabel(s.plan)}</td>
-                <td><span class="badge ${subStatusBadgeClass(s.status)}">${s.status}</span></td>
+                <td><span class="badge ${subStatusBadgeClass(s.status)}">${escapeText(s.status)}</span></td>
                 <td>${formatTime(s.current_period_start)}</td>
                 <td>${formatTime(s.current_period_end)}</td>
                 <td>${formatTime(s.created_at)}</td>
@@ -1224,7 +1237,7 @@ function planLabel(plan) {
         'regular': 'Regular',
         'free': 'Free'
     };
-    return map[plan] || plan || '-';
+    return escapeText(map[plan] || plan || '-');
 }
 
 function subStatusBadgeClass(status) {
@@ -1248,10 +1261,10 @@ async function loadAuditLogs() {
         }
         tbody.innerHTML = data.logs.map(log => `
             <tr>
-                <td><span class="badge ${actionBadgeClass(log.action)}">${log.action}</span></td>
-                <td title="${log.user_id || ''}">${truncate(log.user_email || log.user_id || '-', 20)}</td>
-                <td>${log.resource_type || '-'}${log.resource_id ? ' ' + truncate(log.resource_id, 8) : ''}</td>
-                <td title="${JSON.stringify(log.details || {})}">${truncate(JSON.stringify(log.details || {}), 40)}</td>
+                <td><span class="badge ${actionBadgeClass(log.action)}">${escapeText(log.action)}</span></td>
+                <td title="${escapeText(log.user_id || '')}">${truncate(log.user_email || log.user_id || '-', 20)}</td>
+                <td>${escapeText(log.resource_type || '-')}${escapeText(log.resource_id ? ' ' + truncate(log.resource_id, 8) : '')}</td>
+                <td title="${escapeText(JSON.stringify(log.details || {}))}">${truncate(JSON.stringify(log.details || {}), 40)}</td>
                 <td>${formatTime(log.created_at)}</td>
             </tr>
         `).join('');
@@ -1284,17 +1297,17 @@ async function loadFunnelStats() {
         chart.innerHTML = data.funnel.map(step => {
             const widthPct = Math.max((step.count / maxCount) * 100, 8);
             const convHtml = step.conversion_from_prev !== null
-                ? `<span class="rate">${step.conversion_from_prev}%</span> from prev`
+                ? `<span class="rate">${escapeText(step.conversion_from_prev)}%</span> from prev`
                 : '<span style="color:#5a5e72">—</span>';
             return `
                 <div class="funnel-step">
-                    <div class="funnel-label">${step.label}</div>
+                    <div class="funnel-label">${escapeText(step.label)}</div>
                     <div class="funnel-bar-wrap">
-                        <div class="funnel-bar step-${step.key}" style="width: ${widthPct}%">
-                            ${step.count > 0 ? step.count : ''}
+                        <div class="funnel-bar step-${escapeText(step.key)}" style="width: ${widthPct}%">
+                            ${escapeText(step.count > 0 ? step.count : '')}
                         </div>
                     </div>
-                    <div class="funnel-count">${step.count}</div>
+                    <div class="funnel-count">${escapeText(step.count)}</div>
                     <div class="funnel-conversion">${convHtml}</div>
                 </div>
             `;
@@ -1302,7 +1315,7 @@ async function loadFunnelStats() {
 
         if (data.total_conversion !== null) {
             totalEl.style.display = 'block';
-            totalEl.innerHTML = `Overall conversion (Page View → Payment): <strong>${data.total_conversion}%</strong> &nbsp;|&nbsp; Total logs in period: ${data.total_logs}`;
+            totalEl.innerHTML = `Trial conversion (Visitor → Saved to account): <strong>${data.total_conversion}%</strong> &nbsp;|&nbsp; Unique visitors in period: ${data.total_logs}`;
         } else {
             totalEl.style.display = 'none';
         }
@@ -1328,15 +1341,15 @@ async function loadBehaviorStream() {
         }
         tbody.innerHTML = data.logs.map(log => `
             <tr>
-                <td><span class="badge ${actionBadgeClass(log.action)}">${log.action}</span></td>
-                <td title="${log.user_id || ''}">${truncate(log.user_email || log.user_id || '-', 20)}</td>
+                <td><span class="badge ${actionBadgeClass(log.action)}">${escapeText(log.action)}</span></td>
+                <td title="${escapeText(log.user_id || '')}">${truncate(log.user_email || log.user_id || '-', 20)}</td>
                 <td>
                     ${log.ip_address
-                        ? `<a href="#" onclick="openIpChain('${log.ip_address}'); return false;" style="color: #818cf8; font-family: monospace; font-size: 0.78rem; text-decoration: none;" title="View behavior chain for this IP">${log.ip_address}</a>`
+                        ? `<a href="#" data-ip="${escapeText(log.ip_address)}" style="color: #818cf8; font-family: monospace; font-size: 0.78rem; text-decoration: none;" title="View behavior chain for this IP">${escapeText(log.ip_address)}</a>`
                         : '-'
                     }
                 </td>
-                <td title="${JSON.stringify(log.details || {})}">${truncate(JSON.stringify(log.details || {}), 40)}</td>
+                <td title="${escapeText(JSON.stringify(log.details || {}))}">${truncate(JSON.stringify(log.details || {}), 40)}</td>
                 <td>${formatTime(log.created_at)}</td>
             </tr>
         `).join('');
@@ -1364,16 +1377,16 @@ async function openIpChain(ip) {
         }
 
         events.innerHTML = data.logs.map(log => {
-            const dotClass = `dot-${log.action}` in getDotClassMap() ? `dot-${log.action}` : 'dot-other';
+            const dotClass = `dot-${escapeText(log.action)}` in getDotClassMap() ? `dot-${escapeText(log.action)}` : 'dot-other';
             const details = log.details || {};
             const detailStr = Object.entries(details).map(([k, v]) => `${k}: ${v}`).join(', ');
             return `
                 <div class="chain-event">
                     <div class="chain-dot ${dotClass}">●</div>
                     <div class="chain-info">
-                        <div class="chain-action">${log.action}</div>
+                        <div class="chain-action">${escapeText(log.action)}</div>
                         <div class="chain-details">
-                            ${log.user_email || log.user_id || 'anonymous'}
+                            ${escapeText(log.user_email || log.user_id || 'anonymous')}
                             ${detailStr ? ' | ' + truncate(detailStr, 60) : ''}
                         </div>
                     </div>
@@ -1401,10 +1414,19 @@ function closeIpChain() {
     document.getElementById('ipChainSection').style.display = 'none';
 }
 
+document.addEventListener('click', event => {
+    const account = event.target.closest('[data-user-detail]');
+    if(account) openUserDetail(account.dataset.userDetail);
+    const credit = event.target.closest('[data-credit-user]');
+    if (credit) openCreditsModal(credit.dataset.creditUser, Number(credit.dataset.balance));
+    const ip = event.target.closest('[data-ip]');
+    if (ip) { event.preventDefault(); openIpChain(ip.dataset.ip); }
+});
 // ===== Helpers =====
+function escapeText(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function truncate(str, len) {
     if (!str) return '-';
-    return str.length > len ? str.substring(0, len) + '...' : str;
+    return escapeText(str.length > len ? str.substring(0, len) + '...' : str);
 }
 
 function formatTime(iso) {
@@ -1465,5 +1487,7 @@ document.getElementById('loginPassword').addEventListener('keydown', e => {
 });
 checkAuth();
 </script>
+<script src="/static/admin-details.js"></script>
+<script src="/static/admin-operations.js"></script>
 </body>
 </html>

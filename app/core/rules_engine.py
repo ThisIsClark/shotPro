@@ -410,6 +410,20 @@ class RulesEngine:
             frame_2=release_frame
         )
 
+        if key_frames.get(ShootingPhase.SYNC_FRAME_1) is None:
+            issue.skipped = True
+            issue.skip_reason = "preparation_not_observed"
+            issue.description = "准备阶段未能可靠识别，已保留可识别的出手阶段画面，但不足以评价完整发力过程。"
+            issue.description_en = "The preparation phase could not be identified reliably. Available release-phase frames are shown, but the full power sequence cannot be assessed."
+            return issue
+
+        if max_hold_frame is None or release_frame is None:
+            issue.skipped = True
+            issue.skip_reason = "hold_or_release_not_found"
+            issue.description = "未能可靠定位出手前持球点或出手点，无法判断发力连贯性。请上传投篮手一侧拍摄的完整投篮视频。"
+            issue.description_en = "Unable to locate the pre-release or estimated release frame reliably. Upload a complete shot filmed from the shooting-hand side."
+            return issue
+
         if max_hold_frame:
             knee_hold = max_hold_frame.angles.knee_angle if max_hold_frame.angles else None
             knee_release = release_frame.angles.knee_angle if release_frame and release_frame.angles else None

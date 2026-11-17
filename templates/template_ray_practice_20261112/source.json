@@ -1,0 +1,19 @@
+{
+  "id": "template_ray_practice_20261112",
+  "name": "Ray Allen \u00b7 Catch-and-shoot \u00b7 Oblique view",
+  "description": "Practice catch-and-shoot reference from an edited breakdown. Oblique camera; playback speed unverified. Use for pose comparison, not absolute release-speed targets.",
+  "clip": "artifacts/template-sources/ray-reference.mp4",
+  "source_url": "https://www.youtube.com/watch?v=zg70EYtsooo",
+  "start": 1049.55,
+  "end": 1051.65,
+  "view": "oblique front-side",
+  "playback": "edited footage; speed unverified",
+  "crop": [
+    1200,
+    100,
+    720,
+    900
+  ],
+  "visually_reviewed": true,
+  "review_notes": "Reviewed source sequence and generated keyframe sheet. Oblique reference only; not a universal angle target. Seven detected keyframes; no separate follow-through image."
+}

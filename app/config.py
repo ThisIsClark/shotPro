@@ -2,6 +2,8 @@
 
 from pathlib import Path
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
+from urllib.parse import urlsplit
 
 
 class Settings(BaseSettings):
@@ -9,10 +11,24 @@ class Settings(BaseSettings):
     
     # App info
     app_name: str = "Basketball Shooting Form Analyzer"
-    app_version: str = "0.1.0"
+    app_version: str = "2.0.0"
     debug: bool = True
     app_url: str = ""  # Public URL for payment callbacks (e.g., https://your-domain.com)
     
+    # Canonical public origin; preview hosts are automatically noindex.
+    seo_site_url: str = "https://formrefine.ai"
+    seo_indexable: bool = True
+
+    @field_validator("seo_site_url")
+    @classmethod
+    def validate_seo_site_url(cls, value):
+        parsed = urlsplit(value)
+        if (parsed.scheme not in ("http", "https") or not parsed.hostname
+                or parsed.username or parsed.password or parsed.query or parsed.fragment
+                or parsed.path not in ("", "/")):
+            raise ValueError("SEO_SITE_URL must be an http(s) origin without credentials, path, query or fragment")
+        return value.rstrip("/")
+
     # Paths
     base_dir: Path = Path(__file__).resolve().parent.parent
     upload_dir: Path = base_dir / "uploads"
@@ -20,6 +36,13 @@ class Settings(BaseSettings):
     static_dir: Path = base_dir / "static"
     templates_dir: Path = base_dir / "templates"
     
+    # Pilot feedback: requires persistent disk when deployed.
+    feedback_dir: Path = base_dir / "data" / "feedback"
+
+    trial_db_path: Path = base_dir / "data" / "trials.sqlite3"
+    trial_daily_limit: int = 100
+    trial_ip_hourly_limit: int = 10
+
     # Upload limits
     max_video_size_mb: int = 20
     max_video_duration_seconds: int = 10

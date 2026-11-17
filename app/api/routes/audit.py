@@ -5,8 +5,8 @@ Audit / Behavior Tracking Routes
 """
 
 from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from pydantic import BaseModel, Field
 
 from ..deps import get_current_user_optional, get_user_id
 from ...services.audit_service import audit_service, AuditAction
@@ -81,3 +81,49 @@ async def track_event(
     )
 
     return {"success": True}
+
+
+class VisitRequest(BaseModel):
+    source: str = Field(default="direct", max_length=80)
+    landing: str = Field(default="/app", max_length=200, pattern=r"^/[^?#]*$")
+    campaign: str = Field(default="", max_length=100)
+
+@router.post("/visit")
+async def record_visit(data: VisitRequest, request: Request, response: Response):
+    from ...services.trial_service import trial_store
+    from ...services.admin_metrics import event
+    visitor = trial_store.visitor(request)
+    event(visitor, 'visit', data.source)
+    from ...services.admin_insights import record
+    record('visit', visitor, details=data.model_dump())
+    response.headers['Cache-Control'] = 'no-store'
+    return {'ok': True}
+
+
+from typing import Literal
+
+class JourneyEvent(BaseModel):
+    action: Literal['file_selected', 'registration_submitted', 'result_viewed', 'comparison_viewed']
+    task: Optional[str] = Field(default=None, max_length=100)
+    earlier: Optional[str] = Field(default=None, max_length=100)
+
+@router.post('/journey')
+async def journey_event(data: JourneyEvent, request: Request, user=Depends(get_current_user_optional)):
+    from ...services.trial_service import trial_store
+    from ...services.admin_insights import record
+    visitor = None
+    try: visitor = trial_store.visitor(request)
+    except HTTPException:
+        if not user: raise
+    if data.action in ('result_viewed','comparison_viewed'):
+        from .upload import authorize_report
+        if not data.task: raise HTTPException(400, 'Report is required')
+        if data.action == 'comparison_viewed' and (not user or not data.earlier or data.earlier == data.task):
+            raise HTTPException(400, 'Two distinct owned reports are required')
+        for task in [data.task] + ([data.earlier] if data.action == 'comparison_viewed' else []):
+            await authorize_report(task, request, user)
+            row = trial_store.get(task)
+            if row and row['state'] != 'completed': raise HTTPException(409, 'Report is not completed')
+    record(data.action, visitor, user.get('id') if user else None, data.task,
+           {'earlier':data.earlier} if data.earlier else {})
+    return {'ok': True}

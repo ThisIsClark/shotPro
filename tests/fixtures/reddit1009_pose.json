@@ -1,0 +1,338 @@
+[
+  {
+    "frame": 0,
+    "time": 0.0,
+    "wrist_y": 0.5849630832672119,
+    "angles": {
+      "elbow_angle": 178.858796669343,
+      "shoulder_angle": 132.64042081616373,
+      "knee_angle": null,
+      "trunk_angle": 159.93568468567202,
+      "wrist_angle": 170.83149714971864,
+      "hip_angle": null
+    },
+    "confidence": 0.5753338851429748
+  },
+  {
+    "frame": 2,
+    "time": 0.06666666666666667,
+    "wrist_y": 0.5852965116500854,
+    "angles": {
+      "elbow_angle": 173.07008577330103,
+      "shoulder_angle": 120.00354770896932,
+      "knee_angle": null,
+      "trunk_angle": 154.1670346136036,
+      "wrist_angle": 175.53378231619703,
+      "hip_angle": null
+    },
+    "confidence": 0.5689585401366154
+  },
+  {
+    "frame": 3,
+    "time": 0.1,
+    "wrist_y": 0.5884001851081848,
+    "angles": {
+      "elbow_angle": 175.05447582023905,
+      "shoulder_angle": 134.06728912842567,
+      "knee_angle": null,
+      "trunk_angle": 158.98171590706949,
+      "wrist_angle": 178.19577770736194,
+      "hip_angle": null
+    },
+    "confidence": 0.5331078769752022
+  },
+  {
+    "frame": 4,
+    "time": 0.13333333333333333,
+    "wrist_y": 0.5688969492912292,
+    "angles": {
+      "elbow_angle": null,
+      "shoulder_angle": null,
+      "knee_angle": null,
+      "trunk_angle": 176.46649069711586,
+      "wrist_angle": null,
+      "hip_angle": null
+    },
+    "confidence": 0.5779746478903248
+  },
+  {
+    "frame": 6,
+    "time": 0.2,
+    "wrist_y": 0.5909333825111389,
+    "angles": {
+      "elbow_angle": 177.41591800377384,
+      "shoulder_angle": 121.32496781697402,
+      "knee_angle": null,
+      "trunk_angle": 154.44502598302847,
+      "wrist_angle": 173.05136417554516,
+      "hip_angle": null
+    },
+    "confidence": 0.6042677146862402
+  },
+  {
+    "frame": 14,
+    "time": 0.4666666666666667,
+    "wrist_y": 0.45939937233924866,
+    "angles": {
+      "elbow_angle": null,
+      "shoulder_angle": null,
+      "knee_angle": null,
+      "trunk_angle": 148.349893129393,
+      "wrist_angle": null,
+      "hip_angle": null
+    },
+    "confidence": 0.5003385405253732
+  },
+  {
+    "frame": 27,
+    "time": 0.9,
+    "wrist_y": 0.4714365601539612,
+    "angles": {
+      "elbow_angle": null,
+      "shoulder_angle": null,
+      "knee_angle": null,
+      "trunk_angle": 88.68576468767623,
+      "wrist_angle": null,
+      "hip_angle": null
+    },
+    "confidence": 0.4647544653712292
+  },
+  {
+    "frame": 28,
+    "time": 0.9333333333333333,
+    "wrist_y": 0.4515846073627472,
+    "angles": {
+      "elbow_angle": 54.96511947505246,
+      "shoulder_angle": 99.24028951841596,
+      "knee_angle": 146.91778562604435,
+      "trunk_angle": 72.93217605675186,
+      "wrist_angle": 123.62493634193054,
+      "hip_angle": 102.33355544937761
+    },
+    "confidence": 0.8773127121455742
+  },
+  {
+    "frame": 29,
+    "time": 0.9666666666666667,
+    "wrist_y": 0.43495801091194153,
+    "angles": {
+      "elbow_angle": 56.45547762289921,
+      "shoulder_angle": 107.60749896061192,
+      "knee_angle": 71.66271035095087,
+      "trunk_angle": 43.42727892274196,
+      "wrist_angle": 133.93947551963808,
+      "hip_angle": 84.8472297305246
+    },
+    "confidence": 0.8202136594548144
+  },
+  {
+    "frame": 30,
+    "time": 1.0,
+    "wrist_y": 0.41796234250068665,
+    "angles": {
+      "elbow_angle": 46.842683277235544,
+      "shoulder_angle": 112.54252198895246,
+      "knee_angle": 61.67186843311491,
+      "trunk_angle": 38.609552365173506,
+      "wrist_angle": 145.94138641027007,
+      "hip_angle": 85.34043249194477
+    },
+    "confidence": 0.840928330537722
+  },
+  {
+    "frame": 31,
+    "time": 1.0333333333333334,
+    "wrist_y": 0.40531593561172485,
+    "angles": {
+      "elbow_angle": 39.72521715391922,
+      "shoulder_angle": 115.96536132609265,
+      "knee_angle": 64.80918801969356,
+      "trunk_angle": 35.12842924413146,
+      "wrist_angle": 154.139866894083,
+      "hip_angle": 89.46316224447351
+    },
+    "confidence": 0.839393049196312
+  },
+  {
+    "frame": 32,
+    "time": 1.0666666666666667,
+    "wrist_y": 0.3914862871170044,
+    "angles": {
+      "elbow_angle": 37.99005020893107,
+      "shoulder_angle": 115.20933361401997,
+      "knee_angle": 70.91802838687494,
+      "trunk_angle": 30.36984728810212,
+      "wrist_angle": 164.57256351873988,
+      "hip_angle": 100.11697092878408
+    },
+    "confidence": 0.8742301522782354
+  },
+  {
+    "frame": 33,
+    "time": 1.1,
+    "wrist_y": 0.3761151432991028,
+    "angles": {
+      "elbow_angle": 42.70828527531752,
+      "shoulder_angle": 115.83527392193162,
+      "knee_angle": 80.4536753150576,
+      "trunk_angle": 25.194321165852706,
+      "wrist_angle": 166.5959518981505,
+      "hip_angle": 111.93055654348545
+    },
+    "confidence": 0.8552277617608056
+  },
+  {
+    "frame": 34,
+    "time": 1.1333333333333333,
+    "wrist_y": 0.3583202362060547,
+    "angles": {
+      "elbow_angle": 60.2810160169184,
+      "shoulder_angle": 121.89067268496969,
+      "knee_angle": 90.12647696285393,
+      "trunk_angle": 25.34132363704503,
+      "wrist_angle": 159.9066474316028,
+      "hip_angle": 115.37944366726796
+    },
+    "confidence": 0.8601755481777769
+  },
+  {
+    "frame": 35,
+    "time": 1.1666666666666667,
+    "wrist_y": 0.3391790986061096,
+    "angles": {
+      "elbow_angle": 87.53115926957496,
+      "shoulder_angle": 121.41871514222788,
+      "knee_angle": 103.26046766670727,
+      "trunk_angle": 19.02779404690013,
+      "wrist_angle": 142.34130676995113,
+      "hip_angle": 130.54103582451583
+    },
+    "confidence": 0.9364923636118571
+  },
+  {
+    "frame": 36,
+    "time": 1.2,
+    "wrist_y": 0.32017529010772705,
+    "angles": {
+      "elbow_angle": 123.2032609510766,
+      "shoulder_angle": 128.70183174279256,
+      "knee_angle": 110.6291949465927,
+      "trunk_angle": 20.525171902154586,
+      "wrist_angle": 126.39387790949496,
+      "hip_angle": 133.0179413225478
+    },
+    "confidence": 0.9656569957733154
+  },
+  {
+    "frame": 37,
+    "time": 1.2333333333333334,
+    "wrist_y": 0.30487510561943054,
+    "angles": {
+      "elbow_angle": 171.3567529162771,
+      "shoulder_angle": 140.5693833720665,
+      "knee_angle": 127.61360550757567,
+      "trunk_angle": 18.561463926288692,
+      "wrist_angle": 138.9248370114186,
+      "hip_angle": 144.39237224705136
+    },
+    "confidence": 0.9080462537028573
+  },
+  {
+    "frame": 38,
+    "time": 1.2666666666666666,
+    "wrist_y": 0.29527029395103455,
+    "angles": {
+      "elbow_angle": 169.89605889730615,
+      "shoulder_angle": 148.22568090732992,
+      "knee_angle": 133.71483050280233,
+      "trunk_angle": 14.633741206887661,
+      "wrist_angle": 162.72970691814686,
+      "hip_angle": 151.7644049946604
+    },
+    "confidence": 0.8978364539868904
+  },
+  {
+    "frame": 39,
+    "time": 1.3,
+    "wrist_y": 0.28923192620277405,
+    "angles": {
+      "elbow_angle": 177.88101238247023,
+      "shoulder_angle": 134.7443526646763,
+      "knee_angle": 155.98559524888097,
+      "trunk_angle": 4.821216451793526,
+      "wrist_angle": 151.44359606422853,
+      "hip_angle": 175.23661791311577
+    },
+    "confidence": 0.9750014850587556
+  },
+  {
+    "frame": 40,
+    "time": 1.3333333333333333,
+    "wrist_y": 0.2838006019592285,
+    "angles": {
+      "elbow_angle": 178.81564145346127,
+      "shoulder_angle": 141.28144970779954,
+      "knee_angle": 158.43612870494346,
+      "trunk_angle": 8.845926532292818,
+      "wrist_angle": 164.54216050312013,
+      "hip_angle": 169.46040471693794
+    },
+    "confidence": 0.96912948290507
+  },
+  {
+    "frame": 41,
+    "time": 1.3666666666666667,
+    "wrist_y": 0.28278183937072754,
+    "angles": {
+      "elbow_angle": 176.63514452952646,
+      "shoulder_angle": 141.41008047916708,
+      "knee_angle": 165.53906085146784,
+      "trunk_angle": 7.234184221026457,
+      "wrist_angle": 163.86185108499913,
+      "hip_angle": 174.224210220735
+    },
+    "confidence": 0.9304403202100233
+  },
+  {
+    "frame": 42,
+    "time": 1.4,
+    "wrist_y": 0.283162921667099,
+    "angles": {
+      "elbow_angle": 175.85810652379547,
+      "shoulder_angle": 140.5041494326284,
+      "knee_angle": 169.0625339638242,
+      "trunk_angle": 4.7468288372802,
+      "wrist_angle": 155.61426597336379,
+      "hip_angle": 176.3714468846458
+    },
+    "confidence": 0.9205958048502604
+  },
+  {
+    "frame": 43,
+    "time": 1.4333333333333333,
+    "wrist_y": 0.28344088792800903,
+    "angles": {
+      "elbow_angle": 175.42650332505602,
+      "shoulder_angle": 141.45528154729084,
+      "knee_angle": 168.43013652361296,
+      "trunk_angle": 4.977949011876758,
+      "wrist_angle": 152.23745891160922,
+      "hip_angle": 177.29262050875013
+    },
+    "confidence": 0.9133521580334866
+  },
+  {
+    "frame": 44,
+    "time": 1.4666666666666666,
+    "wrist_y": 0.284615159034729,
+    "angles": {
+      "elbow_angle": 171.8940566859109,
+      "shoulder_angle": 145.9796041780875,
+      "knee_angle": 167.65740129851255,
+      "trunk_angle": 6.175093169658919,
+      "wrist_angle": 149.14432074251516,
+      "hip_angle": 176.45174966635463
+    },
+    "confidence": 0.8519857553765178
+  }
+]

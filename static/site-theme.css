@@ -1,0 +1,113 @@
+/* Shared public-page identity: home, guide index and guide articles. */
+:root {
+  color-scheme: dark;
+  --court-bg: #0b121a;
+  --court-panel: #131e29;
+  --court-line: #2a3845;
+  --court-accent: #c6f36b;
+  --court-text: #edf3f7;
+  --court-muted: #9faebb;
+  --court-body: #cbd6df;
+  --court-font: "Avenir Next", "Inter", "PingFang SC", sans-serif;
+}
+body {
+  background: radial-gradient(ellipse at 5% 15%, #172a2b 0, transparent 38%), var(--court-bg);
+  color: var(--court-text);
+  font-family: var(--court-font);
+}
+.site-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.site-brand .brand-ball { color: var(--court-accent); font-size: 30px; }
+.site-brand .brand-dot { color: var(--court-accent); margin-left: -8px; }
+@media (max-width: 650px) { .site-brand { font-size: 21px; } }
+
+/* One header geometry for all public pages; page-specific actions sit on the right. */
+.public-header,
+.container > header.public-header {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  min-height: 83px;
+  padding: 8px 0 24px;
+  border-bottom: 1px solid var(--court-line);
+  line-height: 1.5;
+}
+.guide-header.public-header {
+  width: calc(100% - 84px);
+  max-width: 1276px;
+  margin: 20px auto 0;
+}
+.public-header .site-brand { font-size: 24px; }
+.public-header .public-nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+  margin: 0;
+}
+.public-header .public-nav > a {
+  color: var(--court-body);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.public-header .public-nav > a:hover { color: #fff; }
+.public-header .header-actions { display: flex; align-items: center; gap: 10px; margin: 0 0 0 auto; }
+.public-header .header-actions .action-btn { font-size: 14px; line-height: 1.5; padding: 9px 10px; }
+.public-header .header-cta,
+.public-header .header-actions .login-btn {
+  margin: 0 0 0 auto;
+  padding: 10px 18px;
+  border: 1px solid #62783e;
+  border-radius: 8px;
+  background: var(--court-accent);
+  color: #15231c;
+  font: 700 16px/1.5 var(--court-font);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.public-header a:focus-visible { outline: 2px solid var(--court-accent); outline-offset: 5px; }
+@media (max-width: 1100px) {
+  .public-header, .container > header.public-header { flex-wrap: wrap; gap: 16px; }
+  .public-header .public-nav { order: 3; flex-basis: 100%; flex-wrap: wrap; gap: 12px 24px; }
+}
+@media (max-width: 800px) {
+  .guide-header.public-header { width: calc(100% - 32px); margin-top: 16px; }
+  .public-header, .container > header.public-header { padding: 8px 0 20px; }
+  .public-header .site-brand { font-size: 21px; }
+  .public-header .public-nav > a { font-size: 15px; }
+  .public-header .header-actions { flex-wrap: wrap; gap: 6px; }
+  .public-header .header-actions .action-btn { font-size: 13px; }
+  .public-header .header-cta, .public-header .header-actions .login-btn { font-size: 15px; padding: 9px 12px; }
+}
+
+/* Reserve the same scrollbar space on short and long pages. */
+html { scrollbar-gutter: stable; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--court-bg); }
+::-webkit-scrollbar-thumb { background: var(--court-line); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #526575; }
+
+/* Keep navigation available on both anchor jumps and long guide pages. */
+:root { --public-header-height: 83px; }
+html { scroll-padding-top: calc(var(--public-header-height) + 16px); }
+.public-header,
+.container > header.public-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--court-bg);
+  box-shadow: 0 12px 20px -18px #000;
+}
+@media (max-width: 1100px) { :root { --public-header-height: 160px; } }

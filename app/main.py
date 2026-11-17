@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -16,7 +16,9 @@ from fastapi.responses import HTMLResponse
 from .config import settings
 from .api.routes import upload, health, export, templates
 from .api.routes import auth, users, admin, payment
-from .api.routes import audit
+from .api.routes import audit, feedback, seo
+from .services.seo_service import metadata, HOME_TITLE, HOME_DESCRIPTION, PUBLIC_PATHS, indexable_host
+from .services.feedback_service import feedback_store
 from .services.local_auth_service import local_auth_service
 from .services.db_init_service import init_database
 
@@ -39,6 +41,8 @@ def cleanup_disk_tasks():
     task_dirs = []
     for task_dir in results_dir.iterdir():
         if task_dir.is_dir():
+            if trial_store.get(task_dir.name):
+                continue
             # 尝试从 result.json 读取创建时间
             result_file = task_dir / "result.json"
             if result_file.exists():
@@ -91,6 +95,8 @@ async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时执行
     print("[STARTUP] Basketball Shooting Form Analyzer starting...")
+    feedback_store.recover()
+    trial_store.maintenance()
     cleanup_disk_tasks()
 
     # 初始化管理员账号
@@ -116,6 +122,17 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+@app.middleware("http")
+async def search_indexing_headers(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    public_asset = path.startswith("/static/")
+    if (not indexable_host(request.url.hostname) or response.status_code >= 400
+            or (path not in PUBLIC_PATHS and path not in ("/", "/robots.txt", "/sitemap.xml") and not public_asset)):
+        response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return response
+
+
 # CORS 配置
 _corigins = settings.allowed_origins.split(",") if settings.allowed_origins else ["*"]
 app.add_middleware(
@@ -126,6 +143,46 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Private reports use the same ownership checks for API exports and static media.
+from .api.routes import trial
+from .services.trial_service import trial_store
+app.include_router(trial.router, prefix="/api/v1")
+
+@app.middleware("http")
+async def protect_report_media(request: Request, call_next):
+    import hmac
+    import time
+    from fastapi import HTTPException
+    from fastapi.responses import JSONResponse
+    from fastapi.security import HTTPAuthorizationCredentials
+    from .api.deps import get_current_user_optional
+    path = request.url.path
+    if path.startswith('/results/') or path.startswith('/api/v1/export/'):
+        parts = path.split('/')
+        task_id = parts[2] if path.startswith('/results/') else parts[4]
+        # Preserve public legacy demonstration assets; all newly created reports are private.
+        if trial_store.get(task_id) or path.startswith('/api/v1/export/'):
+            user = None
+            auth = request.headers.get('authorization', '')
+            if auth.startswith('Bearer '):
+                user = await get_current_user_optional(HTTPAuthorizationCredentials(scheme='Bearer', credentials=auth[7:]))
+            token = request.cookies.get('shot_media', '').rsplit(':', 2)
+            if not user and len(token) == 3:
+                value = ':'.join(token[:2])
+                try:
+                    if int(token[1]) > time.time() and hmac.compare_digest(token[2], trial_store.sign(value)):
+                        user = {'id': token[0]}
+                except ValueError:
+                    pass
+            try:
+                await upload.authorize_report(task_id, request, user)
+            except HTTPException as exc:
+                return JSONResponse({'detail': exc.detail}, status_code=exc.status_code)
+            response = await call_next(request)
+            response.headers['Cache-Control'] = 'private, no-store'
+            return response
+    return await call_next(request)
+
 # 挂载静态文件
 app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
 app.mount("/results", StaticFiles(directory=str(settings.results_dir)), name="results")
@@ -135,6 +192,8 @@ template_images_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/template_images", StaticFiles(directory=str(template_images_dir)), name="template_images")
 
 # 注册路由
+app.include_router(seo.router)
+app.include_router(feedback.router, prefix="/api/v1")
 app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/v1")  # 认证路由
 app.include_router(users.router, prefix="/api/v1")  # 用户管理路由
@@ -158,6 +217,10 @@ async def serve_app():
         # 将后端环境变量注入到前端，替换占位符
         html = html.replace("{{SUPABASE_URL}}", settings.supabase_url or "")
         html = html.replace("{{SUPABASE_ANON_KEY}}", settings.supabase_anon_key or "")
+        html = html.replace("{{SEO_METADATA}}", metadata("/app", HOME_TITLE, HOME_DESCRIPTION))
+        for asset in ("feedback.js", "feedback.css", "one-page.css"):
+            stamp = (settings.static_dir / asset).stat().st_mtime_ns
+            html = html.replace(f"/static/{asset}", f"/static/{asset}?v={stamp}")
         return html
     return HTMLResponse(content="<h1>Frontend not found</h1>", status_code=404)
 
@@ -178,6 +241,12 @@ async def serve_admin():
     if html_path.exists():
         return html_path.read_text(encoding="utf-8")
     return HTMLResponse(content="<h1>Admin page not found</h1>", status_code=404)
+
+
+@app.get("/feedback-share", response_class=HTMLResponse)
+async def serve_feedback_share():
+    return HTMLResponse((settings.templates_dir / "feedback_share.html").read_text(), headers={
+        "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex"})
 
 
 if __name__ == "__main__":

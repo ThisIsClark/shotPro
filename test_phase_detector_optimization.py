@@ -47,7 +47,7 @@ def test_preparation_phase():
     # 模拟准备阶段：膝盖弯曲、肘部弯曲、躯干直立
     angles = ShootingAngles(
         elbow_angle=100,  # < 110°
-        shoulder_angle=50,
+        shoulder_angle=30,  # 手臂低位：低于当前 45° 准备阶段阈值
         knee_angle=120,  # < 130°
         trunk_angle=15   # < 20°
     )
@@ -72,7 +72,7 @@ def test_lifting_phase():
     # 先准备阶段
     prep_angles = ShootingAngles(
         elbow_angle=100,
-        shoulder_angle=50,
+        shoulder_angle=30,  # 手臂低位：低于当前 45° 准备阶段阈值
         knee_angle=120,
         trunk_angle=15
     )
@@ -109,7 +109,7 @@ def test_release_phase():
     # 准备阶段
     prep_angles = ShootingAngles(
         elbow_angle=100,
-        shoulder_angle=50,
+        shoulder_angle=30,  # 手臂低位：低于当前 45° 准备阶段阈值
         knee_angle=120,
         trunk_angle=15
     )
@@ -139,12 +139,15 @@ def test_release_phase():
     
     # 手腕开始下降（需要足够的变化）
     wrist_positions = [0.5, 0.52, 0.54, 0.56, 0.58]
+    release_phases = []
     for i, wrist_y in enumerate(wrist_positions):
         wrist_landmark = Landmark(x=0.5, y=wrist_y, z=0.0, visibility=1.0)
         phase = detector.detect_phase(12 + i, (12 + i) * 0.033, release_angles, wrist_landmark)
+        release_phases.append(phase)
     
     print(f"  检测到的阶段: {phase}")
-    assert phase == ShootingPhase.RELEASE, "出手阶段判断错误"
+    assert ShootingPhase.RELEASE in release_phases, "经过峰值时必须检测到出手事件"
+    assert phase == ShootingPhase.FOLLOW_THROUGH, "出手后应进入跟随阶段"
     print("✓ 出手阶段判断正确\n")
 
 
@@ -157,7 +160,7 @@ def test_follow_through_phase():
     # 准备阶段
     prep_angles = ShootingAngles(
         elbow_angle=100,
-        shoulder_angle=50,
+        shoulder_angle=30,  # 手臂低位：低于当前 45° 准备阶段阈值
         knee_angle=120,
         trunk_angle=15
     )
@@ -214,7 +217,7 @@ def test_auto_reset():
     # 模拟完整投篮
     angles = ShootingAngles(
         elbow_angle=100,
-        shoulder_angle=50,
+        shoulder_angle=30,  # 手臂低位：低于当前 45° 准备阶段阈值
         knee_angle=120,
         trunk_angle=15
     )
@@ -242,6 +245,8 @@ def test_auto_reset():
     
     print(f"  新投篮阶段: {phase}")
     print(f"  出手已重置: {not detector.release_detected}")
+    assert not detector.release_detected, "新一轮投篮未重置出手状态"
+    assert phase in (ShootingPhase.PREPARATION, ShootingPhase.LIFTING)
     print("✓ 自动重置功能正常\n")
 
 

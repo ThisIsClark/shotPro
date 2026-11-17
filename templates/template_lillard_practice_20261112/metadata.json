@@ -1,0 +1,130 @@
+{
+  "id": "template_lillard_practice_20261112",
+  "name": "Damian Lillard · Practice jumper · Oblique view",
+  "description": "Single practice jumper, right-handed, oblique rear-side camera. Compare only similar views and shot types; angles are not universal targets.",
+  "created_at": "2026-11-12T00:20:15.330400",
+  "key_frames": [
+    {
+      "phase": "sync_frame_1",
+      "frame_number": 0,
+      "timestamp": 0.0,
+      "image_path": "templates/template_lillard_practice_20261112/sync_frame_1.jpg",
+      "angles": {
+        "elbow_angle": 157.07773134543024,
+        "shoulder_angle": 32.5799096781398,
+        "knee_angle": 150.3265443475241,
+        "trunk_angle": 24.757759956613196,
+        "wrist_angle": 154.99070745248363,
+        "hip_angle": 129.94923458403952
+      }
+    },
+    {
+      "phase": "sync_frame_2",
+      "frame_number": 3,
+      "timestamp": 0.10010000000000001,
+      "image_path": "templates/template_lillard_practice_20261112/sync_frame_2.jpg",
+      "angles": {
+        "elbow_angle": 170.35611107364628,
+        "shoulder_angle": 42.79845129830847,
+        "knee_angle": 148.6344334633378,
+        "trunk_angle": 25.828234176593185,
+        "wrist_angle": 140.63071209924655,
+        "hip_angle": 127.39564278780064
+      }
+    },
+    {
+      "phase": "elbow_min_frame",
+      "frame_number": 7,
+      "timestamp": 0.23356666666666667,
+      "image_path": "templates/template_lillard_practice_20261112/elbow_min_frame.jpg",
+      "angles": {
+        "elbow_angle": 91.66146745712666,
+        "shoulder_angle": 64.10559517851814,
+        "knee_angle": 142.0984017791191,
+        "trunk_angle": 24.380165092559814,
+        "wrist_angle": 152.11230262201946,
+        "hip_angle": 126.27307127950323
+      }
+    },
+    {
+      "phase": "knee_min_frame",
+      "frame_number": 8,
+      "timestamp": 0.26693333333333336,
+      "image_path": "templates/template_lillard_practice_20261112/knee_min_frame.jpg",
+      "angles": {
+        "elbow_angle": 63.53746316865791,
+        "shoulder_angle": 70.25612626300986,
+        "knee_angle": 139.28891150582655,
+        "trunk_angle": 23.2501299479132,
+        "wrist_angle": 179.6165321026267,
+        "hip_angle": 126.12219525881824
+      }
+    },
+    {
+      "phase": "wrist_peak_frame",
+      "frame_number": 19,
+      "timestamp": 0.6339666666666667,
+      "image_path": "templates/template_lillard_practice_20261112/wrist_peak_frame.jpg",
+      "angles": {
+        "elbow_angle": 104.97667675441035,
+        "shoulder_angle": 102.46141770001468,
+        "knee_angle": 163.06998843019625,
+        "trunk_angle": 6.854439386995769,
+        "wrist_angle": 178.1911961406775,
+        "hip_angle": 160.6045247405935
+      }
+    },
+    {
+      "phase": "max_hold_frame",
+      "frame_number": 20,
+      "timestamp": 0.6673333333333333,
+      "image_path": "templates/template_lillard_practice_20261112/max_hold_frame.jpg",
+      "angles": {
+        "elbow_angle": 119.82964301810291,
+        "shoulder_angle": 130.39258512299435,
+        "knee_angle": 167.5670780336241,
+        "trunk_angle": 7.907516123603881,
+        "wrist_angle": 165.39547105205105,
+        "hip_angle": 161.34925102179892
+      }
+    },
+    {
+      "phase": "release_frame",
+      "frame_number": 21,
+      "timestamp": 0.7007,
+      "image_path": "templates/template_lillard_practice_20261112/release_frame.jpg",
+      "angles": {
+        "elbow_angle": 136.67011757681843,
+        "shoulder_angle": 138.3676147266999,
+        "knee_angle": 168.70552995685017,
+        "trunk_angle": 7.739711623984183,
+        "wrist_angle": 157.28383225854483,
+        "hip_angle": 161.52419272992617
+      }
+    },
+    {
+      "phase": "follow_through_frame",
+      "frame_number": 26,
+      "timestamp": 0.8675333333333334,
+      "image_path": "templates/template_lillard_practice_20261112/follow_through_frame.jpg",
+      "angles": {
+        "elbow_angle": 159.83818132724588,
+        "shoulder_angle": 152.9263335135896,
+        "knee_angle": 165.73319054080105,
+        "trunk_angle": 4.556255531123258,
+        "wrist_angle": 169.61335655174994,
+        "hip_angle": 163.38692271885353
+      }
+    }
+  ],
+  "video_info": {
+    "filename": "lillard-reference.mp4",
+    "shooting_hand": "right",
+    "source_url": "https://www.youtube.com/watch?v=bTf3fUYqb2k",
+    "view": "oblique rear-side",
+    "playback": "appears normal speed; source capture rate unverified",
+    "source_start": 16.55,
+    "source_end": 18.05
+  },
+  "has_curve_data": true
+}

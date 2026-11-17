@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Basketball Shooting Form Analyzer</title>
+    {{SEO_METADATA}}
     <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
@@ -3846,8 +3846,12 @@
             }
         }
     </style>
+<link rel="stylesheet" href="/static/one-page.css?v=20261117-charts">
+<link rel="stylesheet" href="/static/site-theme.css?v=20261116-sticky">
+<script src="/static/public-navigation.js" defer></script>
+<script src="/static/shot-trends.js?v=20261117-charts" defer></script>
 </head>
-<body class="loading-flash-prevent">
+<body>
     <!-- 支付成功 Toast 通知 -->
     <div class="payment-toast" id="paymentToast">
         <span class="payment-toast-icon">🎉</span>
@@ -3855,249 +3859,6 @@
             <div class="payment-toast-text" id="paymentToastText">Subscription Activated!</div>
             <div class="payment-toast-sub" id="paymentToastSub">You now have unlimited analyses</div>
         </div>
-    </div>
-
-    <!-- 落地页（未登录用户） -->
-    <div class="landing-page" id="landingPage">
-        <header class="landing-header">
-            <div class="landing-logo">
-                <span>🏀</span>
-                Shot Analyzer
-            </div>
-            <button class="landing-login-btn" onclick="openAuthModal()">
-                <span data-i18n="landing.headerCta">Start Free</span>
-            </button>
-        </header>
-
-        <!-- 1. HERO - 主角 -->
-        <section class="landing-hero">
-            <div class="landing-hero-content">
-                <h1 data-i18n="landing.title">Shoot like it's second nature.</h1>
-                <p data-i18n="landing.subtitle">You love this game. But every release is a guess. Find the one flaw breaking your rhythm - and start shooting the way you always knew you could.</p>
-                <button class="landing-cta-btn" onclick="openAuthModal()">
-                    <span>-></span>
-                    <span data-i18n="landing.cta">Start Free</span>
-                </button>
-                <div class="landing-benefits">
-                    <div data-i18n="landing.benefit1">3 free</div>
-                    <div data-i18n="landing.benefit2">No card to start</div>
-                    <div data-i18n="landing.benefit3">30 seconds</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 2. PROBLEM - 问题（外部/内部/哲学） -->
-        <section class="landing-problem" style="padding: 72px 40px; text-align: center; max-width: 720px; margin: 0 auto;">
-            <h2 style="font-size: 1.9rem; font-weight: 800; color: rgba(255,255,255,0.95); margin-bottom: 28px; line-height: 1.3;" data-i18n="landing.problemTitle">One game you're hot. The next, you're not.</h2>
-            <p style="font-size: 1.05rem; color: rgba(255,255,255,0.6); line-height: 1.7; margin: 0 0 14px;" data-i18n="landing.problemExternal">Your shot is inconsistent - you can't find a rhythm you trust.</p>
-            <p style="font-size: 1.1rem; color: rgba(255,255,255,0.85); line-height: 1.7; margin: 0 0 14px;" data-i18n="landing.problemInternal">You love basketball, but every release is hesitation - a blind box you never win.</p>
-            <p style="font-size: 1.05rem; color: #feca57; line-height: 1.7; margin: 0;" data-i18n="landing.problemPhilosophical">Basketball is best when it's instinct. But if you're always fighting your own motion, you'll never get there.</p>
-        </section>
-
-        <!-- 3. GUIDE - 向导（共情+权威）+ 权威证据 -->
-        <section class="landing-proof" style="padding: 24px 0 0;">
-            <div class="landing-proof-intro" style="text-align:center; max-width:680px; margin:0 auto 48px;">
-                <p style="font-size:1.05rem; color:rgba(255,255,255,0.7); line-height:1.7; margin:0 0 14px;" data-i18n="landing.guideEmpathy">You love this game. You deserve to play it with confidence - not fight your own shot every time you step on the court.</p>
-                <p style="font-size:1.15rem; color:#feca57; line-height:1.7; font-weight:500;" data-i18n="landing.guideAuthority">AI biomechanics analysis - the same tech pro trainers use, now in your pocket.</p>
-            </div>
-
-            <div class="landing-curves-demo">
-                <h2 class="landing-curves-demo-title" data-i18n="landing.curvesTitle">The gap is real. And it's measurable.</h2>
-                <p class="landing-curves-demo-subtitle" data-i18n="landing.curvesSubtitle">Your eyes see a shot. We see 6 joint angles across 8 keyframes - the timing, the breaks, the invisible gaps that decide whether the ball goes in.</p>
-                <div class="landing-curves-card">
-                    <div class="landing-curves-legend" id="landingCurvesLegend"></div>
-                    <div class="landing-curves-chart-wrap">
-                        <svg id="landingCurvesSvg" aria-label="ideal shot angle curves"></svg>
-                    </div>
-                    <p style="margin-top: 16px; font-size: 0.78rem; color: rgba(255,255,255,0.45); text-align: center;">
-                        <span data-i18n="landing.curvesCaption">Ideal shooting motion - 6 joint angles · 8 keyframes · 4 phases (Preparation -> Lifting -> Release -> Follow-through)</span>
-                    </p>
-                </div>
-            </div>
-
-            <h2 class="landing-compare-title" data-i18n="landing.compareTitle">Your form vs Curry</h2>
-            <div class="plan-step-preview" id="planStep2Preview">
-                <div class="preview-demo" id="previewDemo">
-                    <div class="preview-keyframes">
-                        <div class="preview-kf-pair">
-                            <img src="/static/demo_sync_frame_1.jpg" alt="Your form" onerror="this.src='https://placehold.co/280x210/1a1f3a/feca57?text=Your+Form'">
-                            <span class="preview-vs">vs</span>
-                            <img src="/template_images/template_56140d232ffa/sync_frame_1.jpg" alt="Curry" onerror="this.src='https://placehold.co/280x210/1a1f3a/48dbfb?text=Curry'">
-                        </div>
-                        <div class="preview-angle-diff" data-i18n="landing.demoSyncFrame1">沉球点</div>
-                        <div class="preview-kf-pair">
-                            <img src="/static/demo_highest_frame.jpg" alt="Your form" onerror="this.src='https://placehold.co/280x210/1a1f3a/feca57?text=Your+Form'">
-                            <span class="preview-vs">vs</span>
-                            <img src="/template_images/template_56140d232ffa/max_hold_frame.jpg" alt="Curry" onerror="this.src='https://placehold.co/280x210/1a1f3a/48dbfb?text=Curry'">
-                        </div>
-                        <div class="preview-angle-diff" data-i18n="landing.demoDisconnFrame1">最高持球点</div>
-                        <div class="preview-kf-pair">
-                            <img src="/static/demo_release_frame.jpg" alt="Your form" onerror="this.src='https://placehold.co/280x210/1a1f3a/feca57?text=Your+Form'">
-                            <span class="preview-vs">vs</span>
-                            <img src="/template_images/template_56140d232ffa/release_frame.jpg" alt="Curry" onerror="this.src='https://placehold.co/280x210/1a1f3a/48dbfb?text=Curry'">
-                        </div>
-                        <div class="preview-angle-diff" data-i18n="landing.demoDisconnFrame2">出手点</div>
-                    </div>
-                    <div class="preview-curve">
-                        <svg id="previewCurveSvg"></svg>
-                    </div>
-                    <div class="preview-label">Example result</div>
-                </div>
-            </div>
-
-            <div class="landing-features">
-                <h2 class="landing-features-title" data-i18n="landing.featuresTitle">The gaps we find</h2>
-                <div class="landing-features-grid">
-                    <div class="landing-feature-card">
-                        <div class="landing-feature-glow"></div>
-                        <div class="landing-feature-icon-ring">
-                            <div class="landing-feature-icon">🦵</div>
-                        </div>
-                        <h3 data-i18n="landing.feature1Title">你的手比脚快？</h3>
-                        <p data-i18n="landing.feature1Desc">你的手开始举球时，脚还在下蹲蓄力。力量没连上，出手就没力。我们看沉球点的膝盖角度，告诉你时机对不对。</p>
-                    </div>
-                    <div class="landing-feature-card">
-                        <div class="landing-feature-glow"></div>
-                        <div class="landing-feature-icon-ring">
-                            <div class="landing-feature-icon">💪</div>
-                        </div>
-                        <h3 data-i18n="landing.feature2Title">你的手在等脚蹬？</h3>
-                        <p data-i18n="landing.feature2Desc">你的手举到最高点时，腿还没蹬直。力量传递断了，全靠手臂。我们看最高持球点的膝盖伸展，看力链通不通。</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 4. PLAN + 5. ACTION（计划 + 行动 CTA） -->
-        <section class="landing-howitworks" style="padding: 24px 0 0;">
-            <div class="landing-plan">
-                <h2 class="landing-plan-title" data-i18n="landing.planTitle">3 steps to a shot you trust</h2>
-                <div class="landing-plan-steps">
-                    <div class="plan-step">
-                        <div class="plan-step-number">1</div>
-                        <div class="plan-step-icon">🎬</div>
-                        <h3 data-i18n="landing.planStep1Title">Record your shot</h3>
-                        <p data-i18n="landing.planStep1Desc">One clip, side angle, any phone</p>
-                    </div>
-                    <div class="plan-step-arrow">-></div>
-                    <div class="plan-step plan-step-highlight">
-                        <div class="plan-step-number">2</div>
-                        <div class="plan-step-icon">👁️</div>
-                        <h3 data-i18n="landing.planStep2Title">AI finds the flaw</h3>
-                        <p data-i18n="landing.planStep2Desc">The exact flaw breaking your rhythm - measured, not guessed</p>
-                    </div>
-                    <div class="plan-step-arrow">-></div>
-                    <div class="plan-step">
-                        <div class="plan-step-number">3</div>
-                        <div class="plan-step-icon">🔧</div>
-                        <h3 data-i18n="landing.planStep3Title">Fix it</h3>
-                        <p data-i18n="landing.planStep3Desc">Start shooting like it's second nature</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ACTION - CTA -->
-            <div style="text-align: center; margin: 48px auto 0; max-width: 680px;">
-                <p style="font-size: 0.95rem; color: rgba(255,255,255,0.55); line-height: 1.6; margin: 0 0 20px; font-style: italic;" data-i18n="landing.actionMicrocopy">Curry made 100+ reps a day. You just need one clip to start.</p>
-                <button class="landing-cta-btn" onclick="openAuthModal()">
-                    <span>-></span>
-                    <span data-i18n="landing.cta">Start Free</span>
-                </button>
-            </div>
-
-            <div class="landing-guide">
-                <h2 class="landing-guide-title" data-i18n="landing.guideTitle">如何拍摄分析视频</h2>
-                <p class="landing-guide-subtitle" data-i18n="landing.guideSubtitle">拍得好，才能分析得准</p>
-                <div class="landing-guide-layout">
-                    <div class="landing-guide-image">
-                        <img src="https://cfsabjichjyzjraarrjh.supabase.co/storage/v1/object/public/models/upload_guide.png" alt="Video shooting guide" onerror="this.parentElement.style.display='none'">
-                    </div>
-                    <div class="landing-guide-tips">
-                        <div class="guide-tip">
-                            <div class="guide-tip-icon">👤</div>
-                            <div class="guide-tip-text">
-                                <h4 data-i18n="landing.guideTip1Title">侧身拍摄</h4>
-                                <p data-i18n="landing.guideTip1Desc">手机放在投篮手一侧，拍摄侧面全身动作，看清手臂和腿部角度</p>
-                            </div>
-                        </div>
-                        <div class="guide-tip">
-                            <div class="guide-tip-icon">📏</div>
-                            <div class="guide-tip-text">
-                                <h4 data-i18n="landing.guideTip2Title">人物占画面 60% 以上</h4>
-                                <p data-i18n="landing.guideTip2Desc">不要站太远，让投篮者占据画面大部分，保证关节检测精度</p>
-                            </div>
-                        </div>
-                        <div class="guide-tip">
-                            <div class="guide-tip-icon">🎬</div>
-                            <div class="guide-tip-text">
-                                <h4 data-i18n="landing.guideTip3Title">完整的投篮过程</h4>
-                                <p data-i18n="landing.guideTip3Desc">从准备姿势拍到随球动作结束，至少包含完整的出手过程</p>
-                            </div>
-                        </div>
-                        <div class="guide-tip">
-                            <div class="guide-tip-icon">💡</div>
-                            <div class="guide-tip-text">
-                                <h4 data-i18n="landing.guideTip4Title">光线充足，背景简洁</h4>
-                                <p data-i18n="landing.guideTip4Desc">避免逆光和杂乱背景，确保身体轮廓清晰可辨</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 6. FAILURE - 不修的代价 -->
-        <section class="landing-failure">
-            <h2 class="landing-failure-title" data-i18n="landing.failureTitle">The harder you train the wrong motion, the further you get from your shot.</h2>
-            <p class="landing-failure-desc" data-i18n="landing.failureDesc">Without finding the real flaw, every rep just deepens the wrong muscle memory. You're not staying still - you're moving away from the shooter you want to be.</p>
-        </section>
-
-        <!-- 7. SUCCESS - 成功愿景 -->
-        <section class="landing-success">
-            <h2 class="landing-success-title" data-i18n="landing.successTitle">Not grinding. Not guessing. Just hooping.</h2>
-            <p class="landing-success-desc" data-i18n="landing.successDesc">You catch the ball - no thought, just rise and fire. Splash. Again. Splash. It's not luck anymore, it's who you are. People whisper "that guy can shoot." And you? You're just playing - finally, purely playing.</p>
-            <button class="landing-cta-btn" onclick="openAuthModal()">
-                <span>-></span>
-                <span data-i18n="landing.successCta">Start Hooping</span>
-            </button>
-        </section>
-
-        <!-- 8. PRICING -->
-        <section class="landing-pricing">
-            <h2 class="landing-pricing-title" data-i18n="landing.pricingTitle">Pricing</h2>
-            <div class="landing-pricing-plans">
-                <div class="landing-pricing-card">
-                    <div class="landing-pricing-name">Free</div>
-                    <div class="landing-pricing-price">$0</div>
-                    <div class="landing-pricing-note" data-i18n="landing.freeNote">3 free analyses on signup</div>
-                </div>
-                <div class="landing-pricing-card featured">
-                    <div class="landing-pricing-name" data-i18n="landing.earlyAdopterMonthly">Early Adopter Monthly</div>
-                    <div class="landing-pricing-price"><span class="landing-pricing-original">$7.99</span>$4.99<span>/month</span></div>
-                    <div class="landing-pricing-note" data-i18n="landing.lockPriceNote">Lock in this price forever</div>
-                    <div class="landing-pricing-badge" data-i18n="landing.earlyAdopterBadge">EARLY ADOPTER</div>
-                </div>
-                <div class="landing-pricing-card yearly">
-                    <div class="landing-pricing-name" data-i18n="landing.earlyAdopterYearly">Early Adopter Yearly</div>
-                    <div class="landing-pricing-price"><span class="landing-pricing-original">$95.88</span>$39.99<span>/year</span></div>
-                    <div class="landing-pricing-note" data-i18n="landing.yearlyNote">~$3.33/month, lock forever</div>
-                    <div class="landing-pricing-badge" data-i18n="landing.bestValueBadge">BEST VALUE</div>
-                </div>
-            </div>
-            <div class="landing-pricing-regular-note" data-i18n="landing.regularPriceNote">Regular price will be $7.99/month when we add scoring, coaching tips, and progress tracking.</div>
-        </section>
-
-        <!-- Footer for landing page -->
-        <footer class="landing-footer">
-            <div class="footer-links">
-                <span class="footer-link" onclick="showPrivacyModal()" data-i18n="footer.privacy">Privacy Policy</span>
-                <span class="footer-link" onclick="showTermsModal()" data-i18n="footer.terms">Terms of Service</span>
-                <a class="footer-link" href="mailto:ThisIsClark@163.com" data-i18n="footer.contact">Contact Us</a>
-            </div>
-            <div class="footer-copyright">
-                © 2026 ShotPro. All rights reserved.
-            </div>
-        </footer>
     </div>
 
     <!-- 登录模态框 -->
@@ -4112,6 +3873,7 @@
                     <span data-i18n="auth.freeTrial">New users get 3 free analyses!</span>
                 </div>
             </div>
+            <p id="pendingVideoNotice" class="one-pending" hidden></p>
             <div class="auth-error" id="authError"></div>
             <div class="auth-success" id="authSuccess"></div>
             <form class="auth-form" id="authForm" onsubmit="handleAuthSubmit(event)">
@@ -4252,11 +4014,8 @@
             <span id="proStatusText">Unlimited analyses</span>
             <span class="pro-info" id="proStatusInfo"></span>
         </div>
-        <header>
-            <div class="header-title-group">
-                <h1 data-i18n="title">🏀 Basketball Shooting Form Analyzer</h1>
-                <p data-i18n="subtitle">Upload your shooting video to get professional form analysis and improvement suggestions</p>
-            </div>
+        <header class="public-header">
+            <a class="one-brand site-brand" href="/app"><span class="brand-ball" aria-hidden="true">◉</span> FormRefine<span class="brand-dot">.</span></a><nav class="one-nav public-nav" aria-label="Main navigation"><a href="/app#oneExample">Example analysis</a><a href="/app#oneHow">How it works</a><a href="/guides">Shooting guides</a></nav>
             <div class="header-actions" id="authStatus">
                 <!-- 历史记录按钮 -->
                 <button class="action-btn history-btn" id="historyBtn" onclick="showHistory()">
@@ -4294,17 +4053,29 @@
         </header>
 
         <div class="main-content">
+            <section class="one-intro"><p class="one-kicker">Make your next practice count</p><h1>Build basketball shooting form you can trust</h1><p>Putting in the reps but unsure what to change? Start with a basketball shooting form check. See your movement, compare attempts, and choose one thing to work on before your next game.</p><div class="one-benefits">1 free analysis without signup &nbsp; · &nbsp; 3 more with a free account</div><div class="intro-actions"><a class="shot-cta" href="#oneUpload">Analyze my shot <span aria-hidden="true">↓</span></a><a class="example-link" href="#oneExample">Explore the breakdown <span aria-hidden="true">↗</span></a></div>
+                <div class="shot-preview" aria-label="Example shooting sequence">
+                    <div class="shot-preview-head"><span>One shot. A closer look.</span><span class="example-tag">Example analysis</span></div>
+                    <div class="shot-preview-frames">
+                        <figure><img src="/static/demo_sync_frame_1.jpg" alt="Example dip with pose landmarks"><figcaption><span>01</span> Ball dip</figcaption></figure>
+                        <figure><img src="/static/demo_highest_frame.jpg" alt="Example highest hold with pose landmarks"><figcaption><span>02</span> Highest hold</figcaption></figure>
+                        <figure><img src="/static/demo_release_frame.jpg" alt="Example release with pose landmarks"><figcaption><span>03</span> Release</figcaption></figure>
+                    </div>
+                    <div class="shot-preview-track" aria-hidden="true"><i></i><i></i><i></i></div>
+                </div></section>
             <!-- Upload Section -->
-            <div class="upload-section">
+            <div class="upload-section" id="oneUpload">
                 <div class="card">
+                    <div class="upload-eyebrow"><span class="live-dot" aria-hidden="true"></span> Your next practice starts here <span>↗</span></div>
                     <h2 data-i18n="upload.title">Upload Video</h2>
                     
-                    <div class="upload-area" id="uploadArea">
-                        <div class="upload-icon">📹</div>
+                    <div class="upload-area" id="uploadArea" role="button" tabindex="0" aria-label="Choose a shooting video">
+                        <div class="upload-icon" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16V3m-5 5 5-5 5 5M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/></svg></div>
                         <p data-i18n="upload.clickOrDrag">Click or drag video here</p>
                         <p class="hint" data-i18n="upload.hint">Supports MP4, MOV, AVI, WebM<br>Max 10MB</p>
                     </div>
                     <input type="file" id="fileInput" accept="video/*">
+                    <div class="filming-cues"><span>↔ Full body in frame</span><span>◷ Up to 10 seconds</span></div>
 
                     <div class="preview-container" id="previewContainer">
                         <video id="videoPreview" controls></video>
@@ -4343,6 +4114,7 @@
                         Start Analysis
                     </button>
 
+                    <p id="oneUploadHint" class="one-hint" role="status">Try one analysis without signing up. Videos up to 10 seconds; trial reports available for 24 hours.</p>
                     <div class="progress-container" id="progressContainer">
                         <div class="progress-bar">
                             <div class="progress-fill" id="progressFill"></div>
@@ -4386,6 +4158,7 @@
                 </div>
 
                 <div class="results-container" id="resultsContainer">
+                    <div class="analysis-heading"><div><p>Your shot, frame by frame</p><h2>The shooting breakdown</h2></div><span>Observe · Compare · Practice</span></div>
                     <!-- 返回历史按钮（从历史查看时显示） -->
                     <button class="result-back-to-history" id="backToHistoryBtn" onclick="backToHistory()">
                         ← <span data-i18n="history.back">Back to History</span>
@@ -4520,7 +4293,28 @@
             </div>
         </div>
 
-        <!-- Footer for logged-in users (outside main-content) -->
+        <section class="one-how"><h2>More shots. But what is actually changing?</h2><p>It is frustrating to put in the work and still hesitate when you get an open look. Repeating a movement without reviewing it can leave you guessing. FormRefine helps you see your shot clearly, so you and your coach have something concrete to work with.</p><p>Start with one video, one observation, and one focus for your next practice. Build a record of your work instead of relying on how the last shot felt.</p></section>
+        <section class="one-example" id="oneExample"><h2>See the moments that matter</h2><p>Review your movement in time order, with keyframes and angle measurements as clues.</p><div class="one-frames"><figure><img src="/static/demo_sync_frame_1.jpg" alt="Example ball dip keyframe" loading="lazy"><figcaption>Ball dip</figcaption></figure><figure><img src="/static/demo_highest_frame.jpg" alt="Example highest hold keyframe" loading="lazy"><figcaption>Highest hold</figcaption></figure><figure><img src="/static/demo_release_frame.jpg" alt="Example release keyframe" loading="lazy"><figcaption>Release</figcaption></figure></div><p class="one-hint">Example images. Keyframes and measurements are estimates from a single camera angle.</p></section>
+        <section class="one-how" id="shootingFormBasics" aria-labelledby="shootingFormBasicsTitle">
+            <h2 id="shootingFormBasicsTitle">What should you look for in your basketball shooting form?</h2>
+            <p>A useful form check looks at the whole movement, not just one angle or whether the shot went in. Start with these three parts of your video.</p>
+            <div>
+                <article><h3>Balance and body position</h3><p>Watch your feet, knees and trunk through the shot and landing. Compare attempts from the same camera position; a different view can change how your alignment and joint angles appear.</p></article>
+                <article><h3>Ball dip and shooting rhythm</h3><p>Review how the ball lowers and rises alongside your legs and shooting arm. The ball's lowest position and your deepest knee bend can happen at different moments. Check the frames around each point before judging the sequence.</p></article>
+                <article><h3>Release and follow-through</h3><p>Look for the ball leaving your hand, then follow the movement forward. The highest wrist position is not necessarily the release point. Automatic keyframes are estimates to review against your original video.</p></article>
+            </div>
+            <p>There is no single set of angles that proves a shooting form is right for everyone. Use comparable clips to find repeatable patterns, then discuss uncertain observations with a coach.</p>
+            <a class="one-upload-link" href="/guides/basketball-shooting-form-check">Read the basketball shooting form checklist</a>
+        </section>
+        <section class="one-how" id="oneHow"><h2>Make the analysis useful on court</h2><div><article><h3>Review your video</h3><p>Upload a short clip. We highlight key moments and joint measurements so you can review what happened.</p></article><article><h3>Choose one practice focus</h3><p>Review your keyframes and measurements, then choose one adjustment to work on. Discuss uncertain observations with your coach.</p></article><article><h3>Track your next session</h3><p>Film again under similar conditions. Use your history to compare keyframes and track measured changes.</p></article></div><a class="one-upload-link" href="#oneUpload">Start with your shooting video</a></section>
+        <section class="one-guides" aria-labelledby="oneGuidesTitle"><h2 id="oneGuidesTitle">Get more from your shooting form check</h2><p>Start with a clear clip, then learn how to review what the measurements show.</p><div>
+            <article><h3><a href="/guides/basketball-shooting-form-check">Basketball form check checklist</a></h3><p>A practical sequence for reviewing your shot without judging it from one frame.</p></article>
+            <article><h3><a href="/guides/how-to-film-basketball-shot">How to film your basketball shot</a></h3><p>Camera position, framing and consistent conditions for a useful follow-up.</p></article>
+            <article><h3><a href="/guides/basketball-shooting-dip">Understand the shooting dip</a></h3><p>Find the low point and separate ball movement from knee and hip bend.</p></article>
+            <article><h3><a href="/guides/basketball-release-point">Find your release point</a></h3><p>Distinguish release from wrist peak and compare the same event across clips.</p></article>
+        </div><a href="/guides">Browse all shooting guides</a></section>
+        <noscript><p class="one-hint">You can read the shooting guides without JavaScript. Enable JavaScript to select a video, sign in and run the analyzer.</p></noscript>
+        <!-- Footer -->
         <footer class="site-footer">
             <div class="footer-links">
                 <span class="footer-link" onclick="showPrivacyModal()" data-i18n="footer.privacy">Privacy Policy</span>
@@ -4528,7 +4322,7 @@
                 <a class="footer-link" href="mailto:ThisIsClark@163.com" data-i18n="footer.contact">Contact Us</a>
             </div>
             <div class="footer-copyright">
-                © 2026 ShotPro. All rights reserved.
+                © 2026 FormRefine. All rights reserved.
             </div>
         </footer>
     </div>
@@ -4546,6 +4340,7 @@
         <button class="lightbox-nav next" id="lightboxNext">›</button>
     </div>
 
+    <script src="/static/trial.js"></script>
     <script>
         // ==================== Supabase 配置（由后端注入） ====================
         const SUPABASE_URL = '{{SUPABASE_URL}}';
@@ -4553,6 +4348,9 @@
 
         let supabaseClient = null;
         let currentUser = null;
+        let pendingAnalysis = false;
+        let analysisBusy = false;
+        let previewObjectUrl = null;
         let isAuthModeLogin = true; // true = 登录, false = 注册
         let creditsRemaining = 0;
         let creditsUnlimited = false;
@@ -4654,6 +4452,7 @@
             document.getElementById('userAvatar').textContent = initial;
 
             currentUser = { ...(currentUser || {}), email, isAdmin };
+            document.querySelector(".fb-retain").style.display = "";
 
             // 隐藏导出按钮的登录提示
             updateExportButtonsLoginHint();
@@ -4662,10 +4461,10 @@
             const countEl = document.getElementById('freeTrialCount');
             if (countEl) countEl.textContent = '--';
             fetchCredits();
+            setTimeout(async () => { if (await saveTrialToAccount()) resumePendingAnalysis(); }, 0);
 
             // 移除分析完成后的登录引导（如果存在）
-            const guidance = document.querySelector('.login-guidance');
-            if (guidance) guidance.remove();
+
         }
 
         // 显示登录按钮（未登录状态）
@@ -4673,12 +4472,17 @@
             // 显示落地页，隐藏主功能区域
             const landingPage = document.getElementById('landingPage');
             const mainContainer = document.querySelector('.container');
-            if (landingPage) landingPage.style.display = 'flex';
-            if (mainContainer) mainContainer.style.display = 'none';
+            if (landingPage) landingPage.style.display = 'none';
+            if (mainContainer) mainContainer.style.display = 'block';
 
-            document.getElementById('loginBtn').style.display = 'none';  // 落地页有自己的登录按钮
+            document.getElementById('loginBtn').style.display = 'block';
             document.getElementById('userInfo').style.display = 'none';
             currentUser = null;
+            document.querySelector(".fb-retain").style.display = "none";
+            creditsRemaining = 0;
+            creditsUnlimited = false;
+            fetchCredits();
+            document.getElementById('proStatusBar').style.display = 'none';
 
             // 显示导出按钮的登录提示
             updateExportButtonsLoginHint();
@@ -4703,9 +4507,11 @@
         async function fetchCredits() {
             try {
                 const headers = await getAuthHeaders();
-                const response = await fetch('/api/v1/auth/credits', { headers });
+                const response = await fetch(currentUser ? '/api/v1/auth/credits' : '/api/v1/trial/status', { headers });
+                if (response.status === 401) return {authExpired: true};
                 if (response.ok) {
                     const data = await response.json();
+                    if (!currentUser) { showTrialResume(data); window.opsVisitorReady = true; if (window.recordOperationsVisit) window.recordOperationsVisit(); }
                     creditsRemaining = data.credits_remaining;
                     creditsUnlimited = data.is_unlimited;
                     subscriptionPlan = data.subscription_plan;
@@ -4864,14 +4670,25 @@
         }
 
         // 打开登录/注册模态框
+        function resumePendingAnalysis() {
+            if (!pendingAnalysis || !currentUser || analysisBusy) return;
+            pendingAnalysis = false;
+            closeAuthModal();
+            if (selectedFile && !analyzeBtn.disabled) startAnalysis();
+        }
+
         function openAuthModal() {
             document.getElementById('authModal').classList.add('active');
             document.body.style.overflow = 'hidden';
             resetAuthForm();
+            const notice = document.getElementById('pendingVideoNotice');
+            notice.hidden = !pendingAnalysis;
+            notice.textContent = pendingAnalysis ? `${selectedFile?.name || 'Your video'} is selected on this device. Sign in to upload and analyze it automatically. If email verification is required, keep this page open and sign in here after verifying.` : '';
         }
 
         // 关闭模态框
-        function closeAuthModal() {
+        function closeAuthModal(cancelPending = true) {
+            if (cancelPending) pendingAnalysis = false;
             document.getElementById('authModal').classList.remove('active');
             document.body.style.overflow = '';
         }
@@ -5072,7 +4889,7 @@
                         // 存储到 localStorage 以持久化登录状态
                         localStorage.setItem('localUser', JSON.stringify(currentUser));
                         setTimeout(() => {
-                            closeAuthModal();
+                            closeAuthModal(false);
                             showLoggedInState(email, isAdmin);
                         }, 1000);
                         btn.disabled = false;
@@ -5116,12 +4933,13 @@
                         currentUser = result.data.user;
                         trackEvent('login_success', { email });
                         setTimeout(() => {
-                            closeAuthModal();
+                            closeAuthModal(false);
                             showLoggedInState(email, false);  // Supabase 用户不是管理员
                         }, 1000);
                     } else {
                         showAuthSuccess('Registration successful! Please check your email for verification');
                         trackEvent('register_success', { email });
+                        window.recordJourney?.('registration_submitted');
                     }
                 }
             } catch (err) {
@@ -5139,6 +4957,10 @@
         // 登出
         async function handleLogout() {
             try {
+                await fetch('/api/v1/trial/logout', {method: 'POST'});
+                document.getElementById('resultsContainer').style.display = 'none';
+                document.getElementById('historyView').style.display = 'none';
+                await fetch("/api/v1/feedback/media-session", {method: "DELETE"}).catch(() => {});
                 // 如果是本地用户，清除 localStorage 和状态
                 if (currentUser && currentUser.isLocal) {
                     localStorage.removeItem('localUser');
@@ -5272,7 +5094,7 @@
                 guidanceDiv.style.cssText = 'background: rgba(254, 202, 87, 0.15); border: 1px solid rgba(254, 202, 87, 0.3); border-radius: 12px; padding: 16px 20px; margin-top: 16px; text-align: center;';
                 guidanceDiv.innerHTML = `
                     <p style="color: #feca57; font-weight: 600; margin-bottom: 8px;">
-                        💡 ${currentLang === 'zh-CN' ? '登录后可保存历史记录和导出分析结果' : 'Login to save history and export results'}
+                        💡 ${currentLang === 'zh-CN' ? '保存这次报告，跟踪投篮变化。新账号额外获得 3 次免费分析。' : 'Save this analysis and track how your shot changes. New accounts get 3 more free analyses.'}
                     </p>
                     <button onclick="openAuthModal()" style="background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%); color: white; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
                         ${currentLang === 'zh-CN' ? '立即登录' : 'Login Now'}
@@ -5293,6 +5115,8 @@
 
         // 显示历史记录
         async function showHistory() {
+            if (!currentUser) { openAuthModal(); return; }
+            await saveTrialToAccount();
             const emptyState = document.getElementById('emptyState');
             const resultsContainer = document.getElementById('resultsContainer');
             const historyView = document.getElementById('historyView');
@@ -5302,6 +5126,7 @@
             emptyState.style.display = 'none';
             resultsContainer.style.display = 'none';
             historyView.style.display = 'block';
+            historyView.scrollIntoView({behavior: 'smooth', block: 'start'});
 
             // 显示加载状态
             historyContent.innerHTML = `
@@ -5312,10 +5137,12 @@
             `;
 
             try {
-                const response = await fetch('/api/v1/videos/history?limit=20');
+                const response = await fetch('/api/v1/videos/history?limit=100', {headers: await getAuthHeaders()});
                 if (!response.ok) throw new Error('Failed to fetch history');
                 const history = await response.json();
                 renderHistoryList(history);
+                addHistoryComparison(history);
+                window.ShotTrends.mount(history);
             } catch (err) {
                 historyContent.innerHTML = `
                     <div class="history-empty">
@@ -5362,7 +5189,7 @@
                 html += `
                     <div class="history-item" onclick="viewHistoryDetail('${item.task_id}')">
                         <div class="history-item-info">
-                            <div class="history-item-title">${item.video_filename || 'unknown'}</div>
+                            <div class="history-item-title">${historyEscape(item.video_filename || 'unknown')}</div>
                             <div class="history-item-meta">
                                 ${statusBadge}
                                 ${dateStr}
@@ -5406,7 +5233,7 @@
             const backBtn = document.getElementById('backToHistoryBtn');
 
             try {
-                const response = await fetch(`/api/v1/videos/tasks/${taskId}/result`);
+                const response = await fetch(`/api/v1/videos/tasks/${taskId}/result`, {headers: await getAuthHeaders()});
                 if (!response.ok) throw new Error('Failed to fetch result');
                 const result = await response.json();
 
@@ -5414,7 +5241,7 @@
                 historyView.style.display = 'none';
                 emptyState.style.display = 'none';
                 resultsContainer.style.display = 'block';
-                backBtn.style.display = 'inline-flex';
+                backBtn.style.display = currentUser ? 'inline-flex' : 'none';
                 isViewingFromHistory = true;
 
                 // 设置当前任务 ID（供导出功能使用）
@@ -5443,7 +5270,8 @@
             if (!confirm(t.deleteConfirm)) return;
 
             try {
-                await fetch(`/api/v1/videos/tasks/${taskId}`, { method: 'DELETE' });
+                const response = await fetch(`/api/v1/videos/tasks/${taskId}`, { method: 'DELETE', headers: await getAuthHeaders() });
+                if (!response.ok) throw new Error('Delete failed');
                 // 刷新列表
                 showHistory();
             } catch (err) {
@@ -5554,7 +5382,7 @@
                     sync_frame_1: '沉球点',
                     sync_frame_2: '手上升后',
                     max_hold_frame: '最高持球点',
-                    release_frame: '出手点',
+                    release_frame: '出手点（估计）',
                     knee_min_frame: '最低蹲点',
                     elbow_min_frame: '最紧折叠点',
                     wrist_peak_frame: '手腕最高点',
@@ -5597,7 +5425,7 @@
                     uploadFailed: '上传失败',
                     analysisFailed: '分析失败',
                     invalidFormat: '请上传支持的视频格式 (MP4, MOV, AVI, WebM)',
-                    fileTooLarge: '文件大小超过 20MB 限制',
+                    fileTooLarge: '文件大小超过 10MB 限制',
                     videoTooLong: '视频时长超过 10 秒限制，请上传 10 秒以内的短视频',
                     noCredits: '免费分析次数已用完，请购买更多分析次数',
                     unknownError: '未知错误'
@@ -5843,7 +5671,7 @@
                     sync_frame_1: 'Dip Point',
                     sync_frame_2: 'After Rising',
                     max_hold_frame: 'Max Hold Point',
-                    release_frame: 'Release Point',
+                    release_frame: 'Estimated Release',
                     knee_min_frame: 'Deepest Squat',
                     elbow_min_frame: 'Elbow Tuck',
                     wrist_peak_frame: 'Wrist Peak',
@@ -5886,7 +5714,7 @@
                     uploadFailed: 'Upload failed',
                     analysisFailed: 'Analysis failed',
                     invalidFormat: 'Please upload supported video format (MP4, MOV, AVI, WebM)',
-                    fileTooLarge: 'File size exceeds 20MB limit',
+                    fileTooLarge: 'File size exceeds 10MB limit',
                     videoTooLong: 'Video duration exceeds 10 seconds. Please upload a video under 10 seconds.',
                     noCredits: 'No free analyses remaining. Please purchase more to continue.',
                     unknownError: 'Unknown error'
@@ -6334,14 +6162,19 @@
             availableTemplates.forEach(template => {
                 const option = document.createElement('option');
                 option.value = template.id;
-                option.textContent = `${template.name} ${template.description ? '- ' + template.description : ''}`;
+                const parts = (template.name || '').split('·').map(part => part.trim());
+                const shot = parts[1]?.replace(/Practice jumper/i, 'Jumper');
+                const label = [parts[0], shot].filter(Boolean).join(' · ');
+                option.textContent = label.length > 40 ? label.slice(0, 39) + '…' : label;
+                option.title = [template.name, template.description].filter(Boolean).join(' — ');
                 templateSelect.appendChild(option);
             });
         }
 
 
         // Upload area events
-        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('click', () => { if (!analysisBusy) fileInput.click(); });
+        uploadArea.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!analysisBusy) fileInput.click(); } });
         
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
@@ -6372,6 +6205,10 @@
         });
 
         function resetUpload() {
+            if (analysisBusy) return;
+            pendingAnalysis = false;
+            if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+            previewObjectUrl = null;
             selectedFile = null;
             videoPreview.src = '';
             previewContainer.style.display = 'none';
@@ -6383,6 +6220,8 @@
         }
 
         function handleFile(file) {
+            if (analysisBusy) return;
+            pendingAnalysis = false;
             // Validate file type
             const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
             if (!validTypes.includes(file.type) && !file.name.match(/\.(mp4|mov|avi|webm)$/i)) {
@@ -6390,24 +6229,28 @@
                 return;
             }
 
-            // Validate file size (20MB)
-            if (file.size > 20 * 1024 * 1024) {
+            // Validate file size (10MB)
+            if (file.size > 10 * 1024 * 1024) {
                 alert(t('errors.fileTooLarge'));
                 return;
             }
 
             selectedFile = file;
+            window.recordJourney?.('file_selected');
             fileName.textContent = file.name;
             
             // Show preview & validate duration
-            const url = URL.createObjectURL(file);
-            videoPreview.src = url;
+            if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+            previewObjectUrl = URL.createObjectURL(file);
+            videoPreview.src = previewObjectUrl;
+            document.getElementById('oneUploadHint').textContent = currentUser ? 'Ready to analyze.' : (creditsRemaining > 0 ? 'Ready for your free trial. No sign-up needed (up to 10 seconds).' : 'Your trial is used or in progress. Sign in to analyze this video.');
+            videoPreview.onerror = () => { alert('This video could not be opened. Try an MP4 video.'); resetUpload(); };
             previewContainer.style.display = 'block';
             uploadArea.style.display = 'none';
             analyzeBtn.disabled = true; // 先禁用，等 duration 检查通过
 
             videoPreview.onloadedmetadata = () => {
-                if (videoPreview.duration > 10) {
+                if (!Number.isFinite(videoPreview.duration) || videoPreview.duration > 10) {
                     alert(t('errors.videoTooLong'));
                     resetUpload();
                     return;
@@ -6419,17 +6262,33 @@
         }
 
         // Analyze button
-        analyzeBtn.addEventListener('click', async () => {
-            if (!selectedFile) return;
+        analyzeBtn.addEventListener('click', startAnalysis);
+        async function startAnalysis() {
+            if (!selectedFile || analysisBusy || analyzeBtn.disabled) return;
+            analysisBusy = true;
+            analyzeBtn.disabled = true;
+            removeFile.disabled = true;
+            fileInput.disabled = true;
             trackEvent('button_click', { button: 'analyze' });
 
-            // 检查分析次数
-            if (currentUser && !creditsUnlimited) {
-                await fetchCredits();
-                if (!creditsUnlimited && creditsRemaining <= 0) {
-                    openPaymentModal();
-                    return;
+            const creditState = await fetchCredits();
+            if (!creditState || creditState.authExpired) {
+                resetUploadState();
+                if (creditState?.authExpired) {
+                    showLoginButton();
+                    pendingAnalysis = true;
+                    openAuthModal();
+                    showAuthError('Your session expired. Sign in to continue.');
+                } else {
+                    document.getElementById('oneUploadHint').textContent = 'Could not check your analysis credits. Please try again.';
                 }
+                return;
+            }
+            if (!creditsUnlimited && creditsRemaining <= 0) {
+                resetUploadState();
+                if (!currentUser) { pendingAnalysis = true; openAuthModal(); }
+                else openPaymentModal();
+                return;
             }
 
             const shootingHand = document.querySelector('input[name="shooting_hand"]:checked').value;
@@ -6465,6 +6324,18 @@
                     headers: authHeaders
                 });
 
+                if (uploadResponse.status === 403 && !currentUser) {
+                    resetUploadState(); pendingAnalysis = true; openAuthModal(); return;
+                }
+                if (uploadResponse.status === 401) {
+                    resetUploadState();
+                    currentUser = null;
+                    showLoginButton();
+                    pendingAnalysis = true;
+                    openAuthModal();
+                    showAuthError('Your session expired. Sign in to continue with the selected video.');
+                    return;
+                }
                 if (!uploadResponse.ok) {
                     const error = await uploadResponse.json();
                     throw new Error(error.detail || '上传失败');
@@ -6487,13 +6358,14 @@
                 alert(t('errors.uploadFailed') + ': ' + error.message);
                 resetUploadState();
             }
-        });
+        }
 
         async function checkStatus() {
             if (!currentTaskId) return;
 
             try {
-                const response = await fetch(`/api/v1/videos/tasks/${currentTaskId}/status`);
+                const response = await fetch(`/api/v1/videos/tasks/${currentTaskId}/status`, {headers: await getAuthHeaders()});
+                if (!response.ok) { clearInterval(pollInterval); resetUploadState(); throw new Error('Could not access report. Please sign in again.'); }
                 const status = await response.json();
 
                 progressFill.style.width = status.progress + '%';
@@ -6519,7 +6391,7 @@
                     } else {
                         // 从 /result endpoint 获取完整结果
                         try {
-                            const resultResponse = await fetch(`/api/v1/videos/tasks/${currentTaskId}/result`);
+                            const resultResponse = await fetch(`/api/v1/videos/tasks/${currentTaskId}/result`, {headers: await getAuthHeaders()});
                             if (resultResponse.ok) {
                                 const result = await resultResponse.json();
                                 displayResults(result);
@@ -6545,7 +6417,10 @@
         }
 
         function resetUploadState() {
-            analyzeBtn.disabled = false;
+            analysisBusy = false;
+            removeFile.disabled = false;
+            fileInput.disabled = false;
+            analyzeBtn.disabled = !selectedFile;
             analyzeBtn.innerHTML = t('upload.analyze');
             progressContainer.style.display = 'none';
         }
@@ -6571,7 +6446,7 @@
                 }
                 return { ...kf, image_url: imageUrl };
             });
-            keyFrameImages = kfs.map(kf => ({ image_url: kf.image_url, phase: kf.phase }));
+            keyFrameImages = sortKeyFramesByTime(kfs);
             window._currentTemplateComparison = null; // 模板查看无对比
 
             // 模板信息横幅
@@ -6583,9 +6458,7 @@
                 </div>`;
 
             // 复用普通分析的 renderKeyframeCard，按展示顺序排列
-            const orderedKfs = KEYFRAME_DISPLAY_ORDER
-                .map(phase => kfs.find(kf => kf.phase === phase))
-                .filter(Boolean);
+            const orderedKfs = keyFrameImages;
             if (orderedKfs.length > 0 && keyFramesSection) {
                 keyFramesSection.style.display = 'block';
                 keyFramesEl.innerHTML = banner + orderedKfs.map((kf, idx) => renderKeyframeCard(kf, idx, {})).join('');
@@ -6871,10 +6744,26 @@
         }
 
         // ===== 关键帧卡片 =====
-        const KEYFRAME_DISPLAY_ORDER = [
-            'knee_min_frame', 'sync_frame_1', 'elbow_min_frame', 'sync_frame_2',
-            'wrist_peak_frame', 'max_hold_frame', 'release_frame', 'follow_through_frame'
-        ];
+        function sortKeyFramesByTime(frames) {
+            const number = value => value != null && value !== '' && Number.isFinite(Number(value))
+                ? Number(value) : null;
+            return [...frames].sort((a, b) => {
+                const ta = number(a.timestamp), tb = number(b.timestamp);
+                if (ta !== null && tb !== null && ta !== tb) return ta - tb;
+                const fa = number(a.frame_number), fb = number(b.frame_number);
+                if (fa !== null && fb !== null && fa !== fb) return fa - fb;
+                if (ta !== null && tb === null) return -1;
+                if (ta === null && tb !== null) return 1;
+                if (fa !== null && fb === null) return -1;
+                if (fa === null && fb !== null) return 1;
+                return 0;
+            });
+        }
+
+        function keyframeTimeLabel(kf) {
+            return kf.timestamp != null && Number.isFinite(Number(kf.timestamp))
+                ? ` · ${Number(kf.timestamp).toFixed(2)}s` : '';
+        }
         // 每个关键帧的核心角度（显示在卡片上）
         const KEYFRAME_CORE_ANGLE = {
             knee_min_frame:       { key: 'knee_angle',  label: { 'zh-CN': '膝', 'en-US': 'Knee' } },
@@ -6909,7 +6798,7 @@
         }
 
         function renderKeyframeCard(kf, idx, compMap) {
-            const name = keyframeLabel(kf.phase);
+            const name = keyframeLabel(kf.phase) + keyframeTimeLabel(kf);
             const core = KEYFRAME_CORE_ANGLE[kf.phase] || { key: 'elbow_angle', label: { 'zh-CN': '肘', 'en-US': 'Elbow' } };
             const angleVal = kf.angles ? kf.angles[core.key] : null;
             const coreLabel = core.label[currentLang] || core.label['en-US'];
@@ -6934,7 +6823,7 @@
 
         // 关键帧并排对比行：左用户图 / 右模板图，下方角度差异（有模板对比时使用）
         function renderKeyframeCompareRow(kf, idx, comp, templateName) {
-            const name = keyframeLabel(kf.phase);
+            const name = keyframeLabel(kf.phase) + keyframeTimeLabel(kf);
             const tUrl = comp && comp.template_frame && comp.template_frame.image_url;
             const tAngles = comp && comp.template_frame ? comp.template_frame.angles : null;
             const diffs = comp && comp.angle_differences ? comp.angle_differences : null;
@@ -7223,9 +7112,13 @@
         }
 
         function displayResults(result) {
+            document.body.classList.add('one-has-results');
+            setTimeout(() => resultsContainer.scrollIntoView({behavior:'smooth', block:'start'}), 0);
             emptyState.style.display = 'none';
             resultsContainer.style.display = 'block';
             trackEvent('page_view', { page: 'analysis_result' });
+            if (window.mountQualitySurvey) window.mountQualitySurvey(currentTaskId || result.task_id, resultsContainer);
+            window.recordJourney?.('result_viewed', currentTaskId || result.task_id);
 
             // 确保所有分析相关的部分都显示（可能在创建模板时被隐藏了）
             const videoSection = document.getElementById('videoResult');
@@ -7253,7 +7146,7 @@
             const keyFrames = document.getElementById('keyFrames');
             const keyFramesSection = document.getElementById('keyFramesSection');
             const templateBadge = document.getElementById('keyframeTemplateBadge');
-            keyFrameImages = result.key_frames || [];
+            keyFrameImages = sortKeyFramesByTime(result.key_frames || []);
             window._currentTemplateComparison = hasComparison ? result.template_comparison : null;
 
             if (result.key_frames && result.key_frames.length > 0) {
@@ -7271,13 +7164,11 @@
                     result.template_comparison.comparisons.forEach(c => { compMap[c.phase] = c; });
                 }
                 // 按展示顺序排列
-                const orderedKfs = KEYFRAME_DISPLAY_ORDER
-                    .map(phase => result.key_frames.find(kf => kf.phase === phase))
-                    .filter(Boolean);
+                const orderedKfs = keyFrameImages;
                 if (hasComparison) {
                     // 有模板对比：默认并排对比（左用户 / 右模板），每行两列
                     const templateName = result.template_comparison.template_name;
-                    keyFrames.style.gridTemplateColumns = '1fr 1fr';
+                    keyFrames.style.gridTemplateColumns = 'minmax(0,1fr) minmax(0,1fr)';
                     keyFrames.innerHTML = orderedKfs.map((kf, idx) =>
                         renderKeyframeCompareRow(kf, idx, compMap[kf.phase], templateName)
                     ).join('');
@@ -7285,6 +7176,15 @@
                     keyFrames.style.gridTemplateColumns = '';
                     keyFrames.innerHTML = orderedKfs.map((kf, idx) => renderKeyframeCard(kf, idx, compMap)).join('');
                 }
+                // 不把局部识别呈现为完整投篮分析。
+                if (!orderedKfs.some(kf => kf.phase === 'sync_frame_1') &&
+                    orderedKfs.some(kf => kf.phase === 'release_frame')) {
+                    const notice = currentLang === 'zh-CN'
+                        ? '仅识别到部分动作：准备阶段数据不足，以下展示可确认的关键帧，暂不评价完整发力过程。'
+                        : 'Partial analysis: preparation data is insufficient. Available key moments are shown; the full power sequence cannot be assessed.';
+                    keyFrames.insertAdjacentHTML('afterbegin', `<p role="status" style="grid-column:1 / -1;color:var(--text-secondary);margin:0 0 12px">${notice}</p>`);
+                }
+
                 // 插入展开的对比区域（点击放大用，初始隐藏）
                 keyFrames.insertAdjacentHTML('beforeend', '<div class="key-frame-compare" id="keyframeComparePanel" style="grid-column:1 / -1;"></div>');
             } else {
@@ -7393,8 +7293,11 @@
 
                 console.log(`[DEBUG] 处理问题: ${issue.issue_type}, detected: ${issue.detected}, severity: ${issue.severity}`);
 
-                // 更新状态显示
-                if (issue.detected) {
+                // 数据不足与未检出问题分开显示。
+                if (issue.skipped) {
+                    statusEl.className = 'coordination-status';
+                    statusEl.textContent = currentLang === 'zh-CN' ? '无法判断' : 'Unable to assess';
+                } else if (issue.detected) {
                     statusEl.className = 'coordination-status status-' + issue.severity;
                     const severityText = {
                         'minor': t('coordination.minorIssue') || 'Minor Issue',
@@ -7415,12 +7318,12 @@
                     let frame1Url = null;
                     let frame2Url = null;
 
-                    if (issue.frame_1 && issue.frame_1.frame_number) {
+                    if (issue.frame_1 && issue.frame_1.frame_number != null) {
                         const kf = frameNumToKeyFrame[issue.frame_1.frame_number];
                         if (kf) frame1Url = kf.image_url;
                         else if (issue.frame_1.image_url) frame1Url = issue.frame_1.image_url;
                     }
-                    if (issue.frame_2 && issue.frame_2.frame_number) {
+                    if (issue.frame_2 && issue.frame_2.frame_number != null) {
                         const kf = frameNumToKeyFrame[issue.frame_2.frame_number];
                         if (kf) frame2Url = kf.image_url;
                         else if (issue.frame_2.image_url) frame2Url = issue.frame_2.image_url;
@@ -7511,7 +7414,7 @@
                 }
 
                 // 如果有问题，显示详细信息和建议
-                if (issue.detected && infoEl) {
+                if ((issue.detected || issue.skipped) && infoEl) {
                     infoEl.style.display = 'block';
                     const desc = currentLang === 'zh-CN' ? issue.description : (issue.description_en || issue.description);
                     const sug = currentLang === 'zh-CN' ? issue.suggestion : (issue.suggestion_en || issue.suggestion);
@@ -8163,5 +8066,7 @@
             }
         });
     </script>
+<script src="/static/operations-tracking.js"></script>
+<script src="/static/quality-survey.js"></script>
 </body>
 </html>

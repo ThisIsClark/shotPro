@@ -188,7 +188,7 @@ async def get_user_credits(
         return CreditsResponse(credits_remaining=0, is_unlimited=False)
 
     if not db_service.is_available():
-        return CreditsResponse(credits_remaining=999, is_unlimited=True)
+        raise HTTPException(503, "Could not check your credits. Please try again later.")
 
     # 检查订阅状态
     sub = await db_service.get_user_subscription(user_id)

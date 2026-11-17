@@ -23,4 +23,4 @@ async def health_check():
 @router.get("/")
 async def root():
     """根路径 - 重定向到应用页面（兼容 Supabase 邮箱验证回调）"""
-    return RedirectResponse(url="/app")
+    return RedirectResponse(url="/app", status_code=308)

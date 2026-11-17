@@ -1,0 +1,12 @@
+{
+  "id": "template_booker_local_20261112",
+  "name": "Devin Booker \u00b7 Practice jumper \u00b7 Side-oblique view",
+  "description": "Existing user-supplied Booker reference clip. Side-oblique view; source speed and original publisher unverified. Pose reference only, not an ideal-angle or release-time target.",
+  "clip": "modelVideo/Booker-model.mp4",
+  "source_url": "local:modelVideo/Booker-model.mp4",
+  "start": 0,
+  "end": 1.83,
+  "view": "side-oblique",
+  "playback": "unverified",
+  "visually_reviewed": true
+}

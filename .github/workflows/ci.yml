@@ -2,9 +2,8 @@ name: Deployment Checks
 
 on:
   push:
-    branches: [ main, master ]
   pull_request:
-    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -18,30 +17,41 @@ jobs:
       with:
         python-version: "3.12"
         
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         
-    - name: Run Core Tests
-      run: |
-        # Ensure scripts use PYTHONPATH=. to find modules
-        export PYTHONPATH=$PYTHONPATH:.
-        python test_core.py
-        python test_import.py
+    - name: Run reusable site and product checks
+      run: python scripts/verify_site.py
 
-    - name: Run Phase Detector Tests
-      run: |
-        export PYTHONPATH=$PYTHONPATH:.
-        python test_phase_detector_optimization.py
-        
-    - name: Run Template Logic Tests
-      run: |
-        export PYTHONPATH=$PYTHONPATH:.
-        python test_template_comparison_flow.py
-        python test_template_load.py
+    - name: Save verification report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: site-verification
+        path: artifacts/verification/
 
-    - name: Run Landmark Fix Tests
+    - name: Publish check summary
+      if: always()
       run: |
-        export PYTHONPATH=$PYTHONPATH:.
-        python test_landmark_fixes.py
+        python - <<'PYREPORT'
+        import json, os
+        from pathlib import Path
+        path = Path('artifacts/verification/summary.json')
+        with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+            if path.exists():
+                result = json.loads(path.read_text())
+                out.write('## FormRefine regression: ' + result['status'] + '\n\n')
+                out.write('| Check | Status | Seconds |\n|---|---|---|\n')
+                for check in result['checks']:
+                    out.write(f"| {check['name']} | {check['status']} | {check['seconds']} |\n")
+                out.write('\nDownload the site-verification artifact and open index.html for cases, failures and logs.\n')
+            else:
+                out.write('No report generated; check dependency installation and runner logs.\n')
+        PYREPORT
