@@ -68,6 +68,7 @@ class PublicSiteTests(unittest.IsolatedAsyncioTestCase):
         page = Page(response.text)
         self.assertIn('basketball shooting form', page.titles[0].lower())
         self.assertIn('basketball shooting form', page.meta['description'].lower())
+        self.assertIn('Use the shooting form checker', response.text)
         # The educational section must be readable without executing JavaScript.
         start = response.text.index('<section class="one-how" id="shootingFormBasics"')
         section = response.text[start:response.text.index('</section>', start)]
