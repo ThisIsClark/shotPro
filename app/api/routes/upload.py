@@ -7,6 +7,7 @@ import uuid
 import shutil
 import aiofiles
 import asyncio
+from fastapi.responses import FileResponse
 from pathlib import Path
 from datetime import datetime
 from typing import List, Optional
@@ -301,7 +302,7 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
         # ===== 分析完成后删除原始视频（节省存储空间）=====
         # 删除本地视频文件
         try:
-            if video_path.exists():
+            if not (settings.staging_engine_auth and user_id) and video_path.exists():
                 video_path.unlink()
                 print(f"[CLEANUP] 已删除本地视频文件: {video_path}")
         except Exception as cleanup_error:
@@ -644,9 +645,10 @@ async def upload_video(
 
     # 判断是否使用数据库：本地管理员（user_id 非 UUID，如 "admin"）走纯内存模式，
     # 否则 Supabase 的 analyses.user_id(UUID) 列写入会失败，导致任务状态无处可查、前端卡死。
-    use_db = bool(user_id) and is_supabase_enabled() and db_service.is_available() and not is_local_user
+    engine_member = bool(user and user.get("provider") == "gefei-staging")
+    use_db = not engine_member and bool(user_id) and is_supabase_enabled() and db_service.is_available() and not is_local_user
 
-    if user_id and not is_local_user and not use_db:
+    if user_id and not engine_member and not is_local_user and not use_db:
         raise HTTPException(503, "Could not check your credits. Please try again later.")
 
     if use_db and user_id and not is_local_user:
@@ -681,7 +683,7 @@ async def upload_video(
             print(f"[DB] Created analysis record with ID: {task_id}")
 
     # 保存文件
-    file_ext = Path(file.filename).suffix if file.filename else ".mp4"
+    file_ext = Path(file.filename).suffix.lower() if file.filename else ".mp4"
     video_path = settings.upload_dir / f"{task_id}{file_ext}"
 
     await save_upload_file(file, video_path)
@@ -743,7 +745,7 @@ async def upload_video(
     task_metadata(task_id, metadata={'shooting_hand':shooting_hand, 'shooting_style':shooting_style,
                                     'template_id':template_id, 'duration':duration, 'file_size_mb':file_size_mb})
     # Keep an explicitly requested private copy, independent of legacy cleanup.
-    if retain_for_feedback and user:
+    if retain_for_feedback and user and not engine_member:
         feedback_store.capture(task_id, user, video_path, file.filename or "Video", locals().get("duration", 0))
         feedback_store.change(task_id, lambda r: r.update(shooting_hand=shooting_hand))
 
@@ -813,6 +815,8 @@ async def upload_video(
 async def authorize_report(task_id, request, user):
     if trial_store.authorize(task_id, request, user):
         return
+    if settings.staging_engine_auth:
+        raise HTTPException(404, 'Report not found.')
     record = await db_service.get_analysis(task_id) if db_service.is_available() else None
     if not user or not ((record and record.get('user_id') == user['id']) or user.get('role') == 'admin'):
         raise HTTPException(404, 'Report not found.')
@@ -935,6 +939,25 @@ async def get_task_result(task_id: str, request: Request, user=Depends(get_curre
     return status_info.get("result")
 
 
+def saved_source(task_id, row):
+    suffix = Path(row["filename"]).suffix.lower()
+    return settings.upload_dir / (task_id + suffix)
+
+
+@router.get("/tasks/{task_id}/source")
+async def get_source_video(task_id: str, request: Request, user=Depends(get_current_user_optional)):
+    if not settings.staging_engine_auth or not user:
+        raise HTTPException(404, "Video not found.")
+    row = trial_store.get(task_id)
+    if not row or row["owner"] != user["id"] or row["state"] != "completed":
+        raise HTTPException(404, "Video not found.")
+    source = saved_source(task_id, row)
+    if not source.is_file():
+        raise HTTPException(404, "Video not found.")
+    return FileResponse(source, filename=Path(row["filename"]).name,
+                        headers={"Cache-Control": "private, no-store"})
+
+
 @router.delete("/tasks/{task_id}")
 async def delete_task(task_id: str, request: Request, user=Depends(get_current_user_optional)):
     await authorize_report(task_id, request, user)
@@ -963,7 +986,7 @@ async def delete_task(task_id: str, request: Request, user=Depends(get_current_u
         task_info = task_store[task_id]
 
     if not task_info and trial_store.get(task_id):
-        task_info = {"video_path": str(settings.upload_dir / (task_id + ".mp4"))}
+        task_info = {"video_path": str(saved_source(task_id, persisted))}
     if not task_info:
         raise HTTPException(status_code=404, detail="任务不存在")
 
@@ -1007,7 +1030,7 @@ async def get_analysis_history(
     rows = {r['id']: {'task_id': r['id'], 'video_filename': r['filename'],
                      'status': r['state'], 'created_at': datetime.fromtimestamp(r['created']).isoformat()}
             for r in trial_store.history(user['id'])}
-    if db_service.is_available() and not user.get('is_local'):
+    if db_service.is_available() and not user.get('is_local') and user.get("provider") != "gefei-staging":
         for r in await db_service.get_user_analyses(user_id=user['id'], limit=100, offset=0):
             tracked = trial_store.get(r['id'])
             if tracked and tracked['state'] == 'deleted':

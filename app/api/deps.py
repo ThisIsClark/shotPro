@@ -4,7 +4,7 @@ API 依赖注入：认证、用户获取（支持 Supabase Token + 本地 JWT）
 """
 
 from typing import Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from ..services.auth_service import auth_service
@@ -22,6 +22,7 @@ async def _verify_local_token(token: str) -> Optional[dict]:
 
 
 async def get_current_user_optional(
+    request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> Optional[dict]:
     """
@@ -29,6 +30,8 @@ async def get_current_user_optional(
 
     优先尝试 Supabase Token，失败后尝试本地 JWT
     """
+    if getattr(request.state, "staging_member", None):
+        return request.state.staging_member
     if not credentials:
         return None
 

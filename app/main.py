@@ -157,15 +157,24 @@ async def protect_report_media(request: Request, call_next):
     from fastapi.security import HTTPAuthorizationCredentials
     from .api.deps import get_current_user_optional
     path = request.url.path
+    if settings.staging_engine_auth and path != "/health":
+        from .services.staging_identity import staging_member
+        if not path.startswith(("/api/v1/videos/", "/results/", "/api/v1/export/")):
+            return JSONResponse({"detail": "Unknown staging route."}, status_code=404)
+        try:
+            request.state.staging_member = await staging_member(request)
+        except HTTPException as exc:
+            return JSONResponse({"detail": exc.detail}, status_code=exc.status_code,
+                                headers={"Cache-Control": "no-store"})
     if path.startswith('/results/') or path.startswith('/api/v1/export/'):
         parts = path.split('/')
         task_id = parts[2] if path.startswith('/results/') else parts[4]
         # Preserve public legacy demonstration assets; all newly created reports are private.
-        if trial_store.get(task_id) or path.startswith('/api/v1/export/'):
-            user = None
+        if settings.staging_engine_auth or trial_store.get(task_id) or path.startswith('/api/v1/export/'):
+            user = getattr(request.state, "staging_member", None)
             auth = request.headers.get('authorization', '')
-            if auth.startswith('Bearer '):
-                user = await get_current_user_optional(HTTPAuthorizationCredentials(scheme='Bearer', credentials=auth[7:]))
+            if not user and auth.startswith('Bearer '):
+                user = await get_current_user_optional(request, HTTPAuthorizationCredentials(scheme='Bearer', credentials=auth[7:]))
             token = request.cookies.get('shot_media', '').rsplit(':', 2)
             if not user and len(token) == 3:
                 value = ':'.join(token[:2])

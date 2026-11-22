@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     # Canonical public origin; preview hosts are automatically noindex.
     seo_site_url: str = "https://formrefine.ai"
     seo_indexable: bool = True
+    staging_engine_auth: bool = False
 
     @field_validator("seo_site_url")
     @classmethod
