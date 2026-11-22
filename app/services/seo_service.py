@@ -10,7 +10,7 @@ from ..content.guides import GUIDES
 HOME_TITLE = 'Basketball Shooting Form Check & Analyzer | FormRefine'
 HOME_DESCRIPTION = ('Check your basketball shooting form with video analysis. Review your ball dip, release and '
                     'follow-through, then compare attempts. Try one analysis free.')
-PUBLIC_PATHS = ('/app', '/guides', *(f'/guides/{slug}' for slug in GUIDES))
+PUBLIC_PATHS = ('/app', '/privacy', '/guides', *(f'/guides/{slug}' for slug in GUIDES))
 
 
 def site_url(path=''):

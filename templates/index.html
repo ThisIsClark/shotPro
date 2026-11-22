@@ -4317,7 +4317,7 @@
         <!-- Footer -->
         <footer class="site-footer">
             <div class="footer-links">
-                <span class="footer-link" onclick="showPrivacyModal()" data-i18n="footer.privacy">Privacy Policy</span>
+                <a class="footer-link" href="/privacy" data-i18n="footer.privacy">Privacy Policy</a>
                 <span class="footer-link" onclick="showTermsModal()" data-i18n="footer.terms">Terms of Service</span>
                 <a class="footer-link" href="mailto:ThisIsClark@163.com" data-i18n="footer.contact">Contact Us</a>
             </div>
@@ -7922,66 +7922,10 @@
             const body = document.body;
 
             // 添加法律文档模态框
-            body.insertAdjacentHTML('beforeend', privacyModalHTML);
             body.insertAdjacentHTML('beforeend', termsModalHTML);
         });
 
         // ===== 隐私政策和服务条款 =====
-        const privacyModalHTML = `
-            <div id="privacyModal" class="legal-modal">
-                <div class="legal-modal-content">
-                    <div class="legal-modal-header">
-                        <h2>🔒 <span data-i18n="footer.privacy">Privacy Policy</span></h2>
-                        <button class="legal-modal-close" onclick="hidePrivacyModal()">×</button>
-                    </div>
-                    <div class="legal-content">
-                        <p><strong>Last Updated: May 2026</strong></p>
-
-                        <h3>1. Information We Collect</h3>
-                        <p>When you use our basketball shooting analysis service, we may collect:</p>
-                        <ul>
-                            <li><strong>Video Files:</strong> Videos you upload for analysis. These are automatically deleted after analysis completion.</li>
-                            <li><strong>Analysis Results:</strong> Key frame images and analysis scores generated from your videos.</li>
-                            <li><strong>Account Information:</strong> If you register an account, we collect your email address and username.</li>
-                            <li><strong>Usage Data:</strong> Device type, browser type, and general usage patterns.</li>
-                        </ul>
-
-                        <h3>2. How We Use Your Information</h3>
-                        <p>We use your information to:</p>
-                        <ul>
-                            <li>Provide basketball shooting form analysis services</li>
-                            <li>Save and display your analysis history (for registered users)</li>
-                            <li>Improve our analysis algorithms and user experience</li>
-                            <li>Communicate with you about your account or services</li>
-                        </ul>
-
-                        <h3>3. Data Storage and Deletion</h3>
-                        <p><strong>Video Files:</strong> Uploaded videos are automatically deleted after analysis completion to save storage space and protect your privacy.</p>
-                        <p><strong>Analysis Results:</strong> Key frame images and analysis data are retained for your reference. You can delete them at any time.</p>
-                        <p><strong>Account Data:</strong> You can request account deletion at any time, which will remove all your personal data.</p>
-
-                        <h3>4. Data Security</h3>
-                        <p>We implement industry-standard security measures to protect your data, including encrypted storage and secure transmission protocols.</p>
-
-                        <h3>5. Third-Party Services</h3>
-                        <p>We use Supabase for secure data storage and authentication. They have their own privacy policies that apply to the data they process.</p>
-
-                        <h3>6. Your Rights</h3>
-                        <p>You have the right to:</p>
-                        <ul>
-                            <li>Access your personal data</li>
-                            <li>Request correction of inaccurate data</li>
-                            <li>Request deletion of your data</li>
-                            <li>Opt-out of certain data processing activities</li>
-                        </ul>
-
-                        <h3>7. Contact Us</h3>
-                        <p>If you have questions about this privacy policy, please contact us at: <a href="mailto:ThisIsClark@163.com">ThisIsClark@163.com</a></p>
-                    </div>
-                </div>
-            </div>
-        `;
-
         const termsModalHTML = `
             <div id="termsModal" class="legal-modal">
                 <div class="legal-modal-content">
@@ -8042,14 +7986,6 @@
                 </div>
             </div>
         `;
-
-        function showPrivacyModal() {
-            document.getElementById('privacyModal').classList.add('active');
-        }
-
-        function hidePrivacyModal() {
-            document.getElementById('privacyModal').classList.remove('active');
-        }
 
         function showTermsModal() {
             document.getElementById('termsModal').classList.add('active');

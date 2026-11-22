@@ -63,6 +63,15 @@ class PublicSiteTests(unittest.IsolatedAsyncioTestCase):
         for slug in GUIDES:
             self.assertIn('/guides/' + slug, page.links)
 
+    async def test_privacy_policy_is_public_and_linked_from_home(self):
+        self.assertIn('/privacy', Page((await self.client.get('/app')).text).links)
+        response = await self.client.get('/privacy')
+        self.assertEqual(response.status_code, 200)
+        page = Page(response.text)
+        self.assertEqual(page.h1s, ['FormRefine Privacy Policy'])
+        self.assertIn('mailto:ThisIsClark@163.com', page.links)
+        self.assertIn('Your account and Google sign-in', response.text)
+
     async def test_home_form_topic_is_server_rendered_and_links_to_checklist(self):
         response = await self.client.get('/app')
         page = Page(response.text)

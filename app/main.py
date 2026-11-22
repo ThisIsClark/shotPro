@@ -225,6 +225,15 @@ async def serve_app():
     return HTMLResponse(content="<h1>Frontend not found</h1>", status_code=404)
 
 
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_policy():
+    html = (settings.templates_dir / "privacy.html").read_text(encoding="utf-8")
+    return html.replace("{{SEO_METADATA}}", metadata(
+        "/privacy", "FormRefine Privacy Policy",
+        "How FormRefine handles shooting videos, saved reports, Google sign-in, payments and privacy requests.",
+    ))
+
+
 @app.get("/video-test", response_class=HTMLResponse)
 async def serve_video_test():
     """视频播放测试页面"""
