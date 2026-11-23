@@ -22,6 +22,7 @@ CATALOG=[
  ('admin','管理后台运营统计','匿名渠道漏斗、认领去重、分析质量和权限。','discover','tests/admin','quick'),
  ('test-system','测试与报告系统','失败、跳过、超时、历史结果、安全展示和本地监听。','discover','tests/testing','quick'),
  ('public-pages','公开页面与 SEO','元信息、链接、资源、站点地图及公开页面。','discover','tests/web','quick'),
+ ('production-proxy','正式域名代理','公开页面、Google 回调、私有报告和索引头转发。','node','tests/web/production-proxy.cjs','quick'),
  ('frontend-flow','前端操作流程','匿名上传、登录承接、重复点击和个人关键帧对比；使用 DOM/API 替身。','node','tests/web/frontend-flow.cjs','quick'),
  ('anonymous-trial','匿名试用与账户隔离','额度、并发预约、失败重试、认领、权限、媒体访问及任务生命周期。','discover','tests/trial','quick'),
  ('core','核心依赖','FastAPI、视频处理和数值计算依赖可导入。','script','test_core.py','full'),

@@ -93,6 +93,39 @@ class PublicSiteTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('mailto:ThisIsClark@163.com', page.links)
         self.assertIn('Your account and Google sign-in', response.text)
 
+    async def test_formal_domain_engine_mode_preserves_public_urls(self):
+        with patch.object(settings, 'engine_auth_origin', 'https://formrefine.ai'):
+            for path in PUBLIC_PATHS:
+                response = await self.client.get(path)
+                self.assertEqual(response.status_code, 200, path)
+                self.assertEqual(Page(response.text).canonicals, ['https://formrefine.ai' + path])
+                self.assertEqual(response.headers.get('x-formrefine-indexable'), '1')
+            app_response = await self.client.get('/app')
+            self.assertIn('<body data-engine-auth>', app_response.text)
+            self.assertNotIn('/api/v1/videos/workspace/', app_response.text)
+            privacy = await self.client.get('/privacy')
+            self.assertIn('saved to your account after successful analysis', privacy.text)
+            self.assertNotIn('Creem handles checkout', privacy.text)
+            for path in ('/sitemap.xml', '/robots.txt'):
+                self.assertEqual((await self.client.get(path)).status_code, 200, path)
+            history = await self.client.get('/api/v1/videos/history')
+            self.assertEqual(history.status_code, 401)
+            self.assertNotIn('x-formrefine-indexable', history.headers)
+            preview = await self.client.get('/app', headers={'Host': 'backend.example'})
+            self.assertIn('noindex', preview.headers['x-robots-tag'])
+            with patch.object(settings, 'seo_indexable', False):
+                self.assertNotIn('x-formrefine-indexable', (await self.client.get('/app')).headers)
+
+    def test_engine_origin_requires_bare_https(self):
+        for value in ('http://formrefine.ai', 'https://formrefine.ai/_auth',
+                      'https://user@formrefine.ai', 'https://formrefine.ai:8888'):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                Settings(engine_auth_origin=value, _env_file=None)
+        self.assertEqual(Settings(engine_auth_origin='https://formrefine.ai/', _env_file=None)
+                         .engine_session_origin, 'https://formrefine.ai')
+        self.assertEqual(Settings(engine_auth_origin='', staging_engine_auth=True, _env_file=None)
+                         .engine_session_origin, 'https://staging.formrefine.ai')
+
     async def test_home_form_topic_is_server_rendered_and_links_to_checklist(self):
         response = await self.client.get('/app')
         page = Page(response.text)

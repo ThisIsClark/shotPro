@@ -1,19 +1,41 @@
-// FASTAPI_ORIGIN is the dedicated staging service's HTTPS origin.
+// Cloudflare forwards the app to FastAPI. GeFeiSites remains the login issuer.
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const allowed = ["/api/v1/videos/", "/api/v1/export/", "/results/"];
-    const publicPage = ["/", "/app", "/privacy", "/guides"].includes(url.pathname)
-      || ["/static/", "/guides/", "/template_images/", "/api/v1/templates/"].some(p => url.pathname.startsWith(p));
-    const publicRead = publicPage && ["GET", "HEAD"].includes(request.method);
-    if (url.hostname !== "staging.formrefine.ai" || (!publicRead && !allowed.some(p => url.pathname.startsWith(p)))) {
+    const publicHost = env.PUBLIC_HOST || "staging.formrefine.ai";
+    if (url.hostname !== publicHost) {
       return new Response("Not found", { status: 404 });
     }
-    const upstream = new URL(env.FASTAPI_ORIGIN || "https://welcoming-healing-staging.up.railway.app");
-    if (upstream.protocol !== "https:" || upstream.hostname === url.hostname) {
-      return new Response("Invalid staging backend", { status: 503 });
+
+    // On production, the Worker is a route in front of the GeFeiSites custom domain.
+    if (url.pathname.startsWith("/_auth/") && env.USE_ENGINE_ORIGIN === "true") {
+      return fetch(request);
     }
-    upstream.pathname = url.pathname === "/" ? "/app" : url.pathname;
+
+    const publicPage = ["/", "/app", "/privacy", "/guides", "/health", "/robots.txt", "/sitemap.xml"].includes(url.pathname)
+      || ["/static/", "/guides/", "/template_images/", "/api/v1/templates/"].some(path => url.pathname.startsWith(path));
+    const publicRead = publicPage && ["GET", "HEAD"].includes(request.method);
+    const privatePath = ["/api/v1/videos/", "/api/v1/export/", "/results/"].some(path => url.pathname.startsWith(path));
+    if (!publicRead && !privatePath) {
+      return new Response("Not found", { status: 404 });
+    }
+    if (!env.FASTAPI_ORIGIN) {
+      return new Response("Analysis service unavailable", { status: 503 });
+    }
+
+    let upstream;
+    try {
+      upstream = new URL(env.FASTAPI_ORIGIN);
+      if (upstream.protocol !== "https:" || upstream.hostname === publicHost ||
+          upstream.username || upstream.password || upstream.pathname !== "/" ||
+          upstream.search || upstream.hash) {
+        throw new Error("Invalid FastAPI origin");
+      }
+    } catch {
+      return new Response("Analysis service unavailable", { status: 503 });
+    }
+
+    upstream.pathname = url.pathname;
     upstream.search = url.search;
     const headers = new Headers();
     for (const key of ["accept", "content-type", "cookie", "origin", "range"]) {
@@ -24,6 +46,11 @@ export default {
       method: request.method, headers, body: request.body, redirect: "manual",
     });
     const output = new Response(response.body, response);
+    if (publicRead && response.ok && env.INDEX_PUBLIC_PAGES === "true" &&
+        output.headers.get("X-FormRefine-Indexable") === "1") {
+      output.headers.delete("X-Robots-Tag");
+    }
+    output.headers.delete("X-FormRefine-Indexable");
     output.headers.set("Cache-Control", "private, no-store");
     return output;
   },

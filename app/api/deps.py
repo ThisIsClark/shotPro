@@ -30,8 +30,8 @@ async def get_current_user_optional(
 
     优先尝试 Supabase Token，失败后尝试本地 JWT
     """
-    if getattr(request.state, "staging_member", None):
-        return request.state.staging_member
+    if getattr(request.state, "engine_member", None):
+        return request.state.engine_member
     if not credentials:
         return None
 

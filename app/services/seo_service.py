@@ -73,5 +73,11 @@ def render_guide(slug=None):
         content += '<aside><h2>Continue your review</h2><div class="guide-cards">' + cards(guide['related']) + '</div></aside>'
         path = '/guides/' + slug
     template = Template((settings.templates_dir / 'guide.html').read_text(encoding='utf-8'))
-    return template.substitute(metadata=metadata(path, title, description, article=slug is not None),
+    html = template.substitute(metadata=metadata(path, title, description, article=slug is not None),
                                heading=escape(heading), content=content)
+    if settings.engine_session_origin:
+        html = html.replace(
+            "Try 1 free analysis without signup. Create a free account to save your report and get 3 more analyses.",
+            "Sign in with Google to save your video and analysis report.")
+        html = html.replace('<script src="/static/operations-tracking.js"></script>', "")
+    return html

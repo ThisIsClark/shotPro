@@ -302,7 +302,7 @@ def run_analysis(task_id: str, video_path: Path, shooting_hand: str = "right", s
         # ===== 分析完成后删除原始视频（节省存储空间）=====
         # 删除本地视频文件
         try:
-            if not (settings.staging_engine_auth and user_id) and video_path.exists():
+            if not (settings.engine_session_origin and user_id) and video_path.exists():
                 video_path.unlink()
                 print(f"[CLEANUP] 已删除本地视频文件: {video_path}")
         except Exception as cleanup_error:
@@ -645,7 +645,7 @@ async def upload_video(
 
     # 判断是否使用数据库：本地管理员（user_id 非 UUID，如 "admin"）走纯内存模式，
     # 否则 Supabase 的 analyses.user_id(UUID) 列写入会失败，导致任务状态无处可查、前端卡死。
-    engine_member = bool(user and user.get("provider") == "gefei-staging")
+    engine_member = bool(user and user.get("provider") == "gefei")
     use_db = not engine_member and bool(user_id) and is_supabase_enabled() and db_service.is_available() and not is_local_user
 
     if user_id and not engine_member and not is_local_user and not use_db:
@@ -815,7 +815,7 @@ async def upload_video(
 async def authorize_report(task_id, request, user):
     if trial_store.authorize(task_id, request, user):
         return
-    if settings.staging_engine_auth:
+    if settings.engine_session_origin:
         raise HTTPException(404, 'Report not found.')
     record = await db_service.get_analysis(task_id) if db_service.is_available() else None
     if not user or not ((record and record.get('user_id') == user['id']) or user.get('role') == 'admin'):
@@ -946,7 +946,7 @@ def saved_source(task_id, row):
 
 @router.get("/tasks/{task_id}/source")
 async def get_source_video(task_id: str, request: Request, user=Depends(get_current_user_optional)):
-    if not settings.staging_engine_auth or not user:
+    if not settings.engine_session_origin or not user:
         raise HTTPException(404, "Video not found.")
     row = trial_store.get(task_id)
     if not row or row["owner"] != user["id"] or row["state"] != "completed":
@@ -1030,7 +1030,7 @@ async def get_analysis_history(
     rows = {r['id']: {'task_id': r['id'], 'video_filename': r['filename'],
                      'status': r['state'], 'created_at': datetime.fromtimestamp(r['created']).isoformat()}
             for r in trial_store.history(user['id'])}
-    if db_service.is_available() and not user.get('is_local') and user.get("provider") != "gefei-staging":
+    if db_service.is_available() and not user.get('is_local') and user.get("provider") != "gefei":
         for r in await db_service.get_user_analyses(user_id=user['id'], limit=100, offset=0):
             tracked = trial_store.get(r['id'])
             if tracked and tracked['state'] == 'deleted':

@@ -60,32 +60,32 @@ async def verify(video):
         assert (await guest.get('/api/v1/trial/status')).json()['credits_remaining']==0
         print('PASS real-video lifecycle:',json.dumps({'video':video.name,'keyframes':len(result['key_frames']), 'zip':True,'pdf':True,'claim':True,'cross_account_isolation':True,'persistent_history':True,'delete':True}))
 
-async def verify_staging(video):
+async def verify_engine(video, origin):
     from unittest.mock import patch
     import httpx
     from app.main import app
     from app.config import settings
-    from app.services import staging_identity
+    from app.services import engine_identity
     from app.services.trial_service import trial_store
     from app.api.routes.upload import task_store
 
     # Substitute only the external identity provider. Exercise actual ASGI upload,
     # analysis, private media middleware, disk fallback and deletion.
     def engine(request):
-        assert str(request.url) == staging_identity.ORIGIN + '/_auth/me'
+        assert str(request.url) == origin + '/_auth/me'
         member = {'session=first': 'alice', 'session=second': 'bob',
                   'session=renewed': 'alice'}.get(request.headers.get('cookie'))
         payload = {'logged_in': bool(member), 'member': {'id': member}}
         return httpx.Response(200, json=payload)
 
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
-                                 base_url=staging_identity.ORIGIN) as client:
+                                 base_url=origin) as client:
         factory = httpx.AsyncClient
         def verification_client(**kwargs):
             return factory(transport=httpx.MockTransport(engine), **kwargs)
-        headers = {'origin': staging_identity.ORIGIN, 'cookie': 'session=first'}
-        with patch.object(settings, 'staging_engine_auth', True), patch.object(
-                staging_identity.httpx, 'AsyncClient', side_effect=verification_client):
+        headers = {'origin': origin, 'cookie': 'session=first'}
+        with patch.object(settings, 'engine_auth_origin', origin), patch.object(
+                engine_identity.httpx, 'AsyncClient', side_effect=verification_client):
             unknown = await client.get('/api/v1/videos/history', headers={'cookie':'session=expired'})
             assert unknown.status_code == 401
             bad_origin = await client.post('/api/v1/videos/upload', headers={
@@ -97,6 +97,8 @@ async def verify_staging(video):
             assert response.status_code == 200, response.text
             task = response.json()['task_id']
             assert trial_store.get(task)['state'] == 'completed'
+            owner = trial_store.get(task)['owner']
+            assert owner == ('gefei-staging:alice' if 'staging.' in origin else 'gefei:formrefine.ai:alice')
             task_store.pop(task, None)
             prefix = f'/api/v1/videos/tasks/{task}'
             headers['cookie'] = 'session=renewed'
@@ -112,7 +114,7 @@ async def verify_staging(video):
             assert (await client.delete(prefix,headers=headers)).status_code == 200
             assert not list(settings.upload_dir.glob(task + '.*'))
             assert (await client.get(prefix+'/source',headers=headers)).status_code == 404
-    print('PASS staging session ownership, source retention, cross-account isolation and deletion')
+    print(f'PASS {origin} session ownership, source retention, cross-account isolation and deletion')
 
 
 if __name__=='__main__':
@@ -124,4 +126,5 @@ if __name__=='__main__':
                           RESULTS_DIR=temp+'/results',UPLOAD_DIR=temp+'/uploads',FEEDBACK_DIR=temp+'/feedback',
                           TRIAL_DB_PATH=temp+'/trial.db',MPLCONFIGDIR=temp+'/matplotlib')
         asyncio.run(verify(args.video.resolve()))
-        asyncio.run(verify_staging(args.video.resolve()))
+        asyncio.run(verify_engine(args.video.resolve(), "https://staging.formrefine.ai"))
+        asyncio.run(verify_engine(args.video.resolve(), "https://formrefine.ai"))

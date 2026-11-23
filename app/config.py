@@ -18,7 +18,27 @@ class Settings(BaseSettings):
     # Canonical public origin; preview hosts are automatically noindex.
     seo_site_url: str = "https://formrefine.ai"
     seo_indexable: bool = True
+    engine_auth_origin: str = ""
+    # Keep the deployed staging environment working through the config transition.
     staging_engine_auth: bool = False
+
+    @field_validator("engine_auth_origin")
+    @classmethod
+    def validate_engine_auth_origin(cls, value):
+        if not value:
+            return ""
+        parsed = urlsplit(value)
+        if (parsed.scheme != "https" or not parsed.hostname or
+                parsed.netloc != parsed.hostname or parsed.path not in ("", "/") or
+                parsed.query or parsed.fragment):
+            raise ValueError("ENGINE_AUTH_ORIGIN must be a bare HTTPS origin")
+        return "https://" + parsed.hostname
+
+    @property
+    def engine_session_origin(self):
+        if self.engine_auth_origin:
+            return self.engine_auth_origin
+        return "https://staging.formrefine.ai" if self.staging_engine_auth else ""
 
     @field_validator("seo_site_url")
     @classmethod

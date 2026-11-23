@@ -128,6 +128,10 @@ async def search_indexing_headers(request: Request, call_next):
     response = await call_next(request)
     path = request.url.path
     public_asset = path.startswith("/static/")
+    indexable_path = path in PUBLIC_PATHS or path in ("/robots.txt", "/sitemap.xml")
+    if (settings.engine_session_origin == settings.seo_site_url and settings.seo_indexable
+            and indexable_path and 200 <= response.status_code < 300):
+        response.headers["X-FormRefine-Indexable"] = "1"
     if (not indexable_host(request.url.hostname) or response.status_code >= 400
             or (path not in PUBLIC_PATHS and path not in ("/", "/robots.txt", "/sitemap.xml") and not public_asset)):
         response.headers["X-Robots-Tag"] = "noindex, nofollow"
@@ -183,16 +187,16 @@ async def protect_report_media(request: Request, call_next):
             return JSONResponse({"detail": "Unknown workspace route."}, status_code=404)
         request.scope["path"] = path
     public_read = request.method in {"GET", "HEAD"} and (
-        path in {"/", "/app", "/privacy", "/guides", "/health"} or
+        path in {"/", "/app", "/privacy", "/guides", "/robots.txt", "/sitemap.xml", "/health"} or
         path.startswith(("/static/", "/guides/", "/api/v1/templates/")) or
         (path.startswith("/template_images/") and Path(path).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"})
     )
-    if settings.staging_engine_auth and not public_read:
-        from .services.staging_identity import staging_member
+    if settings.engine_session_origin and not public_read:
+        from .services.engine_identity import verify_engine_member
         if not path.startswith(("/api/v1/videos/", "/results/", "/api/v1/export/")):
-            return JSONResponse({"detail": "Unknown staging route."}, status_code=404)
+            return JSONResponse({"detail": "Route not found."}, status_code=404)
         try:
-            request.state.staging_member = await staging_member(request)
+            request.state.engine_member = await verify_engine_member(request)
         except HTTPException as exc:
             return JSONResponse({"detail": exc.detail}, status_code=exc.status_code,
                                 headers={"Cache-Control": "no-store"})
@@ -200,8 +204,8 @@ async def protect_report_media(request: Request, call_next):
         parts = path.split('/')
         task_id = parts[2] if path.startswith('/results/') else parts[4]
         # Preserve public legacy demonstration assets; all newly created reports are private.
-        if settings.staging_engine_auth or trial_store.get(task_id) or path.startswith('/api/v1/export/'):
-            user = getattr(request.state, "staging_member", None)
+        if settings.engine_session_origin or trial_store.get(task_id) or path.startswith('/api/v1/export/'):
+            user = getattr(request.state, "engine_member", None)
             auth = request.headers.get('authorization', '')
             if not user and auth.startswith('Bearer '):
                 user = await get_current_user_optional(request, HTTPAuthorizationCredentials(scheme='Bearer', credentials=auth[7:]))
@@ -260,7 +264,7 @@ async def serve_app():
     if html_path.exists():
         html = html_path.read_text(encoding="utf-8")
         # 将后端环境变量注入到前端，替换占位符
-        if settings.staging_engine_auth:
+        if settings.engine_session_origin:
             html = html.replace('<body>', '<body data-engine-auth>')
             html = html.replace('1 free analysis without signup &nbsp; · &nbsp; 3 more with a free account',
                                 'Sign in with Google to save your video and compare your practice sessions.')
@@ -282,12 +286,24 @@ async def serve_app():
 @app.get("/privacy", response_class=HTMLResponse)
 async def privacy_policy():
     html = (settings.templates_dir / "privacy.html").read_text(encoding="utf-8")
-    if settings.staging_engine_auth:
-        html = html.replace("The analyzer removes the source upload after processing.",
-                            "Your original video is saved with your report until you delete the report.")
+    if settings.engine_session_origin:
+        html = html.replace(
+            "The analyzer removes the source upload after processing. Saved reports and their images remain "
+            "available in your analysis history until deleted. Guest reports expire unless saved to an account.",
+            "Your original video and report are saved to your account after successful analysis. "
+            "You can remove them from Analysis History.")
+        html = html.replace("<h2>Site operation and subscriptions</h2>", "<h2>Site operation</h2>")
+        html = html.replace("enforce free-trial limits and control access to reports",
+                            "and control access to reports").replace("maintain sessions, and", "maintain sessions and")
+        html = html.replace(" If you subscribe, Creem handles checkout. We use transaction references and subscription "
+                            "status to manage access. We do not store your full payment card number.", "")
+        html = html.replace("We use Supabase for account and data services on the existing analyzer. ", "")
+        html = html.replace(" Creem processes payments when you use checkout.", "")
     return html.replace("{{SEO_METADATA}}", metadata(
         "/privacy", "FormRefine Privacy Policy",
-        "How FormRefine handles shooting videos, saved reports, Google sign-in, payments and privacy requests.",
+        ("How FormRefine handles shooting videos, saved reports, Google sign-in and privacy requests."
+         if settings.engine_session_origin else
+         "How FormRefine handles shooting videos, saved reports, Google sign-in, payments and privacy requests."),
     ))
 
 
