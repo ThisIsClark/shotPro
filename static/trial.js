@@ -1,5 +1,6 @@
 /* Anonymous trial handoff and personal before/after report comparison. */
 async function saveTrialToAccount() {
+    if (document.body?.hasAttribute?.("data-engine-auth")) return true;
     try {
         const response = await fetch('/api/v1/trial/claim', {method: 'POST', headers: await getAuthHeaders()});
         if (!response.ok) throw new Error('Could not save this report. Sign in again and retry.');

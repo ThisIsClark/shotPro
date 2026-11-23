@@ -63,6 +63,18 @@ class PublicSiteTests(unittest.IsolatedAsyncioTestCase):
         for slug in GUIDES:
             self.assertIn('/guides/' + slug, page.links)
 
+    async def test_staging_serves_product_ui_and_keeps_reports_private(self):
+        with patch.object(settings, 'staging_engine_auth', True):
+            home = await self.client.get('/app')
+            self.assertEqual(home.status_code, 200)
+            self.assertIn('<body data-engine-auth>', home.text)
+            self.assertIn('historyBtn', Page(home.text).ids)
+            for path in ('/guides', '/api/v1/templates/list', '/static/site-theme.css'):
+                self.assertEqual((await self.client.get(path)).status_code, 200, path)
+            self.assertEqual((await self.client.get('/api/v1/videos/history')).status_code, 401)
+            self.assertEqual((await self.client.get('/admin')).status_code, 404)
+            self.assertEqual((await self.client.post('/api/v1/templates/create')).status_code, 404)
+
     async def test_privacy_policy_is_public_and_linked_from_home(self):
         self.assertIn('/privacy', Page((await self.client.get('/app')).text).links)
         response = await self.client.get('/privacy')

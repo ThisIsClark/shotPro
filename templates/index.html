@@ -3850,6 +3850,7 @@
 <link rel="stylesheet" href="/static/site-theme.css?v=20261116-sticky">
 <script src="/static/public-navigation.js" defer></script>
 <script src="/static/shot-trends.js?v=20261117-charts" defer></script>
+<style>body[data-engine-auth] :is(#dropdownSubscribeBtn,.stat-card.free-trial,.fb-retain){display:none!important}</style>
 </head>
 <body>
     <!-- 支付成功 Toast 通知 -->
@@ -4346,6 +4347,7 @@
         const SUPABASE_URL = '{{SUPABASE_URL}}';
         const SUPABASE_ANON_KEY = '{{SUPABASE_ANON_KEY}}';
 
+        const engineAuth = document.body.hasAttribute('data-engine-auth');
         let supabaseClient = null;
         let currentUser = null;
         let pendingAnalysis = false;
@@ -4359,7 +4361,22 @@
         let selectedPlan = 'monthly';
 
         // 初始化 Supabase 客户端
-        function initSupabase() {
+        async function initSupabase() {
+            if (engineAuth) {
+                try {
+                    const response = await fetch('/_auth/me', {cache: 'no-store'});
+                    const session = await response.json();
+                    if (session.logged_in && session.member) {
+                        currentUser = session.member;
+                        showLoggedInState(session.member.email || session.member.name || 'Player');
+                        return;
+                    }
+                } catch (error) {
+                    console.warn('Could not load the Google session.', error);
+                }
+                showLoginButton();
+                return;
+            }
             if (SUPABASE_URL && SUPABASE_ANON_KEY) {
                 try {
                     supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -4452,7 +4469,7 @@
             document.getElementById('userAvatar').textContent = initial;
 
             currentUser = { ...(currentUser || {}), email, isAdmin };
-            document.querySelector(".fb-retain").style.display = "";
+
 
             // 隐藏导出按钮的登录提示
             updateExportButtonsLoginHint();
@@ -4478,7 +4495,7 @@
             document.getElementById('loginBtn').style.display = 'block';
             document.getElementById('userInfo').style.display = 'none';
             currentUser = null;
-            document.querySelector(".fb-retain").style.display = "none";
+
             creditsRemaining = 0;
             creditsUnlimited = false;
             fetchCredits();
@@ -4505,6 +4522,10 @@
 
         // 获取用户剩余分析次数
         async function fetchCredits() {
+            if (engineAuth) {
+                creditsUnlimited = Boolean(currentUser);
+                return {is_unlimited: creditsUnlimited, credits_remaining: 0};
+            }
             try {
                 const headers = await getAuthHeaders();
                 const response = await fetch(currentUser ? '/api/v1/auth/credits' : '/api/v1/trial/status', { headers });
@@ -4678,6 +4699,10 @@
         }
 
         function openAuthModal() {
+            if (engineAuth) {
+                location.assign('/_auth/google/start?next=' + encodeURIComponent('/app#oneUpload'));
+                return;
+            }
             document.getElementById('authModal').classList.add('active');
             document.body.style.overflow = 'hidden';
             resetAuthForm();
@@ -4956,6 +4981,11 @@
 
         // 登出
         async function handleLogout() {
+            if (engineAuth) {
+                const response = await fetch('/_auth/logout', {method: 'POST'});
+                if (response.ok) location.replace('/app');
+                return;
+            }
             try {
                 await fetch('/api/v1/trial/logout', {method: 'POST'});
                 document.getElementById('resultsContainer').style.display = 'none';
@@ -5000,6 +5030,7 @@
         // 用户行为埋点上报（fire-and-forget，失败不影响主流程）
         async function trackEvent(action, details = {}) {
             // 本地调试环境一律不上报：本地进程连的可能是线上同一个库，灌进漏斗会污染真实数据
+            if (engineAuth) return;
             const host = location.hostname;
             if (host === 'localhost' || host === '127.0.0.1') return;
 
@@ -5198,6 +5229,7 @@
                             </div>
                         </div>
                         <div class="history-item-actions" onclick="event.stopPropagation()">
+                            ${engineAuth && item.status === 'completed' ? `<a class="history-item-view" href="/api/v1/videos/tasks/${encodeURIComponent(item.task_id)}/source">Original video</a>` : ''}
                             <button class="history-item-view" onclick="viewHistoryDetail('${item.task_id}')">${t.viewDetail}</button>
                             <button class="history-item-delete" onclick="deleteHistoryItem('${item.task_id}')">${t.delete}</button>
                         </div>
@@ -5281,7 +5313,7 @@
 
 
         // 页面加载时初始化
-        initSupabase();
+        document.addEventListener('DOMContentLoaded', initSupabase);
 
         // 处理 Supabase 邮箱验证回调（URL hash 中带 access_token）
         (function handleAuthCallback() {
@@ -6220,6 +6252,7 @@
         }
 
         function handleFile(file) {
+            if (engineAuth && !currentUser) { openAuthModal(); return; }
             if (analysisBusy) return;
             pendingAnalysis = false;
             // Validate file type

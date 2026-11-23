@@ -157,7 +157,12 @@ async def protect_report_media(request: Request, call_next):
     from fastapi.security import HTTPAuthorizationCredentials
     from .api.deps import get_current_user_optional
     path = request.url.path
-    if settings.staging_engine_auth and path != "/health":
+    public_read = request.method in {"GET", "HEAD"} and (
+        path in {"/", "/app", "/privacy", "/guides", "/health"} or
+        path.startswith(("/static/", "/guides/", "/api/v1/templates/")) or
+        (path.startswith("/template_images/") and Path(path).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"})
+    )
+    if settings.staging_engine_auth and not public_read:
         from .services.staging_identity import staging_member
         if not path.startswith(("/api/v1/videos/", "/results/", "/api/v1/export/")):
             return JSONResponse({"detail": "Unknown staging route."}, status_code=404)
@@ -224,6 +229,15 @@ async def serve_app():
     if html_path.exists():
         html = html_path.read_text(encoding="utf-8")
         # 将后端环境变量注入到前端，替换占位符
+        if settings.staging_engine_auth:
+            html = html.replace('<body>', '<body data-engine-auth>')
+            html = html.replace('1 free analysis without signup &nbsp; · &nbsp; 3 more with a free account',
+                                'Sign in with Google to save your video and compare your practice sessions.')
+            html = html.replace('Try one analysis without signing up. Videos up to 10 seconds; trial reports available for 24 hours.',
+                                'Upload a clip up to 10 seconds. Your video and report are saved in History.')
+            for asset in ("/static/operations-tracking.js", "/static/quality-survey.js",
+                          "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"):
+                html = html.replace(f'<script src="{asset}"></script>', '')
         html = html.replace("{{SUPABASE_URL}}", settings.supabase_url or "")
         html = html.replace("{{SUPABASE_ANON_KEY}}", settings.supabase_anon_key or "")
         html = html.replace("{{SEO_METADATA}}", metadata("/app", HOME_TITLE, HOME_DESCRIPTION))
@@ -237,6 +251,9 @@ async def serve_app():
 @app.get("/privacy", response_class=HTMLResponse)
 async def privacy_policy():
     html = (settings.templates_dir / "privacy.html").read_text(encoding="utf-8")
+    if settings.staging_engine_auth:
+        html = html.replace("The analyzer removes the source upload after processing.",
+                            "Your original video is saved with your report until you delete the report.")
     return html.replace("{{SEO_METADATA}}", metadata(
         "/privacy", "FormRefine Privacy Policy",
         "How FormRefine handles shooting videos, saved reports, Google sign-in, payments and privacy requests.",
