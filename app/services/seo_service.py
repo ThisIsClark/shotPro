@@ -23,6 +23,8 @@ def indexable_host(hostname):
 
 def metadata(path, title, description, *, article=False):
     url = site_url(path)
+    share_image = escape(site_url('/static/brand/formrefine-share.png'), quote=True)
+    share_image_alt = 'FormRefine basketball shooting form analysis'
     schema = {'@context': 'https://schema.org', '@graph': [
         {'@type': 'WebSite', '@id': site_url('/#website'), 'url': site_url('/app'), 'name': 'FormRefine'},
         {'@type': 'WebPage', '@id': url + '#page', 'url': url, 'name': title,
@@ -38,12 +40,21 @@ def metadata(path, title, description, *, article=False):
     return f'''<title>{escape(title)}</title>
 <meta name="description" content="{escape(description, quote=True)}">
 <link rel="canonical" href="{escape(url, quote=True)}">
+<link rel="icon" href="/static/brand/formrefine-icon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/brand/formrefine-icon-48.png" type="image/png" sizes="48x48">
+<link rel="apple-touch-icon" href="/static/brand/formrefine-icon-180.png" sizes="180x180">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="FormRefine">
 <meta property="og:title" content="{escape(title, quote=True)}">
 <meta property="og:description" content="{escape(description, quote=True)}">
 <meta property="og:url" content="{escape(url, quote=True)}">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="{share_image}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{share_image_alt}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{share_image}">
+<meta name="twitter:image:alt" content="{share_image_alt}">
 <script type="application/ld+json">{safe_json}</script>'''
 
 

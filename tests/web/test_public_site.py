@@ -1,5 +1,6 @@
 """ASGI regression checks: no external network, startup tasks, or account writes."""
 import json
+import struct
 import unittest
 from html_page import Page
 from unittest.mock import patch
@@ -62,6 +63,39 @@ class PublicSiteTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('/guides', page.links)
         for slug in GUIDES:
             self.assertIn('/guides/' + slug, page.links)
+
+    async def test_public_pages_reference_first_party_brand_assets(self):
+        asset_root = '/static/brand/'
+        share_path = asset_root + 'formrefine-share.png'
+        icon_sizes = {'formrefine-icon-48.png': 48, 'formrefine-icon-180.png': 180}
+        for path in PUBLIC_PATHS:
+            with self.subTest(path=path):
+                page = Page((await self.client.get(path)).text)
+                self.assertIn(asset_root + 'formrefine-icon.svg', page.icons)
+                for name, size in icon_sizes.items():
+                    self.assertEqual(page.icons[asset_root + name], f'{size}x{size}')
+                self.assertEqual(page.meta['og:image'], 'https://formrefine.ai' + share_path)
+                self.assertEqual(page.meta['twitter:image'], page.meta['og:image'])
+                self.assertEqual(page.meta['twitter:card'], 'summary_large_image')
+                self.assertEqual((page.meta['og:image:width'], page.meta['og:image:height']), ('1200', '630'))
+
+        vector = await self.client.get(asset_root + 'formrefine-icon.svg')
+        self.assertEqual(vector.status_code, 200)
+        self.assertIn('image/svg+xml', vector.headers['content-type'])
+        images = [(asset_root + name, (size, size)) for name, size in icon_sizes.items()]
+        for path, dimensions in [*images, (share_path, (1200, 630))]:
+            response = await self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('image/png', response.headers['content-type'])
+            self.assertEqual(response.content[:8], b'\x89PNG\r\n\x1a\n')
+            self.assertEqual(struct.unpack('>II', response.content[16:24]), dimensions)
+
+    async def test_analyzer_uses_system_font_and_readable_small_labels(self):
+        page = Page((await self.client.get('/app')).text)
+        stylesheet = next(src for src in page.assets if urlsplit(src).path == '/static/one-page.css')
+        css = (await self.client.get(stylesheet)).text
+        self.assertRegex(css, r'--court-font:\s*system-ui,\s*sans-serif')
+        self.assertNotRegex(css, r'font-size:\s*(?:[0-9]|1[01])(?:\.\d+)?px\b')
 
     async def test_staging_serves_product_ui_and_keeps_reports_private(self):
         with patch.object(settings, 'staging_engine_auth', True):

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+<rect width="1200" height="630" fill="#0b121a"/>
+<rect x="760" y="70" width="365" height="490" rx="30" fill="#131e29"/>
+<g fill="none" stroke="#49606d" stroke-width="3">
+<rect x="795" y="107" width="295" height="416" rx="8"/>
+<path d="M795 315h295M886 107v90h114v-90M886 523v-90h114v90"/>
+<circle cx="943" cy="315" r="65"/>
+</g>
+<circle cx="943" cy="315" r="82" fill="#c6f36b"/>
+<g fill="none" stroke="#0b121a" stroke-width="6">
+<path d="M861 315h164M943 233v164M885 258c45 29 45 85 0 114M1001 258c-45 29-45 85 0 114"/>
+</g>
+<rect x="76" y="176" width="52" height="5" rx="2.5" fill="#c6f36b"/>
+<g font-family="Poppins">
+<text x="76" y="283" fill="#edf3f7" font-weight="700" font-size="92">FormRefine</text>
+<text x="79" y="359" fill="#c6f36b" font-weight="700" font-size="33">Basketball shooting form analysis</text>
+<text x="79" y="426" fill="#cbd6df" font-weight="400" font-size="26">Review your shot frame by frame.</text>
+</g>
+</svg>
