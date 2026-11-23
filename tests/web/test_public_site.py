@@ -73,6 +73,15 @@ class PublicSiteTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual((await self.client.get(path)).status_code, 200, path)
             self.assertEqual((await self.client.get('/api/v1/videos/history')).status_code, 401)
             self.assertEqual((await self.client.get('/admin')).status_code, 404)
+            prefix = '/api/v1/videos/workspace'
+            workspace = await self.client.get(prefix + '/app')
+            self.assertEqual(workspace.status_code, 200)
+            self.assertIn(prefix + '/static/one-page.css', workspace.text)
+            self.assertIn(prefix + "/app#oneUpload", workspace.text)
+            self.assertIn(prefix + '/api/v1/templates/list', workspace.text)
+            for path in ('/guides', '/privacy', '/static/site-theme.css', '/api/v1/templates/list'):
+                self.assertEqual((await self.client.get(prefix + path)).status_code, 200, path)
+            self.assertEqual((await self.client.get(prefix + '/results/private.json')).status_code, 404)
             self.assertEqual((await self.client.post('/api/v1/templates/create')).status_code, 404)
 
     async def test_privacy_policy_is_public_and_linked_from_home(self):

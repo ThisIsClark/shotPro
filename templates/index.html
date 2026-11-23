@@ -6458,6 +6458,14 @@
             progressContainer.style.display = 'none';
         }
 
+        function templateMediaUrl(url) {
+            const workspacePrefix = '/api/v1/videos/workspace';
+            if (location.pathname.startsWith(workspacePrefix) && url?.startsWith('/template_images' + '/')) {
+                return workspacePrefix + url;
+            }
+            return url;
+        }
+
         // 显示模板关键帧 + 角度曲线（与分析结果界面同款样式）
         function displayTemplateKeyFrames(template) {
             emptyState.style.display = 'none';
@@ -6477,7 +6485,7 @@
                     if (p.startsWith('/')) p = p.slice(1);
                     imageUrl = `/template_images/${p}`;
                 }
-                return { ...kf, image_url: imageUrl };
+                return { ...kf, image_url: templateMediaUrl(imageUrl) };
             });
             keyFrameImages = sortKeyFramesByTime(kfs);
             window._currentTemplateComparison = null; // 模板查看无对比
@@ -6857,7 +6865,7 @@
         // 关键帧并排对比行：左用户图 / 右模板图，下方角度差异（有模板对比时使用）
         function renderKeyframeCompareRow(kf, idx, comp, templateName) {
             const name = keyframeLabel(kf.phase) + keyframeTimeLabel(kf);
-            const tUrl = comp && comp.template_frame && comp.template_frame.image_url;
+            const tUrl = templateMediaUrl(comp?.template_frame?.image_url);
             const tAngles = comp && comp.template_frame ? comp.template_frame.angles : null;
             const diffs = comp && comp.angle_differences ? comp.angle_differences : null;
             const rowTitle = `
@@ -6945,7 +6953,7 @@
                 // 模板侧
                 html += `<div class="compare-side template">
                     <div class="compare-side-label template">${window._currentTemplateComparison.template_name}</div>
-                    <img src="${comp.template_frame.image_url}?t=${Date.now()}" alt="${name}">
+                    <img src="${templateMediaUrl(comp.template_frame.image_url)}?t=${Date.now()}" alt="${name}">
                     ${renderCompareAngles(comp.template_frame.angles, comp.angle_differences, 'template')}
                 </div>`;
                 html += `</div>`;
@@ -7508,7 +7516,7 @@
                                     ${templateName}
                                 </div>
                                 <div style="position: relative; border: 2px solid rgba(72, 219, 251, 0.5); border-radius: 12px; overflow: hidden; flex: 1;">
-                                    <img src="${templateFrame ? templateFrame.image_url + '?t=' + Date.now() : ''}" alt="${phaseName}" style="width: 100%; height: 100%; object-fit: contain; display: block; background: rgba(0,0,0,0.2);">
+                                    <img src="${templateFrame ? templateMediaUrl(templateFrame.image_url) + '?t=' + Date.now() : ''}" alt="${phaseName}" style="width: 100%; height: 100%; object-fit: contain; display: block; background: rgba(0,0,0,0.2);">
                                 </div>
                                 ${templateFrame ? renderAngles(templateFrame.angles, 'template') : `<p style="color: #999; margin-top: 10px; text-align: center;">${t('comparison.noPhase')}</p>`}
                             </div>

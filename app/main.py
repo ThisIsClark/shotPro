@@ -3,6 +3,7 @@ FastAPI Application Entry Point
 应用程序入口
 """
 
+import re
 import shutil
 from pathlib import Path
 from datetime import datetime
@@ -143,6 +144,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Public workspace paths carried by the existing staging Worker route.
+STAGING_WORKSPACE = "/api/v1/videos/workspace"
+STAGING_PUBLIC_PAGES = {"/app", "/privacy", "/guides"}
+STAGING_PUBLIC_PREFIXES = ("/static/", "/guides/", "/api/v1/templates/", "/template_images/")
+
+
+def staging_workspace_html(html):
+    return re.sub(
+        r"""(?<=["'`])/(?:app(?=[#?"'`])|privacy(?=["'`])|guides(?=[/#?"'`])|static/|api/v1/templates/|template_images/)""",
+        lambda match: STAGING_WORKSPACE + match[0],
+        html,
+    )
+
+
 # Private reports use the same ownership checks for API exports and static media.
 from .api.routes import trial
 from .services.trial_service import trial_store
@@ -157,6 +172,16 @@ async def protect_report_media(request: Request, call_next):
     from fastapi.security import HTTPAuthorizationCredentials
     from .api.deps import get_current_user_optional
     path = request.url.path
+    workspace = settings.staging_engine_auth and (
+        path == STAGING_WORKSPACE or path.startswith(STAGING_WORKSPACE + "/")
+    )
+    if workspace:
+        path = path.removeprefix(STAGING_WORKSPACE) or "/app"
+        if request.method not in {"GET", "HEAD"} or (
+            path not in STAGING_PUBLIC_PAGES and not path.startswith(STAGING_PUBLIC_PREFIXES)
+        ):
+            return JSONResponse({"detail": "Unknown workspace route."}, status_code=404)
+        request.scope["path"] = path
     public_read = request.method in {"GET", "HEAD"} and (
         path in {"/", "/app", "/privacy", "/guides", "/health"} or
         path.startswith(("/static/", "/guides/", "/api/v1/templates/")) or
@@ -195,7 +220,13 @@ async def protect_report_media(request: Request, call_next):
             response = await call_next(request)
             response.headers['Cache-Control'] = 'private, no-store'
             return response
-    return await call_next(request)
+    response = await call_next(request)
+    if workspace and response.headers.get("content-type", "").startswith("text/html"):
+        body = b"".join([chunk async for chunk in response.body_iterator])
+        del response.headers["content-length"]
+        return HTMLResponse(staging_workspace_html(body.decode("utf-8")),
+                            status_code=response.status_code, headers=response.headers)
+    return response
 
 # 挂载静态文件
 app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
