@@ -43,6 +43,14 @@ test('production proxy separates public pages, private reports and engine auth',
         assert.equal((await worker.fetch(new Request('https://staging.formrefine.ai/app'), env)).status, 404);
         assert.equal((await worker.fetch(request('/app'), { ...env, FASTAPI_ORIGIN: '' })).status, 503);
         assert.equal(calls.length, count);
+        const adminConfig = { ...env, ADMIN_ENABLED: 'true' };
+        for (const path of ['/admin', '/api/v1/admin/operations']) {
+            const admin = await worker.fetch(request(path), adminConfig);
+            assert.equal(calls.at(-1).target, env.FASTAPI_ORIGIN + path);
+            assert.equal(calls.at(-1).headers.get('cookie'), 'test=value');
+            assert.equal(admin.headers.get('x-robots-tag'), 'noindex, nofollow');
+        }
+        assert.equal((await worker.fetch(request('/api/v1/auth/local-login'), adminConfig)).status, 404);
         const noindex = await worker.fetch(request('/app'), { ...env, INDEX_PUBLIC_PAGES: 'false' });
         assert.equal(noindex.headers.get('x-robots-tag'), 'noindex, nofollow');
     } finally {

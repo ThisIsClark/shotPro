@@ -8,6 +8,10 @@ routes = [{ pattern = "formrefine.ai/*", zone_name = "formrefine.ai" }]
 
 [vars]
 PUBLIC_HOST = "formrefine.ai"
-USE_ENGINE_ORIGIN = "true"
+ADMIN_ENABLED = "true"
 INDEX_PUBLIC_PAGES = "true"
-# Set FASTAPI_ORIGIN to the dedicated production deployment before attaching the route.
+FASTAPI_ORIGIN = "https://calm-celebration-production-next.up.railway.app"
+
+[[services]]
+binding = "ENGINE"
+service = "gefeisites"

@@ -43,7 +43,7 @@ async function openAnalysisDetail(task) {
         button.disabled=true;
         for(let i=0;i<(d.frames || []).length;i++){
           try {
-            const r=await fetch('/api/v1/admin/analyses/'+encodeURIComponent(task)+'/media/'+i,{headers:{Authorization:'Bearer '+authToken}});
+            const r=await fetch('/api/v1/admin/analyses/'+encodeURIComponent(task)+'/media/'+i,{headers:engineAdmin ? {} : {Authorization:'Bearer '+authToken}});
             if(!r.ok)throw new Error('图像不可用 ('+r.status+')');
             const blob=await r.blob();if(!panel.current())return;
             const url=URL.createObjectURL(blob);opsMediaURLs.push(url);

@@ -4,6 +4,7 @@ FastAPI Application Entry Point
 """
 
 import re
+from urllib.parse import urlencode
 import shutil
 from pathlib import Path
 from datetime import datetime
@@ -12,7 +13,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from .config import settings
 from .api.routes import upload, health, export, templates
@@ -191,6 +192,27 @@ async def protect_report_media(request: Request, call_next):
         path.startswith(("/static/", "/guides/", "/api/v1/templates/")) or
         (path.startswith("/template_images/") and Path(path).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"})
     )
+    admin_page = path == "/admin" and request.method in {"GET", "HEAD"}
+    admin_api = path.startswith("/api/v1/admin/")
+    if settings.engine_session_origin and settings.engine_admin_member_id and (admin_page or admin_api):
+        from .services.engine_identity import verify_engine_member
+        private_headers = {"Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow"}
+        try:
+            member = await verify_engine_member(request)
+        except HTTPException as exc:
+            if admin_page and exc.status_code == 401:
+                query = urlencode({"next": "/admin"})
+                return RedirectResponse(f"{settings.engine_session_origin}/_auth/google/start?{query}",
+                                        status_code=303, headers=private_headers)
+            return JSONResponse({"detail": exc.detail}, status_code=exc.status_code,
+                                headers=private_headers)
+        if member["subject"] != settings.engine_admin_member_id:
+            return JSONResponse({"detail": "Admin access required"}, status_code=403,
+                                headers=private_headers)
+        request.state.engine_admin = {**member, "role": "admin"}
+        response = await call_next(request)
+        response.headers.update(private_headers)
+        return response
     if settings.engine_session_origin and not public_read:
         from .services.engine_identity import verify_engine_member
         if not path.startswith(("/api/v1/videos/", "/results/", "/api/v1/export/")):
@@ -321,7 +343,10 @@ async def serve_admin():
     """管理后台页面"""
     html_path = settings.templates_dir / "admin.html"
     if html_path.exists():
-        return html_path.read_text(encoding="utf-8")
+        html = html_path.read_text(encoding="utf-8")
+        if settings.engine_session_origin:
+            html = html.replace("<body>", "<body data-engine-admin>")
+        return HTMLResponse(html, headers={"Cache-Control": "private, no-store"})
     return HTMLResponse(content="<h1>Admin page not found</h1>", status_code=404)
 
 

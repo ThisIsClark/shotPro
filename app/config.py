@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     seo_site_url: str = "https://formrefine.ai"
     seo_indexable: bool = True
     engine_auth_origin: str = ""
+    engine_admin_member_id: str = ""
     # Keep the deployed staging environment working through the config transition.
     staging_engine_auth: bool = False
 

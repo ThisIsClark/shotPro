@@ -49,6 +49,7 @@ async def get_current_user_optional(
 
 
 async def get_current_user_required(
+    request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> dict:
     """
@@ -56,6 +57,8 @@ async def get_current_user_required(
 
     优先尝试 Supabase Token，失败后尝试本地 JWT
     """
+    if getattr(request.state, "engine_admin", None):
+        return request.state.engine_admin
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

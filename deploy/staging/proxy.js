@@ -7,15 +7,19 @@ export default {
       return new Response("Not found", { status: 404 });
     }
 
-    // On production, the Worker is a route in front of the GeFeiSites custom domain.
-    if (url.pathname.startsWith("/_auth/") && env.USE_ENGINE_ORIGIN === "true") {
-      return fetch(request);
+    const engineAuth = ["/_auth/me", "/_auth/google/start", "/_auth/google/callback", "/_auth/logout"];
+    if (engineAuth.includes(url.pathname)) {
+      if (env.ENGINE) return env.ENGINE.fetch(request);
+      if (env.USE_ENGINE_ORIGIN === "true") return fetch(request);
     }
 
     const publicPage = ["/", "/app", "/privacy", "/guides", "/health", "/robots.txt", "/sitemap.xml"].includes(url.pathname)
       || ["/static/", "/guides/", "/template_images/", "/api/v1/templates/"].some(path => url.pathname.startsWith(path));
     const publicRead = publicPage && ["GET", "HEAD"].includes(request.method);
-    const privatePath = ["/api/v1/videos/", "/api/v1/export/", "/results/"].some(path => url.pathname.startsWith(path));
+    const adminPath = env.ADMIN_ENABLED === "true" &&
+      ((url.pathname === "/admin" && ["GET", "HEAD"].includes(request.method)) ||
+       url.pathname.startsWith("/api/v1/admin/"));
+    const privatePath = adminPath || ["/api/v1/videos/", "/api/v1/export/", "/results/"].some(path => url.pathname.startsWith(path));
     if (!publicRead && !privatePath) {
       return new Response("Not found", { status: 404 });
     }

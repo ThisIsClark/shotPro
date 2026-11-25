@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..deps import get_current_user_required
+from ...config import settings
 from ...services.audit_service import audit_service, AuditAction
 from ...services.db_service import db_service
 from ...services.local_auth_service import local_auth_service
@@ -17,8 +18,9 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 def require_admin(user: dict = Depends(get_current_user_required)) -> dict:
-    """验证管理员权限"""
-    if user.get("is_local") and user.get("role") == "admin":
+    """Require an administrator from the active identity provider."""
+    trusted = user.get("provider") == "gefei" if settings.engine_session_origin else user.get("is_local")
+    if trusted and user.get("role") == "admin":
         return user
     raise HTTPException(status_code=403, detail="Admin access required")
 

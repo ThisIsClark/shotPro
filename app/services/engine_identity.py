@@ -36,4 +36,4 @@ async def verify_engine_member(request: Request) -> dict:
     hostname = urlsplit(issuer).hostname
     # Existing staging reports already use this prefix.
     namespace = "gefei-staging" if hostname == "staging.formrefine.ai" else "gefei:" + hostname
-    return {"id": namespace + ":" + subject, "provider": "gefei", "role": "user"}
+    return {"id": namespace + ":" + subject, "provider": "gefei", "role": "user", "subject": subject}
