@@ -3,6 +3,7 @@ FastAPI Application Entry Point
 应用程序入口
 """
 
+import mimetypes
 import re
 from urllib.parse import urlencode
 import shutil
@@ -255,6 +256,7 @@ async def protect_report_media(request: Request, call_next):
     return response
 
 # 挂载静态文件
+mimetypes.add_type("image/webp", ".webp")
 app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
 app.mount("/results", StaticFiles(directory=str(settings.results_dir)), name="results")
 # 挂载模板图片目录（使用不同的路径避免与API冲突）
