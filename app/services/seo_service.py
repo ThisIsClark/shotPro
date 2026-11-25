@@ -10,7 +10,16 @@ from ..content.guides import GUIDES
 HOME_TITLE = 'Basketball Shooting Form Check & Analyzer | FormRefine'
 HOME_DESCRIPTION = ('Check your basketball shooting form with video analysis. Review your ball dip, release and '
                     'follow-through, then compare attempts. Try one analysis free.')
-PUBLIC_PATHS = ('/app', '/privacy', '/guides', *(f'/guides/{slug}' for slug in GUIDES))
+RHYTHM_GUIDE_SLUG = 'one-motion-basketball-shot'
+RHYTHM_GUIDE_TITLE = 'One-Motion Basketball Shot: How to Tell on Video'
+RHYTHM_GUIDE_DESCRIPTION = (
+    'Learn what a one-motion basketball shot looks like, how it differs from a two-motion shot, '
+    'and how to check your own release in slow motion.'
+)
+PUBLIC_PATHS = (
+    '/app', '/privacy', '/guides', *(f'/guides/{slug}' for slug in GUIDES),
+    f'/guides/{RHYTHM_GUIDE_SLUG}',
+)
 
 
 def site_url(path=''):
@@ -70,6 +79,11 @@ def render_guide(slug=None):
         heading = 'Basketball shooting form guides'
         content = '<p class="lede">Start with a question about your shot. Learn what to film, which moments to review, and what a single-camera measurement can tell you.</p><div class="guide-cards">' + cards() + '</div>'
         path = '/guides'
+    elif slug == RHYTHM_GUIDE_SLUG:
+        title = heading = RHYTHM_GUIDE_TITLE
+        description = RHYTHM_GUIDE_DESCRIPTION
+        path = f'/guides/{slug}'
+        content = (settings.templates_dir / 'guides' / f'{slug}.html').read_text(encoding='utf-8')
     else:
         guide = GUIDES[slug]
         title, description, heading = guide['title'] + ' | FormRefine', guide['description'], guide['title']

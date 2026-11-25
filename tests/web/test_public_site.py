@@ -227,6 +227,25 @@ class PublicSiteTests(unittest.IsolatedAsyncioTestCase):
         page = Page((await self.client.get('/app?utm_source=reddit')).text)
         self.assertEqual(page.canonicals, ['https://formrefine.ai/app'])
 
+    async def test_one_motion_guide_publishes_practice_notes_and_upload_link(self):
+        path = '/guides/one-motion-basketball-shot'
+        with patch.object(settings, 'engine_auth_origin', 'https://formrefine.ai'):
+            response = await self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+            page = Page(response.text)
+            heading = 'One-Motion Basketball Shot: How to Tell on Video'
+            self.assertEqual(page.h1s, [heading])
+            self.assertEqual(page.titles, [heading])
+            self.assertIn('been watching the NBA since around 2000', response.text)
+            self.assertIn('three 90-degree angles', response.text)
+            self.assertIn('I bend less at the hips', response.text)
+            self.assertIn('/app#shotRhythmUpload', page.links)
+            self.assertIn('/static/shot-rhythm-example.jpg', page.assets)
+            self.assertNotIn('noindex', response.headers.get('x-robots-tag', ''))
+            sitemap = await self.client.get('/sitemap.xml')
+            urls = [node.text for node in ET.fromstring(sitemap.text).findall('.//{*}loc')]
+            self.assertIn('https://formrefine.ai' + path, urls)
+
     async def test_unknown_guide_is_real_404_not_soft_404(self):
         response = await self.client.get('/guides/does-not-exist')
         self.assertEqual(response.status_code, 404)

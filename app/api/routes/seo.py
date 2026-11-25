@@ -2,7 +2,6 @@
 from html import escape
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import HTMLResponse
-from ...content.guides import GUIDES
 from ...services.seo_service import PUBLIC_PATHS, render_guide, site_url
 
 router = APIRouter(tags=['public'], include_in_schema=False)
@@ -15,7 +14,7 @@ async def guide_index():
 
 @router.get('/guides/{slug}', response_class=HTMLResponse)
 async def guide_detail(slug: str):
-    if slug not in GUIDES:
+    if f'/guides/{slug}' not in PUBLIC_PATHS:
         raise HTTPException(404, 'Guide not found')
     return render_guide(slug)
 
