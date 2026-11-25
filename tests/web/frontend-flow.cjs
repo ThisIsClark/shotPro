@@ -194,3 +194,52 @@ test('history shows three charts, honest deltas, report links and gaps',()=>{
  assert.doesNotMatch(missing,/[−-]140.0°/);
  const empty=render([]);assert.equal((empty.match(/No measurements yet/g)||[]).length,3);
 });
+
+test('rhythm replay uses the reported evidence interval and clears when switching reports', () => {
+  const elements = new Map();
+  function get(id) {
+    if (!elements.has(id)) elements.set(id, {style:{}, pause(){}, load(){}, removeAttribute(name){delete this[name];}});
+    return elements.get(id);
+  }
+  const x = {document:{getElementById:get}};
+  vm.createContext(x);
+  vm.runInContext(fs.readFileSync('static/shot-rhythm.js','utf8'),x);
+  const card = x.renderShotRhythm({style:'two_motion', reason:'set_then_extend', replay_start:1,
+    evidence_start:1.25, evidence_end:1.5, replay_url:'/results/demo/rhythm.mp4'}, 'demo');
+  assert.equal(get('rhythmPoster').href,'/api/v1/export/demo/images/shot-rhythm.png');
+  assert.equal(get('rhythmPoster').hidden,false);
+  assert.equal(card.hidden,false);
+  assert.equal(get('rhythmStyle').textContent,'Likely two-motion');
+  get('rhythmVideo').duration = 1;
+  get('rhythmVideo').onloadedmetadata();
+  assert.equal(get('rhythmReplay').hidden,false);
+  assert.equal(get('rhythmPlay').hidden,false);
+  assert.equal(get('rhythmVideo').currentTime,0.25);
+  let plays = 0;
+  get('rhythmVideo').play = () => { plays++; return Promise.resolve(); };
+  get('rhythmPlay').onclick();
+  assert.equal(plays,1);
+  assert.equal(get('rhythmVideo').currentTime,0);
+  assert.equal(get('rhythmMarker').style.left,'25%');
+  assert.equal(get('rhythmMarker').style.width,'25%');
+  assert.equal(get('rhythmVideo').playbackRate,0.5);
+  x.renderShotRhythm({style:'unclear',reason:'insufficient_tracking'});
+  assert.equal(get('rhythmReplay').hidden,true);
+  assert.equal(get('rhythmPlay').hidden,true);
+  assert.match(get('rhythmReason').textContent,/shooting-hand side/);
+  assert.equal(get('rhythmVideo').src,undefined);
+  assert.equal(get('rhythmPoster').href,undefined);
+  assert.equal(get('rhythmPoster').hidden,true);
+  x.renderShotRhythm(null);
+  assert.equal(card.hidden,true);
+});
+
+test('shot rhythm is the lead result for both upload entry points', () => {
+  const report = html.slice(html.indexOf('id="resultsContainer"'));
+  const position = report.indexOf('id="shotRhythmCard"');
+  assert(position >= 0);
+  for (const later of ['class="analysis-heading"', 'class="export-section"', 'id="keyFramesSection"']) {
+    assert(report.indexOf(later) > position, later);
+  }
+  assert(!extract('displayResults').includes('location.hash'));
+});

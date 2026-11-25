@@ -16,6 +16,8 @@ from datetime import datetime
 
 from ..config import settings
 from ..core.pose_detector import PoseDetector, PoseResult, PoseLandmark
+from ..core.shot_rhythm import detect_shot_rhythm
+from .rhythm_replay import write_rhythm_replay
 from ..core.angle_calculator import AngleCalculator, ShootingAngles
 from ..core.phase_detector import PhaseDetector, ShootingPhase, FrameData
 from ..core.rules_engine import RulesEngine, CoordinationIssue
@@ -72,6 +74,8 @@ class FullAnalysisResult:
     template_comparison: Optional[dict] = None  # 模板对比结果
     frame_data_url: Optional[str] = None  # per-frame 时序数据 JSON 文件的访问 URL（供曲线图按需 fetch）
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    shot_rhythm: Optional[dict] = None
 
     def to_dict(self) -> dict:
         """转换为字典"""
@@ -147,6 +151,7 @@ class FullAnalysisResult:
             "duration": self.video_info.duration,
             "created_at": self.created_at,
             "template_comparison": self.template_comparison,
+            "shot_rhythm": self.shot_rhythm,
             "frame_data_url": self.frame_data_url
         })
 
@@ -288,10 +293,19 @@ class AnalysisService:
             )
         
         # 第二阶段：检测发力连贯性（如果需要）
+        key_frame_data = self.phase_detector.get_key_frames()
+        rhythm = detect_shot_rhythm(key_frame_data, pose_results, self.config.shooting_hand, video_info.fps)
+        if rhythm["style"] != "unclear":
+            dip = key_frame_data.get(ShootingPhase.SYNC_FRAME_1) or key_frame_data[ShootingPhase.ELBOW_MIN_FRAME]
+            release = key_frame_data[ShootingPhase.RELEASE_FRAME]
+            start = max(0, dip.timestamp - 0.10, rhythm["evidence_start"] - 1.5)
+            end = min(video_info.duration, release.timestamp + 0.20)
+            if write_rhythm_replay(video_path, result_dir / "rhythm.mp4", start, end):
+                rhythm.update(replay_start=round(start, 3), replay_url=f"/results/{task_id}/rhythm.mp4")
+
         coordination_issues = []
         if self.config.generate_evaluation:
             self._report_progress(progress_callback, "evaluation", 0, 1, "Detecting coordination issues...")
-            key_frame_data = self.phase_detector.get_key_frames()
             coordination_issues = self.rules_engine.evaluate_coordination(key_frame_data, frame_data_list)
         
         # 第三阶段：生成关键帧（4帧版本 - 发力连贯性检测）
@@ -299,8 +313,6 @@ class AnalysisService:
 
         if self.config.generate_key_frames:
             self._report_progress(progress_callback, "keyframes", 0, 8, "Generating keyframes...")
-
-            key_frame_data = self.phase_detector.get_key_frames()
 
             # 预先计算统一裁剪区域（8 帧取并集 bbox），所有关键帧共用 -> 构图统一、人物放大
             # crop_info 保证骨骼/角度坐标重映射对齐，裁剪不会导致骨骼错位
@@ -561,6 +573,7 @@ class AnalysisService:
             key_frames=key_frames,
             annotated_video_path=annotated_video_path,
             skeleton_video_path=skeleton_video_path,
+            shot_rhythm=rhythm,
             frame_data_url=frame_data_url
         )
     

@@ -62,3 +62,55 @@
 .trend-details summary{cursor:pointer;font-size:15px;padding:12px 0;color:var(--court-accent)}
 .trend-details button{background:none;border:0;color:var(--court-accent);font:inherit;text-align:left;cursor:pointer;overflow-wrap:anywhere}
 @media(max-width:1000px){.trend-cards{grid-template-columns:minmax(0,1fr)}.shot-trends svg{max-height:220px}.trend-change{min-height:0}}
+
+.one-intro .rhythm-link,.rhythm-example .rhythm-link{color:var(--court-accent);font-size:1rem;font-weight:650;text-decoration:underline;text-underline-offset:.22em}
+/* The page already reserves the sticky navigation height through scroll-padding. */
+#shotRhythmCard,#shotRhythmUpload,#resultsContainer{scroll-margin-top:0}
+.rhythm-focus{display:none;color:var(--court-accent);margin:0 0 10px;font-weight:650}
+#shotRhythmUpload:target .rhythm-focus{display:block}
+.rhythm-example{border:1px solid var(--court-line);border-radius:14px;background:var(--court-panel,#121b22);padding:clamp(16px,3vw,28px);margin:18px 0;text-align:left}
+.rhythm-example h3{font-size:clamp(22px,3vw,30px);margin:5px 0 10px}
+.rhythm-example p{line-height:1.55}
+.rhythm-example .rhythm-label{color:var(--court-accent);font-weight:650;font-size:1rem;margin:0}
+.rhythm-example video{display:block;width:100%;max-height:48vh;border-radius:8px;background:#0c1319}
+
+/* Put the verdict and its source footage on one review surface. */
+.rhythm-card {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:clamp(18px,3vw,48px);
+    padding:clamp(20px,3.5vw,48px);
+    background:#d6f3a6;
+    color:#17231a;
+    border-radius:16px;
+    align-items:center;
+    margin:0 0 28px;
+    text-align:left;
+}
+.rhythm-card [hidden],.rhythm-card[hidden]{display:none}
+.rhythm-card:has(.rhythm-film[hidden]){grid-template-columns:minmax(0,1fr)}
+.rhythm-verdict{min-width:0;max-width:68ch}
+.rhythm-card .rhythm-label{margin:0 0 12px;color:#365238;font-size:1.1rem;font-weight:650}
+.rhythm-card h2{font-size:clamp(2.4rem,4.7vw,4.8rem);letter-spacing:-.045em;line-height:1.02;text-wrap:balance;margin:0;color:#152317}
+#rhythmReason{max-width:43ch;margin:15px 0 0;font-size:clamp(1rem,1.55vw,1.23rem);line-height:1.5;color:#293e2d}
+.rhythm-play{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;margin-top:20px;background:#1b3024;color:#f3ffeb;border:0;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+.rhythm-play:hover{background:#314d38}
+.rhythm-play:focus-visible{outline:3px solid #152317;outline-offset:4px}
+.rhythm-card .rhythm-time{color:#365238;font-size:.95rem;font-variant-numeric:tabular-nums;margin:12px 0 0}
+.rhythm-card .rhythm-time:empty{display:none}
+.rhythm-film{min-width:0;background:#101820;border-radius:10px;padding:6px;overflow:hidden}
+.rhythm-film video{display:block;width:100%;height:clamp(200px,25vw,350px);object-fit:contain;background:#101820;border-radius:6px}
+.rhythm-track{position:relative;height:5px;background:#41514a;border-radius:4px;overflow:hidden;margin:5px 6px}
+.rhythm-track span{position:absolute;height:100%;background:#d6f3a6}
+@media(max-width:700px){
+    .rhythm-card{grid-template-columns:minmax(0,1fr);gap:16px}
+    .rhythm-film video{height:clamp(150px,44vw,255px)}
+    .rhythm-card .rhythm-label{margin-bottom:8px}
+    .rhythm-play{margin-top:14px}
+}
+@media(prefers-reduced-motion:reduce){#resultsContainer{animation:none}}
+.rhythm-example{display:grid;grid-template-columns:1fr minmax(0,1fr);gap:22px;align-items:center}
+@media(max-width:650px){.rhythm-example{grid-template-columns:minmax(0,1fr)}.one-intro .intro-actions{align-items:flex-start;flex-direction:column;gap:12px}}
+
+.rhythm-download{display:inline-flex;align-items:center;padding:12px 4px;margin:8px 0 0 8px;color:#1b3024;font-weight:650;text-underline-offset:4px}
+.rhythm-download:focus-visible{outline:3px solid #152317;outline-offset:3px}

@@ -3848,6 +3848,7 @@
     </style>
 <link rel="stylesheet" href="/static/one-page.css?v=20261117-charts">
 <link rel="stylesheet" href="/static/site-theme.css?v=20261116-sticky">
+<script src="/static/shot-rhythm.js" defer></script>
 <script src="/static/public-navigation.js" defer></script>
 <script src="/static/shot-trends.js?v=20261117-charts" defer></script>
 <style>body[data-engine-auth] :is(#dropdownSubscribeBtn,.stat-card.free-trial,.fb-retain){display:none!important}</style>
@@ -4054,9 +4055,9 @@
         </header>
 
         <div class="main-content">
-            <section class="one-intro"><p class="one-kicker">Make your next practice count</p><h1>Build basketball shooting form you can trust</h1><p>Putting in the reps but unsure what to change? Start with a basketball shooting form check. See your movement, compare attempts, and choose one thing to work on before your next game.</p><div class="one-benefits">1 free analysis without signup &nbsp; · &nbsp; 3 more with a free account</div><div class="intro-actions"><a class="shot-cta" href="#oneUpload">Analyze my shot <span aria-hidden="true">↓</span></a><a class="example-link" href="#oneExample">Explore the breakdown <span aria-hidden="true">↗</span></a></div>
+            <section class="one-intro"><p class="one-kicker">Make your next practice count</p><h1>Build basketball shooting form you can trust</h1><p>Putting in the reps but unsure what to change? Start with a basketball shooting form check. See your movement, compare attempts, and choose one thing to work on before your next game.</p><div class="one-benefits">1 free analysis without signup &nbsp; · &nbsp; 3 more with a free account</div><div class="intro-actions"><a class="shot-cta" href="#oneUpload">Analyze my shot <span aria-hidden="true">↓</span></a><a class="rhythm-link" href="#shotRhythmUpload">Is my shot one-motion or two-motion? <span aria-hidden="true">→</span></a></div>
                 <div class="shot-preview" aria-label="Example shooting sequence">
-                    <div class="shot-preview-head"><span>One shot. A closer look.</span><span class="example-tag">Example analysis</span></div>
+                    <div class="shot-preview-head"><span>One shot. A closer look.</span><a class="example-tag" href="#oneExample">Example analysis ↗</a></div>
                     <div class="shot-preview-frames">
                         <figure><img src="/static/demo_sync_frame_1.jpg" alt="Example dip with pose landmarks"><figcaption><span>01</span> Ball dip</figcaption></figure>
                         <figure><img src="/static/demo_highest_frame.jpg" alt="Example highest hold with pose landmarks"><figcaption><span>02</span> Highest hold</figcaption></figure>
@@ -4067,6 +4068,7 @@
             <!-- Upload Section -->
             <div class="upload-section" id="oneUpload">
                 <div class="card">
+                    <div id="shotRhythmUpload"><p class="rhythm-focus">Checking your shot rhythm</p></div>
                     <p class="one-hint" style="font-size:16px;margin:0 0 14px">Use the shooting form checker to review your dip, release, and follow-through.</p>
                     <h2 data-i18n="upload.title">Upload Video</h2>
                     
@@ -4159,12 +4161,26 @@
                 </div>
 
                 <div class="results-container" id="resultsContainer">
-                    <div class="analysis-heading"><div><p>Your shot, frame by frame</p><h2>The shooting breakdown</h2></div><span>Observe · Compare · Practice</span></div>
                     <!-- 返回历史按钮（从历史查看时显示） -->
                     <button class="result-back-to-history" id="backToHistoryBtn" onclick="backToHistory()">
                         ← <span data-i18n="history.back">Back to History</span>
                     </button>
 
+                    <section id="shotRhythmCard" class="rhythm-card" aria-labelledby="rhythmStyle" hidden>
+                        <div class="rhythm-verdict">
+                            <p class="rhythm-label">Your shot rhythm</p>
+                            <h2 id="rhythmStyle"></h2>
+                            <p id="rhythmReason"></p>
+                            <button id="rhythmPlay" class="rhythm-play" type="button" aria-controls="rhythmVideo" hidden><span aria-hidden="true">▶</span> Replay at ½ speed</button>
+                            <a id="rhythmPoster" class="rhythm-download" download="formrefine-shot-rhythm.png" hidden>Download shot poster ↓</a>
+                            <p id="rhythmTime" class="rhythm-time"></p>
+                        </div>
+                        <div id="rhythmReplay" class="rhythm-film" hidden>
+                            <video id="rhythmVideo" controls loop muted playsinline preload="metadata" aria-label="Slow-motion replay of this shot"></video>
+                            <div class="rhythm-track" aria-hidden="true"><span id="rhythmMarker" hidden></span></div>
+                        </div>
+                    </section>
+                    <div class="analysis-heading"><div><p>Your shot, frame by frame</p><h2>The shooting breakdown</h2></div><span>Observe · Compare · Practice</span></div>
                     <!-- 导出按钮 -->
                     <div class="export-section">
                         <button class="btn-export btn-export-image" id="exportImagesBtn" onclick="exportShareCard()">
@@ -4295,7 +4311,12 @@
         </div>
 
         <section class="one-how"><h2>More shots. But what is actually changing?</h2><p>It is frustrating to put in the work and still hesitate when you get an open look. Repeating a movement without reviewing it can leave you guessing. FormRefine helps you see your shot clearly, so you and your coach have something concrete to work with.</p><p>Start with one video, one observation, and one focus for your next practice. Build a record of your work instead of relying on how the last shot felt.</p></section>
-        <section class="one-example" id="oneExample"><h2>See the moments that matter</h2><p>Review your movement in time order, with keyframes and angle measurements as clues.</p><div class="one-frames"><figure><img src="/static/demo_sync_frame_1.jpg" alt="Example ball dip keyframe" loading="lazy"><figcaption>Ball dip</figcaption></figure><figure><img src="/static/demo_highest_frame.jpg" alt="Example highest hold keyframe" loading="lazy"><figcaption>Highest hold</figcaption></figure><figure><img src="/static/demo_release_frame.jpg" alt="Example release keyframe" loading="lazy"><figcaption>Release</figcaption></figure></div><p class="one-hint">Example images. Keyframes and measurements are estimates from a single camera angle.</p></section>
+        <section class="one-example" id="oneExample"><h2>See the moments that matter</h2><p>Review your movement in time order, with keyframes and angle measurements as clues.</p><div class="one-frames"><figure><img src="/static/demo_sync_frame_1.jpg" alt="Example ball dip keyframe" loading="lazy"><figcaption>Ball dip</figcaption></figure><figure><img src="/static/demo_highest_frame.jpg" alt="Example highest hold keyframe" loading="lazy"><figcaption>Highest hold</figcaption></figure><figure><img src="/static/demo_release_frame.jpg" alt="Example release keyframe" loading="lazy"><figcaption>Release</figcaption></figure></div><p class="one-hint">Example images. Keyframes and measurements are estimates from a single camera angle.</p>
+            <article class="rhythm-example"><div><p class="rhythm-label">Shot rhythm example</p><h3>Likely one-motion</h3>
+            <p>Watch the shooting elbow open while the upper arm is still rising. The highlighted arm follows a real practice shot.</p>
+            <a class="rhythm-link" href="#shotRhythmUpload">Check my shot rhythm →</a></div>
+            <video controls loop muted playsinline preload="none" poster="/static/shot-rhythm-example.jpg" aria-label="Slow-motion pose replay showing overlapping lift and elbow extension" src="/static/shot-rhythm-example.mp4"></video>
+            </article></section>
         <section class="one-how" id="shootingFormBasics" aria-labelledby="shootingFormBasicsTitle">
             <h2 id="shootingFormBasicsTitle">What should you look for in your basketball shooting form?</h2>
             <p>A useful form check looks at the whole movement, not just one angle or whether the shot went in. Start with these three parts of your video.</p>
@@ -4700,7 +4721,7 @@
 
         function openAuthModal() {
             if (engineAuth) {
-                location.assign('/_auth/google/start?next=' + encodeURIComponent('/app#oneUpload'));
+                location.assign('/_auth/google/start?next=' + encodeURIComponent(location.hash === '#shotRhythmUpload' ? '/app#shotRhythmUpload' : '/app#oneUpload'));
                 return;
             }
             document.getElementById('authModal').classList.add('active');
@@ -5281,9 +5302,6 @@
 
                 // 复用现有的结果展示函数
                 displayResults(result);
-
-                // 滚动到结果区域
-                resultsContainer.scrollIntoView({ behavior: 'smooth' });
             } catch (err) {
                 alert(currentLang === 'zh-CN' ? '加载分析结果失败' : 'Failed to load analysis result');
             }
@@ -6343,7 +6361,7 @@
                 // 正常分析
                 const templateId = document.getElementById('templateSelect').value;
 
-                let url = `/api/v1/videos/upload?shooting_hand=${shootingHand}&shooting_style=one_motion&generate_video=false&generate_skeleton_video=false`;
+                let url = `/api/v1/videos/upload?shooting_hand=${shootingHand}&generate_video=false&generate_skeleton_video=false`;
                 if (templateId) {
                     url += `&template_id=${templateId}`;
                 }
@@ -6468,6 +6486,7 @@
 
         // 显示模板关键帧 + 角度曲线（与分析结果界面同款样式）
         function displayTemplateKeyFrames(template) {
+            renderShotRhythm(null);
             emptyState.style.display = 'none';
             resultsContainer.style.display = 'block';
 
@@ -7154,7 +7173,9 @@
 
         function displayResults(result) {
             document.body.classList.add('one-has-results');
-            setTimeout(() => resultsContainer.scrollIntoView({behavior:'smooth', block:'start'}), 0);
+            const rhythmCard = renderShotRhythm(result.shot_rhythm, result.task_id);
+            const target = isViewingFromHistory ? resultsContainer : (rhythmCard || resultsContainer);
+            setTimeout(() => target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block:'start'}), 0);
             emptyState.style.display = 'none';
             resultsContainer.style.display = 'block';
             trackEvent('page_view', { page: 'analysis_result' });

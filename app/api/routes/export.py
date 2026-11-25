@@ -6,9 +6,10 @@ import asyncio
 import json
 from functools import partial
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pathlib import Path
 
+from ...services.rhythm_poster import rhythm_poster
 from ...services.pdf_service import PDFExportService
 from ...services.image_export_service import ImageExportService
 from ...api.routes.upload import task_store
@@ -289,3 +290,15 @@ async def export_share_card(task_id: str, language: str = Query('zh-CN', regex='
             status_code=500,
             detail=f"Failed to export share card: {str(e)}"
         )
+
+@router.get("/export/{task_id}/images/shot-rhythm.png")
+async def export_rhythm_poster(task_id: str):
+    result = _get_task_result(task_id)
+    try:
+        png = await asyncio.to_thread(rhythm_poster, settings.results_dir / task_id, result)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return Response(png, media_type="image/png", headers={
+        "Content-Disposition": 'attachment; filename="formrefine-shot-rhythm.png"',
+        "Cache-Control": "private, no-store",
+    })

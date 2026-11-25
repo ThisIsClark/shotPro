@@ -27,6 +27,8 @@ CATALOG=[
  ('anonymous-trial','匿名试用与账户隔离','额度、并发预约、失败重试、认领、权限、媒体访问及任务生命周期。','discover','tests/trial','quick'),
  ('core','核心依赖','FastAPI、视频处理和数值计算依赖可导入。','script','test_core.py','full'),
  ('imports','模块导入','分析模块与依赖导入冒烟检查。','script','test_import.py','full'),
+ ('shot-rhythm','投篮节奏判定','举臂与伸肘时序、低帧率、遮挡和缺帧。','file','tests/rhythm/motion_cases.py','full'),
+ ('rhythm-clips','投篮节奏球员样片','从 Curry 和 Booker 视频生成报告，核对类型、时间戳与回放解码。','file','tests/rhythm/player_clips.py','extended'),
  ('keyframes','关键帧时序','关键帧边界、真实姿态固定数据及时间顺序回归。','file','test_keyframe_timing.py','full'),
  ('phase-detector','投篮阶段','准备、举球、出手、跟随以及下一次投篮重置。','file','test_phase_detector_optimization.py','full'),
  ('templates','参考模板','检查当前安装模板的图片、角度及曲线对比。','discover','tests/templates','full'),

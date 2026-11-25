@@ -1,7 +1,7 @@
 """Pydantic schemas for request/response models"""
 
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -170,11 +170,21 @@ class TemplateComparison(BaseModel):
     comparisons: list[dict]  # 对比数据数组
 
 
+class ShotRhythm(BaseModel):
+    style: Literal["one_motion", "two_motion", "unclear"]
+    reason: str
+    evidence_start: Optional[float] = None
+    evidence_end: Optional[float] = None
+    replay_start: Optional[float] = None
+    replay_url: Optional[str] = None
+
+
 class AnalysisResult(BaseModel):
     """分析结果 - 发力连贯性检测"""
     task_id: str
     video_filename: str
     coordination_issues: list[CoordinationIssue]  # 发力连贯性检测结果
+    shot_rhythm: Optional[ShotRhythm] = None
     key_frames: list[KeyFrame]  # 所有检测用的关键帧
     annotated_video_url: Optional[str] = None
     skeleton_video_url: Optional[str] = None  # 骨骼运动视频URL

@@ -33,6 +33,21 @@ async def verify(video):
         assert status['status']=='completed',status
         result=(await guest.get(f'/api/v1/videos/tasks/{task}/result')).json()
         assert len(result['key_frames'])>=4
+        rhythm = result['shot_rhythm']
+        assert status['result']['shot_rhythm']['style'] == rhythm['style']
+        if rhythm['style'] != 'unclear':
+            from PIL import Image
+            poster_url = f'/api/v1/export/{task}/images/shot-rhythm.png'
+            poster = await guest.get(poster_url)
+            assert poster.status_code == 200 and poster.headers['content-type'] == 'image/png'
+            assert 'attachment' in poster.headers['content-disposition']
+            with Image.open(io.BytesIO(poster.content)) as image:
+                assert image.format == 'PNG' and image.size == (1080, 1350)
+                image.verify()
+            assert (await account.get(poster_url)).status_code in (401, 404)
+            replay = rhythm['replay_url']
+            assert (await guest.get(replay)).status_code == 200
+            assert (await account.get(replay)).status_code in (401,404)
         for frame in result['key_frames']:
             image=await guest.get(frame['image_url'])
             assert image.status_code==200
@@ -108,7 +123,12 @@ async def verify_engine(video, origin):
             frame = result['key_frames'][0]['image_url']
             assert (await client.get(frame,headers=headers)).status_code == 200
             bob = {**headers,'cookie':'session=second'}
-            for url in (prefix+'/source', prefix+'/result', frame, f'/api/v1/export/{task}/pdf'):
+            private_urls = [prefix+'/source', prefix+'/result', frame, f'/api/v1/export/{task}/pdf']
+            if result['shot_rhythm']['style'] != 'unclear':
+                replay = result['shot_rhythm']['replay_url']
+                assert (await client.get(replay, headers=headers)).status_code == 200
+                private_urls.append(replay)
+            for url in private_urls:
                 assert (await client.get(url,headers=bob)).status_code == 404, url
             assert (await client.delete(prefix,headers=bob)).status_code == 404
             assert (await client.delete(prefix,headers=headers)).status_code == 200
