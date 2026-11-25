@@ -245,8 +245,8 @@ class PublicSiteTests(unittest.IsolatedAsyncioTestCase):
             figure = after_heading.split('</figure>', 1)[0]
             self.assertIn('likely two-motion', figure)
             example = Page(figure)
-            self.assertEqual(example.links, ['/static/practice-shot-result.webp', '/app#shotRhythmUpload'])
-            self.assertEqual(example.assets, ['/static/practice-shot-result.webp'])
+            self.assertEqual(example.links, ['/static/practice-shot-result.webp?v=1', '/app#shotRhythmUpload'])
+            self.assertEqual(example.assets, ['/static/practice-shot-result.webp?v=1'])
             poster = await self.client.get(example.assets[0])
             self.assertEqual(poster.status_code, 200)
             self.assertEqual(poster.headers['content-type'], 'image/webp')
