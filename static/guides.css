@@ -40,6 +40,11 @@ footer { border-top: 1px solid var(--court-line); font-size: 16px; flex-wrap: wr
 .skip-link { position: absolute; left: 16px; top: -100px; background: var(--court-panel); padding: 12px; z-index: 2; }
 .skip-link:focus { top: 8px; }
 :focus-visible { outline: 2px solid var(--court-accent); outline-offset: 5px; }
+.rhythm-example { display: grid; grid-template-columns: minmax(0, 290px) 1fr; gap: 36px; align-items: center; margin: 0 0 32px; }
+.rhythm-poster { display: block; }
+.rhythm-example img { display: block; width: 100%; height: auto; border-radius: 6px; }
+.rhythm-example h2 { margin-bottom: 8px; }
+.rhythm-example p { max-width: 34ch; margin-bottom: 16px; line-height: 1.5; }
 @media (max-width: 650px) {
   .guide-header { flex-wrap: wrap; padding: 20px; gap: 16px; }
   .guide-header nav { flex-basis: 100%; gap: 14px; flex-wrap: wrap; }
@@ -51,4 +56,13 @@ footer { border-top: 1px solid var(--court-line); font-size: 16px; flex-wrap: wr
   .guide-cards article, .toc, .guide-cta { padding: 22px; }
   h2 { font-size: 25px; }
   footer { padding: 24px 20px; gap: 18px; }
+}
+@media (max-width: 650px) {
+  .rhythm-example { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(12px, 4vw, 22px); }
+  .rhythm-example .cta { padding: 9px 12px; }
+  .rhythm-example h2 { font-size: 20px; }
+  .rhythm-example p { max-width: none; font-size: 16px; margin-bottom: 10px; }
+  main:has(.rhythm-example) { padding-top: 12px; }
+  main:has(.rhythm-example) .breadcrumbs { margin-bottom: 8px; }
+  main:has(.rhythm-example) h1 { margin-bottom: 14px; }
 }
