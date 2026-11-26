@@ -46,6 +46,11 @@ class PublicSiteTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(page.meta['og:url'], page.canonicals[0])
                 self.assertEqual(page.meta['og:title'], page.titles[0])
                 self.assertEqual(page.schemas[0]['@context'], 'https://schema.org')
+                nodes = {node['@type']: node for node in page.schemas[0]['@graph']}
+                self.assertEqual(nodes['WebSite']['@id'], 'https://formrefine.ai/#website')
+                self.assertEqual(nodes['WebSite']['url'], 'https://formrefine.ai/')
+                self.assertEqual(nodes['WebPage']['isPartOf']['@id'], nodes['WebSite']['@id'])
+                self.assertEqual(nodes['WebPage']['url'], page.canonicals[0])
                 self.assertNotIn('{{SEO_METADATA}}', response.text)
                 self.assertNotIn('{{SUPABASE', response.text)
                 if path.startswith('/guides/'):
