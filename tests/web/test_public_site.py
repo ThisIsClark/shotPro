@@ -220,10 +220,17 @@ class PublicSiteTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('Sitemap: https://formrefine.ai/sitemap.xml', robots.text)
         self.assertNotIn('Disallow: /\n', robots.text)
 
-    async def test_root_permanent_redirect_and_query_canonical(self):
+    async def test_root_homepage_and_tool_query_canonical(self):
         root = await self.client.get('/')
-        self.assertEqual(root.status_code, 308)
-        self.assertEqual(root.headers['location'], '/app')
+        self.assertEqual(root.status_code, 200)
+        self.assertEqual((await self.client.head('/')).status_code, 200)
+        faq = Page(root.text).schemas[-1]
+        self.assertEqual(faq['@type'], 'FAQPage')
+        self.assertEqual(len(faq['mainEntity']), 5)
+        for item in faq['mainEntity']:
+            self.assertIn('<h3>' + item['name'] + '</h3>', root.text)
+            self.assertIn('<p>' + item['acceptedAnswer']['text'] + '</p>', root.text)
+        self.assertEqual(PUBLIC_PATHS[0], '/')
         page = Page((await self.client.get('/app?utm_source=reddit')).text)
         self.assertEqual(page.canonicals, ['https://formrefine.ai/app'])
 

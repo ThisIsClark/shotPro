@@ -1,10 +1,19 @@
 """Crawlable public pages and discovery endpoints."""
 from html import escape
+from ...config import settings
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import HTMLResponse
-from ...services.seo_service import PUBLIC_PATHS, render_guide, site_url
+from ...services.seo_service import metadata, PUBLIC_PATHS, render_guide, site_url
 
 router = APIRouter(tags=['public'], include_in_schema=False)
+
+
+@router.api_route('/', methods=['GET', 'HEAD'], response_class=HTMLResponse)
+async def homepage():
+    head = metadata('/', 'Basketball Shooting Form: 5 Checkpoints of a Repeatable Shot',
+                    'What a repeatable basketball shooting form looks like — base, dip, set point, release, follow-through — and how to check your own shot on video.',
+                    share_image_alt='Basketball player shooting from the side with the five shooting form checkpoints labelled')
+    return (settings.templates_dir / 'checkpoint-home.html').read_text(encoding='utf-8').replace('$metadata', head)
 
 
 @router.get('/guides', response_class=HTMLResponse)

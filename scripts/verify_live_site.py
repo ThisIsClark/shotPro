@@ -16,7 +16,7 @@ def main(base):
         raise ValueError('Pass an http(s) origin without credentials')
     with httpx.Client(base_url=base.rstrip('/'), timeout=30, follow_redirects=False) as client:
         root = client.get('/')
-        assert root.status_code == 308 and root.headers['location'] == '/app'
+        assert root.status_code == 200 and client.head('/').status_code == 200
         assert client.get('/health').json()['status'] == 'healthy'
         sitemap = client.get('/sitemap.xml'); sitemap.raise_for_status()
         urls = [x.text for x in ET.fromstring(sitemap.text).findall('.//{*}loc')]
@@ -45,7 +45,7 @@ def main(base):
                     assert client.get(asset).status_code == 200, asset
         assert client.get('/guides/not-a-real-guide').status_code == 404
         assert 'Sitemap:' in client.get('/robots.txt').text
-        print(f'PASS: {len(urls)} live pages, metadata, brand assets, sitemap, redirect, health and 404')
+        print(f'PASS: {len(urls)} live pages, metadata, brand assets, sitemap, homepage, health and 404')
 
 
 if __name__ == '__main__': main(sys.argv[1])

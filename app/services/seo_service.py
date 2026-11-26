@@ -17,7 +17,7 @@ RHYTHM_GUIDE_DESCRIPTION = (
     'and how to check your own release in slow motion.'
 )
 PUBLIC_PATHS = (
-    '/app', '/privacy', '/guides', *(f'/guides/{slug}' for slug in GUIDES),
+    '/', '/app', '/privacy', '/guides', *(f'/guides/{slug}' for slug in GUIDES),
     f'/guides/{RHYTHM_GUIDE_SLUG}',
 )
 
@@ -30,12 +30,11 @@ def indexable_host(hostname):
     return settings.seo_indexable and hostname == urlsplit(settings.seo_site_url).hostname
 
 
-def metadata(path, title, description, *, article=False):
+def metadata(path, title, description, *, article=False, share_image_alt="FormRefine basketball shooting form analysis"):
     url = site_url(path)
     share_image = escape(site_url('/static/brand/formrefine-share.png'), quote=True)
-    share_image_alt = 'FormRefine basketball shooting form analysis'
     schema = {'@context': 'https://schema.org', '@graph': [
-        {'@type': 'WebSite', '@id': site_url('/#website'), 'url': site_url('/app'), 'name': 'FormRefine'},
+        {'@type': 'WebSite', '@id': site_url('/#website'), 'url': site_url('/' if path == '/' else '/app'), 'name': 'FormRefine'},
         {'@type': 'WebPage', '@id': url + '#page', 'url': url, 'name': title,
          'description': description, 'inLanguage': 'en-US', 'isPartOf': {'@id': site_url('/#website')}},
     ]}
