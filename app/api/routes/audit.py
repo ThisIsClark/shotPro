@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 
 from ..deps import get_current_user_optional, get_user_id
+from ...config import settings
 from ...services.audit_service import audit_service, AuditAction
 
 router = APIRouter(prefix="/audit", tags=["audit"])
@@ -92,7 +93,7 @@ class VisitRequest(BaseModel):
 async def record_visit(data: VisitRequest, request: Request, response: Response):
     from ...services.trial_service import trial_store
     from ...services.admin_metrics import event
-    visitor = trial_store.visitor(request)
+    visitor = trial_store.visitor(request, response if settings.engine_session_origin else None)
     event(visitor, 'visit', data.source)
     from ...services.admin_insights import record
     record('visit', visitor, details=data.model_dump())

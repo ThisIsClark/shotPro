@@ -758,7 +758,7 @@
         <div id="page-behavior" class="page-section">
             <div class="page-header">
                 <h1>用户行为</h1>
-                <p>用户行为漏斗与行为链路追踪：访问 → 注册 → 登录 → 分析 → 付费</p>
+                <p id="behaviorIntro">用户行为漏斗与行为链路追踪：访问 → 注册 → 登录 → 分析 → 付费</p>
             </div>
 
             <!-- Funnel Overview -->
@@ -853,6 +853,7 @@
 // ===== State =====
 const engineAdmin = document.body.hasAttribute('data-engine-admin');
 const passwordAdmin = document.body.hasAttribute('data-engine-password-admin');
+const googleSiteAdmin = engineAdmin || passwordAdmin;
 const adminSessionUrl = '/api/v1/admin/session';
 let authToken = engineAdmin || passwordAdmin ? '' : (localStorage.getItem('admin_token') || '');
 let currentPage = 'dashboard';
@@ -1307,6 +1308,19 @@ async function loadAuditLogs() {
 
 // ===== User Behavior Page =====
 async function loadBehaviorPage() {
+    if (googleSiteAdmin) {
+        document.getElementById('behaviorIntro').textContent = '工具页访问、上传视频与分析结果的使用情况。';
+        document.getElementById('behaviorIpFilter').hidden = true;
+        const filter = document.getElementById('behaviorActionFilter');
+        if (!filter.querySelector('option[value="visit"]')) {
+            filter.replaceChildren(
+                new Option('All Actions', ''), new Option('Visit', 'visit'),
+                new Option('Video Selected', 'file_selected'), new Option('Analysis Started', 'analysis_started'),
+                new Option('Analysis Completed', 'analysis_completed'), new Option('Analysis Failed', 'analysis_failed'),
+                new Option('Result Viewed', 'result_viewed'), new Option('Comparison Viewed', 'comparison_viewed')
+            );
+        }
+    }
     loadFunnelStats();
     loadBehaviorStream();
 }
@@ -1346,7 +1360,8 @@ async function loadFunnelStats() {
 
         if (data.total_conversion !== null) {
             totalEl.style.display = 'block';
-            totalEl.innerHTML = `Trial conversion (Visitor → Saved to account): <strong>${data.total_conversion}%</strong> &nbsp;|&nbsp; Unique visitors in period: ${data.total_logs}`;
+            const label = googleSiteAdmin ? 'Visitor → Viewed result' : 'Trial conversion (Visitor → Saved to account)';
+            totalEl.innerHTML = `${label}: <strong>${data.total_conversion}%</strong> &nbsp;|&nbsp; Unique visitors in period: ${data.total_logs}`;
         } else {
             totalEl.style.display = 'none';
         }
@@ -1361,9 +1376,10 @@ async function loadBehaviorStream() {
     const days = document.getElementById('behaviorDaysFilter').value;
     const offset = paginationState.behavior || 0;
     try {
-        let path = `/audit-logs?limit=100&offset=${offset}&days=${days}`;
-        if (action) path += `&action=${action}`;
-        if (ip) path += `&ip_address=${encodeURIComponent(ip)}`;
+        const endpoint = googleSiteAdmin ? 'behavior-stream' : 'audit-logs';
+        let path = `/${endpoint}?limit=100&offset=${offset}&days=${days}`;
+        if (action) path += `&action=${encodeURIComponent(action)}`;
+        if (!googleSiteAdmin && ip) path += `&ip_address=${encodeURIComponent(ip)}`;
         const data = await apiFetch(path);
         const tbody = document.getElementById('behaviorTable');
         if (!data.logs || data.logs.length === 0) {
@@ -1387,6 +1403,8 @@ async function loadBehaviorStream() {
         renderPagination('behaviorPagination', 'behavior', data.count, 100, offset);
     } catch (e) {
         console.error('Behavior stream failed:', e);
+        document.getElementById('behaviorTable').innerHTML =
+            '<tr><td colspan="5" class="empty-state">Unable to load behavior data</td></tr>';
     }
 }
 

@@ -741,7 +741,13 @@ async def upload_video(
             await db_service.delete_analysis(task_id)
         raise
 
-    from ...services.admin_insights import task_metadata
+    from ...services.admin_insights import record, task_metadata
+    if engine_member:
+        try:
+            tracked_visitor = trial_store.visitor(request)
+        except HTTPException:
+            tracked_visitor = None
+        record('analysis_started', tracked_visitor, user_id, task_id)
     task_metadata(task_id, metadata={'shooting_hand':shooting_hand, 'shooting_style':shooting_style,
                                     'template_id':template_id, 'duration':duration, 'file_size_mb':file_size_mb})
     # Keep an explicitly requested private copy, independent of legacy cleanup.

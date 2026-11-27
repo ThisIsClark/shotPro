@@ -100,3 +100,44 @@ class EngineAdminTests(unittest.TestCase):
                 self.assertEqual(client.get(session).status_code, 401)
             self.assertEqual(client.delete(session, headers=headers).status_code, 200)
             self.assertEqual(client.get(session).status_code, 401)
+
+    def test_engine_reports_and_visits_populate_behavior_without_supabase(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        from app.services.admin_insights import record
+        from app.services.admin_metrics import quality
+        from app.services.trial_service import COOKIE, trial_store
+
+        origin = "https://formrefine.ai"
+        headers = {"Origin": origin}
+        password = secrets.token_urlsafe(32)
+        client = TestClient(app, base_url=origin)
+        visit = "/api/v1/audit/visit"
+        journey = "/api/v1/audit/journey"
+        stream = "/api/v1/admin/behavior-stream"
+        with TemporaryDirectory() as storage, patch.object(settings, "trial_db_path", Path(storage) / "ops.db"), patch.object(
+            settings, "engine_auth_origin", origin
+        ), patch.object(settings, "engine_admin_password", SecretStr(password)):
+            self.assertEqual(client.post(visit, json={}).status_code, 403)
+            self.assertEqual(client.post(journey, json={"action": "file_selected"}, headers=headers).status_code, 401)
+            self.assertEqual(client.get(stream).status_code, 401)
+            self.assertEqual(client.post(visit, json={"source": "test"}, headers=headers).status_code, 200)
+            visitor = client.cookies[COOKIE].split(".")[0]
+            owner = "gefei:formrefine.ai:member"
+            task = "observed-task"
+            trial_store.reserve(task, None, owner, "clip.mov", "local-test")
+            record("analysis_started", visitor, owner, task)
+            trial_store.finish(task, True)
+            quality(task)
+            record("result_viewed", visitor, owner, task)
+
+            self.assertEqual(client.post("/api/v1/admin/session", json={"username": "admin", "password": password},
+                                         headers=headers).status_code, 200)
+            funnel = client.get("/api/v1/admin/funnel-stats").json()["funnel"]
+            self.assertEqual([step["count"] for step in funnel], [1, 1, 1, 1])
+            logs = client.get(stream).json()
+            self.assertEqual(logs["count"], 4)
+            self.assertEqual({row["action"] for row in logs["logs"]},
+                             {"visit", "analysis_started", "analysis_completed", "result_viewed"})
+            self.assertEqual(client.get(stream, params={"action": "visit"}).json()["count"], 1)

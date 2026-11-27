@@ -19,7 +19,8 @@ export default {
     const adminPath = env.ADMIN_ENABLED === "true" &&
       ((url.pathname === "/admin" && ["GET", "HEAD"].includes(request.method)) ||
        url.pathname.startsWith("/api/v1/admin/"));
-    const privatePath = adminPath || ["/api/v1/videos/", "/api/v1/export/", "/results/"].some(path => url.pathname.startsWith(path));
+    const analytics = request.method === "POST" && ["/api/v1/audit/visit", "/api/v1/audit/journey"].includes(url.pathname);
+    const privatePath = adminPath || analytics || ["/api/v1/videos/", "/api/v1/export/", "/results/"].some(path => url.pathname.startsWith(path));
     if (!publicRead && !privatePath) {
       return new Response("Not found", { status: 404 });
     }

@@ -25,7 +25,9 @@
       await fetch('/api/v1/audit/journey',{method:'POST',headers,body:JSON.stringify({action,task,earlier}),keepalive:true});
     } catch (_) { /* Analytics never blocks the product. */ }
   };
-  if(window.opsVisitorReady)window.recordOperationsVisit();
+  if(document.body.hasAttribute('data-engine-auth')) {
+    document.addEventListener('DOMContentLoaded', window.recordOperationsVisit);
+  } else if(window.opsVisitorReady)window.recordOperationsVisit();
   if(location.pathname.startsWith('/guides')) {
     if(!excluded())fetch('/api/v1/trial/status').then(r=>{if(r.ok)window.recordOperationsVisit();}).catch(()=>{});
   }

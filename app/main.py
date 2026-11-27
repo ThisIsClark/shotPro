@@ -229,6 +229,16 @@ async def protect_report_media(request: Request, call_next):
         response = await call_next(request)
         response.headers.update(private_headers)
         return response
+    if settings.engine_session_origin and path in {"/api/v1/audit/visit", "/api/v1/audit/journey"}:
+        if request.method != "POST" or request.headers.get("origin") != settings.engine_session_origin:
+            return JSONResponse({"detail": "Request must originate from FormRefine."}, status_code=403)
+        if path.endswith("/journey"):
+            from .services.engine_identity import verify_engine_member
+            try:
+                request.state.engine_member = await verify_engine_member(request)
+            except HTTPException as exc:
+                return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+        return await call_next(request)
     if settings.engine_session_origin and not public_read:
         from .services.engine_identity import verify_engine_member
         if not path.startswith(("/api/v1/videos/", "/results/", "/api/v1/export/")):
@@ -309,7 +319,7 @@ async def serve_app():
                                 'Sign in with Google to save your video and compare your practice sessions.')
             html = html.replace('Try one analysis without signing up. Videos up to 10 seconds; trial reports available for 24 hours.',
                                 'Upload a clip up to 10 seconds. Your video and report are saved in History.')
-            for asset in ("/static/operations-tracking.js", "/static/quality-survey.js",
+            for asset in ("/static/quality-survey.js",
                           "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"):
                 html = html.replace(f'<script src="{asset}"></script>', '')
         html = html.replace("{{SUPABASE_URL}}", settings.supabase_url or "")

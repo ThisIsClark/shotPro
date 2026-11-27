@@ -506,6 +506,18 @@ async def get_audit_stats(
         return {}
 
 
+@router.get("/behavior-stream")
+async def get_behavior_stream(
+    admin: dict = Depends(require_admin),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    action: Optional[str] = None,
+    days: int = Query(7, ge=1, le=30),
+):
+    from ...services.behavior_service import stream
+    return stream(days, limit, offset, action)
+
+
 @router.get("/funnel-stats")
 async def get_funnel_stats(
     admin: dict = Depends(require_admin),
@@ -518,10 +530,11 @@ async def get_funnel_stats(
     返回每步计数 + 转化率。
     """
     from ...services.admin_metrics import snapshot
-    metrics = snapshot(days)
+    from ...services.behavior_service import funnel as engine_funnel
+    steps = engine_funnel(days) if settings.engine_session_origin else snapshot(days)['funnel']
     funnel = []
     previous = None
-    for index, step in enumerate(metrics['funnel']):
+    for index, step in enumerate(steps):
         count = step['count']
         funnel.append(dict(step, key=str(index), conversion_from_prev=round(100*count/previous, 1) if previous else None))
         previous = count

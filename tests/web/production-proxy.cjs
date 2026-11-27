@@ -59,6 +59,16 @@ test('production proxy separates public pages, private reports and engine auth',
         }), adminConfig);
         assert.equal(calls.at(-1).target, env.FASTAPI_ORIGIN + loginPath);
         assert.equal(calls.at(-1).headers.get('origin'), 'https://formrefine.ai');
+        const analyticsPath = '/api/v1/audit/visit';
+        assert.equal((await worker.fetch(request(analyticsPath), env)).status, 404);
+        await worker.fetch(new Request('https://formrefine.ai' + analyticsPath, {
+            method: 'POST', headers: { Origin: 'https://formrefine.ai' }, body: '{}'
+        }), env);
+        assert.equal(calls.at(-1).target, env.FASTAPI_ORIGIN + analyticsPath);
+        assert.equal((await worker.fetch(new Request('https://formrefine.ai/api/v1/audit/event', {
+            method: 'POST', body: '{}'
+        }), env)).status, 404);
+
         const noindex = await worker.fetch(request('/app'), { ...env, INDEX_PUBLIC_PAGES: 'false' });
         assert.equal(noindex.headers.get('x-robots-tag'), 'noindex, nofollow');
     } finally {
