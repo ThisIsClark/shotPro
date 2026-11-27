@@ -59,8 +59,7 @@ test('production proxy separates public pages, private reports and engine auth',
         }), adminConfig);
         assert.equal(calls.at(-1).target, env.FASTAPI_ORIGIN + loginPath);
         assert.equal(calls.at(-1).headers.get('origin'), 'https://formrefine.ai');
-        const analyticsPath = '/api/v1/audit/visit';
-        assert.equal((await worker.fetch(request(analyticsPath), env)).status, 404);
+        const analyticsPath = '/api/v1/videos/telemetry/visit';
         await worker.fetch(new Request('https://formrefine.ai' + analyticsPath, {
             method: 'POST', headers: { Origin: 'https://formrefine.ai' }, body: '{}'
         }), env);

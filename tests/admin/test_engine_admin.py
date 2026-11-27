@@ -113,8 +113,8 @@ class EngineAdminTests(unittest.TestCase):
         headers = {"Origin": origin}
         password = secrets.token_urlsafe(32)
         client = TestClient(app, base_url=origin)
-        visit = "/api/v1/audit/visit"
-        journey = "/api/v1/audit/journey"
+        visit = "/api/v1/videos/telemetry/visit"
+        journey = "/api/v1/videos/telemetry/journey"
         stream = "/api/v1/admin/behavior-stream"
         with TemporaryDirectory() as storage, patch.object(settings, "trial_db_path", Path(storage) / "ops.db"), patch.object(
             settings, "engine_auth_origin", origin

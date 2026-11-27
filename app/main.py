@@ -229,10 +229,12 @@ async def protect_report_media(request: Request, call_next):
         response = await call_next(request)
         response.headers.update(private_headers)
         return response
-    if settings.engine_session_origin and path in {"/api/v1/audit/visit", "/api/v1/audit/journey"}:
+    if path in {audit.ENGINE_VISIT_PATH, audit.ENGINE_JOURNEY_PATH}:
+        if not settings.engine_session_origin:
+            return JSONResponse({"detail": "Route not found."}, status_code=404)
         if request.method != "POST" or request.headers.get("origin") != settings.engine_session_origin:
             return JSONResponse({"detail": "Request must originate from FormRefine."}, status_code=403)
-        if path.endswith("/journey"):
+        if path == audit.ENGINE_JOURNEY_PATH:
             from .services.engine_identity import verify_engine_member
             try:
                 request.state.engine_member = await verify_engine_member(request)
@@ -301,6 +303,8 @@ app.include_router(templates.router)
 app.include_router(admin.router, prefix="/api/v1")  # 管理员路由
 app.include_router(payment.router, prefix="/api/v1")  # 付款路由
 app.include_router(audit.router, prefix="/api/v1")  # 用户行为追踪路由
+app.add_api_route(audit.ENGINE_VISIT_PATH, audit.record_visit, methods=["POST"], include_in_schema=False)
+app.add_api_route(audit.ENGINE_JOURNEY_PATH, audit.journey_event, methods=["POST"], include_in_schema=False)
 # Webhook 兼容路由：Creem 后台默认调 /api/payment/webhook，需要同时支持 /api/v1/payment/webhook
 app.include_router(payment.router, prefix="/api")  # 付款路由兼容（webhook 用）
 

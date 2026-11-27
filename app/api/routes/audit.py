@@ -13,6 +13,8 @@ from ...config import settings
 from ...services.audit_service import audit_service, AuditAction
 
 router = APIRouter(prefix="/audit", tags=["audit"])
+ENGINE_VISIT_PATH = "/api/v1/videos/telemetry/visit"
+ENGINE_JOURNEY_PATH = "/api/v1/videos/telemetry/journey"
 
 
 # 允许前端上报的动作白名单（防任意写入垃圾数据）
