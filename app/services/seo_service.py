@@ -16,6 +16,13 @@ RHYTHM_GUIDE_DESCRIPTION = (
     'Learn what a one-motion basketball shot looks like, how it differs from a two-motion shot, '
     'and how to check your own release in slow motion.'
 )
+GUIDE_HOME_NOTES = {
+    'basketball-shooting-form-check': 'New to video review? The <a href="/">basketball shooting form</a> overview lists the five checkpoints this checklist is built on.',
+    'how-to-film-basketball-shot': 'A good clip only helps if you know what to look for: the <a href="/">five checkpoints of a repeatable shooting form</a> explain what each recording should show.',
+    'basketball-shooting-dip': 'The dip is one of five checkpoints — the <a href="/">basketball shooting form overview</a> shows how it connects to base, set point and release.',
+    'basketball-release-point': 'Release is checkpoint four of five; the <a href="/">shooting form overview</a> covers what has to stay identical before and after it.',
+    RHYTHM_GUIDE_SLUG: 'Before choosing between one motion and two, it helps to know what stays the same in both: the basketball shooting form overview lists the <a href="/">five checkpoints</a>.',
+}
 PUBLIC_PATHS = (
     '/', '/app', '/privacy', '/guides', *(f'/guides/{slug}' for slug in GUIDES),
     f'/guides/{RHYTHM_GUIDE_SLUG}',
@@ -40,7 +47,7 @@ def metadata(path, title, description, *, article=False, share_image_alt="FormRe
     ]}
     if article:
         schema['@graph'].append({'@type': 'BreadcrumbList', 'itemListElement': [
-            {'@type': 'ListItem', 'position': 1, 'name': 'FormRefine', 'item': site_url('/app')},
+            {'@type': 'ListItem', 'position': 1, 'name': 'FormRefine', 'item': site_url('/')},
             {'@type': 'ListItem', 'position': 2, 'name': 'Shooting guides', 'item': site_url('/guides')},
             {'@type': 'ListItem', 'position': 3, 'name': title, 'item': url},
         ]})
@@ -96,6 +103,8 @@ def render_guide(slug=None):
             content += '<section class="sources"><h2>Further reading</h2><ul>' + ''.join(f'<li><a href="{escape(url, quote=True)}">{escape(label)}</a></li>' for label, url in guide['sources']) + '</ul></section>'
         content += '<aside><h2>Continue your review</h2><div class="guide-cards">' + cards(guide['related']) + '</div></aside>'
         path = '/guides/' + slug
+    if slug in GUIDE_HOME_NOTES:
+        content += f'<p class="formrefine-note">{GUIDE_HOME_NOTES[slug]}</p>'
     template = Template((settings.templates_dir / 'guide.html').read_text(encoding='utf-8'))
     html = template.substitute(metadata=metadata(path, title, description, article=slug is not None),
                                heading=escape(heading), content=content)

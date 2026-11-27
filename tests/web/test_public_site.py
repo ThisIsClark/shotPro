@@ -196,6 +196,27 @@ class PublicSiteTests(unittest.IsolatedAsyncioTestCase):
                 if parsed.fragment:
                     self.assertIn(parsed.fragment, Page(response.text).ids, (path, link))
 
+    async def test_article_home_links_and_breadcrumbs(self):
+        anchors = set()
+        for path in PUBLIC_PATHS:
+            if not path.startswith('/guides/'):
+                continue
+            source = (await self.client.get(path)).text
+            page = Page(source)
+            self.assertEqual(page.links.count('/'), 4, path)
+            self.assertEqual(page.links.count('/app#oneUpload'), 2, path)
+            self.assertIn('<a class="brand site-brand" href="/">', source)
+            self.assertIn('<a href="/">Home</a>', source)
+            self.assertIn('<footer><a href="/">FormRefine</a>', source)
+            crumbs = next(node for node in page.schemas[0]['@graph'] if node['@type'] == 'BreadcrumbList')
+            self.assertEqual(crumbs['itemListElement'][0], {
+                '@type': 'ListItem', 'position': 1, 'name': 'FormRefine', 'item': 'https://formrefine.ai/'})
+            note = source.split('<p class="formrefine-note">')[1]
+            anchor = note.split('<a href="/">')[1].split('</a>')[0]
+            self.assertNotIn(anchor, anchors)
+            anchors.add(anchor)
+            self.assertTrue(note.split('</p>', 1)[1].lstrip().startswith('<section class="guide-cta">'))
+
     async def test_guides_share_brand_and_current_trial_offer(self):
         for path in PUBLIC_PATHS:
             response = await self.client.get(path)
