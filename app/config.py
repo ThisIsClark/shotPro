@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
+from pydantic import SecretStr, field_validator
 from urllib.parse import urlsplit
 
 
@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     seo_indexable: bool = True
     engine_auth_origin: str = ""
     engine_admin_member_id: str = ""
+    engine_admin_password: SecretStr = SecretStr("")
     # Keep the deployed staging environment working through the config transition.
     staging_engine_auth: bool = False
 
@@ -40,6 +41,10 @@ class Settings(BaseSettings):
         if self.engine_auth_origin:
             return self.engine_auth_origin
         return "https://staging.formrefine.ai" if self.staging_engine_auth else ""
+
+    @property
+    def password_admin_enabled(self) -> bool:
+        return bool(self.engine_session_origin and len(self.engine_admin_password.get_secret_value()) >= 32)
 
     @field_validator("seo_site_url")
     @classmethod

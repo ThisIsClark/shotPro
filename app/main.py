@@ -21,6 +21,7 @@ from .api.routes import upload, health, export, templates
 from .api.routes import auth, users, admin, payment
 from .api.routes import audit, feedback, seo
 from .services.seo_service import metadata, HOME_TITLE, HOME_DESCRIPTION, PUBLIC_PATHS, indexable_host
+from .services.admin_session import SESSION_PATH, read_session
 from .services.feedback_service import feedback_store
 from .services.local_auth_service import local_auth_service
 from .services.db_init_service import init_database
@@ -195,6 +196,20 @@ async def protect_report_media(request: Request, call_next):
     )
     admin_page = path == "/admin" and request.method in {"GET", "HEAD"}
     admin_api = path.startswith("/api/v1/admin/")
+    if settings.password_admin_enabled and (admin_page or admin_api):
+        private_headers = {"Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow"}
+        if request.method not in {"GET", "HEAD"} and request.headers.get("origin") != settings.engine_session_origin:
+            return JSONResponse({"detail": "Request must originate from FormRefine."}, status_code=403,
+                                headers=private_headers)
+        if admin_api and not (path == SESSION_PATH and request.method in {"POST", "DELETE"}):
+            user = read_session(request)
+            if not user:
+                return JSONResponse({"detail": "Administrator login required."}, status_code=401,
+                                    headers=private_headers)
+            request.state.engine_admin = user
+        response = await call_next(request)
+        response.headers.update(private_headers)
+        return response
     if settings.engine_session_origin and settings.engine_admin_member_id and (admin_page or admin_api):
         from .services.engine_identity import verify_engine_member
         private_headers = {"Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow"}
@@ -346,7 +361,9 @@ async def serve_admin():
     html_path = settings.templates_dir / "admin.html"
     if html_path.exists():
         html = html_path.read_text(encoding="utf-8")
-        if settings.engine_session_origin:
+        if settings.password_admin_enabled:
+            html = html.replace("<body>", "<body data-engine-password-admin>")
+        elif settings.engine_session_origin:
             html = html.replace("<body>", "<body data-engine-admin>")
         return HTMLResponse(html, headers={"Cache-Control": "private, no-store"})
     return HTMLResponse(content="<h1>Admin page not found</h1>", status_code=404)

@@ -17,7 +17,7 @@ class JWTService:
     TOKEN_EXPIRE_HOURS = 24
 
     @staticmethod
-    def create_token(user_info: Dict[str, Any]) -> str:
+    def create_token(user_info: Dict[str, Any], *, signing_key: Optional[str] = None) -> str:
         """
         签发 JWT
 
@@ -36,10 +36,10 @@ class JWTService:
             "iat": now,
             "exp": now + timedelta(hours=JWTService.TOKEN_EXPIRE_HOURS),
         }
-        return jwt.encode(payload, settings.jwt_secret, algorithm=JWTService.ALGORITHM)
+        return jwt.encode(payload, signing_key or settings.jwt_secret, algorithm=JWTService.ALGORITHM)
 
     @staticmethod
-    def verify_token(token: str) -> Optional[Dict[str, Any]]:
+    def verify_token(token: str, *, signing_key: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         验证 JWT，返回用户信息或 None
 
@@ -51,7 +51,7 @@ class JWTService:
         """
         try:
             payload = jwt.decode(
-                token, settings.jwt_secret, algorithms=[JWTService.ALGORITHM]
+                token, signing_key or settings.jwt_secret, algorithms=[JWTService.ALGORITHM]
             )
             return {
                 "id": payload["sub"],

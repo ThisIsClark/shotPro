@@ -51,6 +51,14 @@ test('production proxy separates public pages, private reports and engine auth',
             assert.equal(admin.headers.get('x-robots-tag'), 'noindex, nofollow');
         }
         assert.equal((await worker.fetch(request('/api/v1/auth/local-login'), adminConfig)).status, 404);
+        const loginPath = '/api/v1/admin/session';
+        await worker.fetch(new Request('https://formrefine.ai' + loginPath, {
+            method: 'POST',
+            headers: { Origin: 'https://formrefine.ai', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: 'admin', password: 'test-only' })
+        }), adminConfig);
+        assert.equal(calls.at(-1).target, env.FASTAPI_ORIGIN + loginPath);
+        assert.equal(calls.at(-1).headers.get('origin'), 'https://formrefine.ai');
         const noindex = await worker.fetch(request('/app'), { ...env, INDEX_PUBLIC_PAGES: 'false' });
         assert.equal(noindex.headers.get('x-robots-tag'), 'noindex, nofollow');
     } finally {

@@ -1,8 +1,10 @@
+import secrets
 import unittest
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 import httpx
+from pydantic import SecretStr
 
 from app.config import settings
 from app.main import app
@@ -56,3 +58,45 @@ class EngineAdminTests(unittest.TestCase):
             self.assertEqual(client.get(admin_api, headers=owner).status_code, 200)
             with patch.object(settings, "engine_admin_member_id", ""):
                 self.assertEqual(client.get(admin_api, headers=owner).status_code, 404)
+
+    def test_password_login_uses_an_admin_only_session(self):
+        origin = "https://formrefine.ai"
+        session = "/api/v1/admin/session"
+        operations = "/api/v1/admin/operations"
+        password = secrets.token_urlsafe(32)
+        username = "admin"
+        credentials = {"username": username, "password": password}
+        headers = {"Origin": origin}
+        legacy_token = jwt_service.create_token({"id": username, "role": "admin", "is_local": True})
+        client = TestClient(app, base_url=origin, follow_redirects=False)
+
+        with patch.object(settings, "engine_auth_origin", origin), patch.object(
+            settings, "engine_admin_password", SecretStr(password)
+        ):
+            page = client.get("/admin")
+            self.assertEqual(page.status_code, 200)
+            self.assertIn('data-engine-password-admin', page.text)
+            self.assertIn("no-store", page.headers["cache-control"])
+            self.assertIn("noindex", page.headers["x-robots-tag"])
+
+            self.assertEqual(client.get(session).status_code, 401)
+            self.assertEqual(client.get(operations, headers={"Authorization": "Bearer " + legacy_token}).status_code, 401)
+            self.assertEqual(client.post(session, json=credentials).status_code, 403)
+            self.assertEqual(client.post(session, json={**credentials, "password": "wrong"}, headers=headers).status_code, 401)
+            self.assertEqual(client.post("/api/v1/auth/local-login", json=credentials, headers=headers).status_code, 404)
+
+            result = client.post(session, json=credentials, headers=headers)
+            self.assertEqual(result.status_code, 200)
+            self.assertEqual(result.json(), {"success": True})
+            cookie = result.headers["set-cookie"].lower()
+            for directive in ("httponly", "secure", "samesite=strict", "path=/api/v1/admin"):
+                self.assertIn(directive, cookie)
+
+            self.assertEqual(client.get(session).status_code, 200)
+            self.assertEqual(client.get(operations).status_code, 200)
+            self.assertEqual(client.get("/api/v1/videos/history").status_code, 401)
+            self.assertEqual(client.delete(session, headers={"Origin": "https://other.example"}).status_code, 403)
+            with patch.object(settings, "engine_admin_password", SecretStr(secrets.token_urlsafe(32))):
+                self.assertEqual(client.get(session).status_code, 401)
+            self.assertEqual(client.delete(session, headers=headers).status_code, 200)
+            self.assertEqual(client.get(session).status_code, 401)

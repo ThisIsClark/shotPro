@@ -852,7 +852,9 @@
 <script>
 // ===== State =====
 const engineAdmin = document.body.hasAttribute('data-engine-admin');
-let authToken = engineAdmin ? '' : (localStorage.getItem('admin_token') || '');
+const passwordAdmin = document.body.hasAttribute('data-engine-password-admin');
+const adminSessionUrl = '/api/v1/admin/session';
+let authToken = engineAdmin || passwordAdmin ? '' : (localStorage.getItem('admin_token') || '');
 let currentPage = 'dashboard';
 let paginationState = { users: 0, analyses: 0, payments: 0, audit: 0, subscriptions: 0, behavior: 0 };
 
@@ -874,19 +876,21 @@ async function handleLogin() {
     errorEl.style.display = 'none';
 
     try {
-        const res = await fetch('/api/v1/auth/local-login', {
+        const res = await fetch(passwordAdmin ? adminSessionUrl : '/api/v1/auth/local-login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
         const data = await res.json();
 
-        if (data.success && data.token) {
-            authToken = data.token;
-            localStorage.setItem('admin_token', authToken);
+        if (res.ok && data.success && (passwordAdmin || data.token)) {
+            if (!passwordAdmin) {
+                authToken = data.token;
+                localStorage.setItem('admin_token', authToken);
+            }
             showAdmin();
         } else {
-            errorEl.textContent = data.message || 'Login failed';
+            errorEl.textContent = data.message || data.detail || 'Login failed';
             errorEl.style.display = 'block';
         }
     } catch (e) {
@@ -902,6 +906,15 @@ async function handleLogout() {
         const response = await fetch('/_auth/logout', { method: 'POST' }).catch(() => null);
         if (response?.ok) location.assign('/app');
         else alert('Could not sign out. Please try again.');
+        return;
+    }
+    if (passwordAdmin) {
+        const response = await fetch(adminSessionUrl, { method: 'DELETE' }).catch(() => null);
+        if (!response?.ok) {
+            alert('Could not sign out. Please try again.');
+            return;
+        }
+        location.assign('/admin');
         return;
     }
     authToken = '';
@@ -920,6 +933,11 @@ function showAdmin() {
 async function checkAuth() {
     if (engineAdmin) {
         showAdmin();
+        return;
+    }
+    if (passwordAdmin) {
+        const response = await fetch(adminSessionUrl).catch(() => null);
+        if (response?.ok) showAdmin();
         return;
     }
     if (!authToken) return;
@@ -944,13 +962,13 @@ async function apiFetch(path, options = {}) {
     const res = await fetch(`/api/v1/admin${path}`, {
         ...options,
         headers: {
-            ...(!engineAdmin && { 'Authorization': `Bearer ${authToken}` }),
+            ...(!engineAdmin && !passwordAdmin && { 'Authorization': `Bearer ${authToken}` }),
             'Content-Type': 'application/json',
             ...options.headers
         }
     });
     if (res.status === 401 || res.status === 403) {
-        if (engineAdmin) location.assign('/admin');
+        if (engineAdmin || passwordAdmin) location.assign('/admin');
         else handleLogout();
         throw new Error('Unauthorized');
     }

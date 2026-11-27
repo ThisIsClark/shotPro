@@ -16,6 +16,14 @@
 2. 执行 `python scripts/verify_live_site.py https://formrefine.ai`。检查 `/app?utm_source=test`、`/privacy` 和 sitemap 中的每篇指南。确认 canonical 仍为原绝对网址，公开页面允许收录，未知路径返回 404。
 3. 用测试账户实际完成 Google 回调、上传、生成报告和重新打开原视频。请求私有报告和视频的直达链接，确认匿名请求返回 401。检查分析页里的条款和隐私文案适用于新流程。
 
+## 正式管理后台
+
+在 Railway 的 `production-next → calm-celebration → Variables` 中设置 `ENGINE_ADMIN_PASSWORD`，并部署变量变更。用密码管理器生成至少 32 字符的随机密码。用户名沿用 `admin`。设置密码后，`/admin` 使用密码登录。轮换密码会使现有后台会话失效。
+
+在 Cloudflare 的 `formrefine-production-api` Worker 中设置文本变量 `ADMIN_ENABLED=true`，并部署。普通用户通过 GeFeiSites 提供的 Google 登录。
+
+在无痕窗口打开 `https://formrefine.ai/admin`，确认显示密码表单。登录前，`GET /api/v1/admin/session` 应返回 401。登录后，管理数据应可读取，退出后接口应重新返回 401。
+
 ## 回滚
 
 若 Google 回调、视频上传、报告读取或公开路径出现阻断，先从 Cloudflare 移除本次附加的生产代理路由，再解除本次在 GeFeiSites 添加的正式域名绑定，恢复切换前记录的 DNS 和代理状态。保留新版的数据库和视频卷，便于找回切换窗口内的报告。用正式域名重测旧站 `/app`、`/privacy`、指南和 sitemap。回滚会把流量交回旧站，切换期间新生成的报告仍留在新版存储。

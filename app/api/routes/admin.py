@@ -5,10 +5,13 @@ Admin Routes
 
 from typing import Optional
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
+from .auth import LocalLoginRequest
 from ..deps import get_current_user_required
+from ...services.admin_session import COOKIE_OPTIONS, SESSION_COOKIE, start_session
+from ...services.jwt_service import jwt_service
 from ...config import settings
 from ...services.audit_service import audit_service, AuditAction
 from ...services.db_service import db_service
@@ -19,10 +22,38 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 def require_admin(user: dict = Depends(get_current_user_required)) -> dict:
     """Require an administrator from the active identity provider."""
-    trusted = user.get("provider") == "gefei" if settings.engine_session_origin else user.get("is_local")
+    if settings.engine_session_origin:
+        provider = "admin_password" if settings.password_admin_enabled else "gefei"
+        trusted = user.get("provider") == provider
+    else:
+        trusted = user.get("is_local")
     if trusted and user.get("role") == "admin":
         return user
     raise HTTPException(status_code=403, detail="Admin access required")
+
+
+@router.post("/session")
+async def create_admin_session(credentials: LocalLoginRequest, response: Response):
+    if not settings.password_admin_enabled:
+        raise HTTPException(status_code=404)
+    token = start_session(credentials.username, credentials.password)
+    if not token:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    response.set_cookie(SESSION_COOKIE, token, max_age=jwt_service.TOKEN_EXPIRE_HOURS * 3600, **COOKIE_OPTIONS)
+    return {"success": True}
+
+
+@router.get("/session")
+async def get_admin_session(admin: dict = Depends(require_admin)):
+    return {"success": True}
+
+
+@router.delete("/session")
+async def delete_admin_session(response: Response):
+    if not settings.password_admin_enabled:
+        raise HTTPException(status_code=404)
+    response.delete_cookie(SESSION_COOKIE, **COOKIE_OPTIONS)
+    return {"success": True}
 
 
 # ===== Request Models =====
